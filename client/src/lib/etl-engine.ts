@@ -82,6 +82,22 @@ export const MOCK_SBSL_DATA: SbslRow[] = [
   }
 ];
 
+export const fetchCsvFile = async (filename: string): Promise<SbslRow[]> => {
+  try {
+    const response = await fetch(`/sample_data/${filename}`);
+    if (!response.ok) throw new Error(`Failed to fetch ${filename}`);
+    const arrayBuffer = await response.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+    const workbook = read(data, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    return utils.sheet_to_json(sheet) as SbslRow[];
+  } catch (error) {
+    console.error("Error fetching CSV:", error);
+    throw error;
+  }
+};
+
 export const processFile = async (file: File): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -112,6 +128,9 @@ export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], co
     
     const date = new Date(dateVal);
     // Handle Excel serial dates if necessary (though sheet_to_json usually handles common formats)
+    // If invalid date, it might return NaN for getMonth
+    if (isNaN(date.getTime())) return false;
+
     return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
   });
   
@@ -131,9 +150,22 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
     });
     
     // Logic Checks
-    if (row['Loan Amount'] <= 0) errors.push("Loan Amount must be positive");
-    if (row['State'] && row['State'].length !== 2) errors.push("State must be 2-letter code");
-    if (row['Zip'] && String(row['Zip']).length < 5) errors.push("Invalid ZIP code");
+    // Ensure Loan Amount is treated as number
+    const loanAmount = Number(row['Loan Amount']);
+    if (isNaN(loanAmount) || loanAmount <= 0) errors.push("Loan Amount must be positive");
+    
+    if (row['State'] && String(row['State']).trim().length !== 2) errors.push("State must be 2-letter code");
+    
+    if (row['Zip']) {
+      const zipStr = String(row['Zip']).trim();
+      // Simple check: must be at least 5 chars
+      if (zipStr.length < 5) errors.push("Invalid ZIP code");
+      // Check if contains letters (rudimentary check for US zip)
+      if (/[a-zA-Z]/.test(zipStr)) errors.push("ZIP contains letters");
+    } else {
+       // Zip is missing
+       // errors.push("Missing Zip"); // Already covered by required check if added to required list, but it's not there currently.
+    }
     
     if (errors.length > 0) {
       results.push({

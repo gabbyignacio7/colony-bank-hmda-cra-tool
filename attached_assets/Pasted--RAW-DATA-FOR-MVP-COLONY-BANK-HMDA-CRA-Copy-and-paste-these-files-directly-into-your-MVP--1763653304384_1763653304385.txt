@@ -1,0 +1,333 @@
+## **RAW DATA FOR MVP - COLONY BANK HMDA/CRA**
+
+Copy and paste these files directly into your MVP tool for testing.
+
+---
+
+### **FILE 1: SAMPLE SBSL CRA EXPORT (Primary Test File)**
+
+**Filename:** `sample_sbsl_cra_export.csv`
+
+```csv
+ApplNumb,Last Name,Loan Type,Action Taken,Loan Amount,Note Date,Revenue,Affiliate,Address,City,State,Zip,Comment,Column14
+2024-001,Smith,Business,Originated,75000,11/15/2024,250000,Main Branch,123 Main St,Springfield,GA,30301,,
+2024-002,Johnson,Commercial,Approved,150000,11/18/2024,500000,North Branch,456 Oak Ave,Franklin,GA,30302,,
+2024-003,Williams,Small Business,Originated,50000,11/20/2024,180000,South Branch,789 Pine Rd,Madison,GA,30303,,
+2024-001,Smith,Business,Originated,75000,11/15/2024,250000,Main Branch,123 Main St,Springfield,GA,30301,,
+2024-004,Brown,Business,Denied,100000,11/22/2024,320000,East Branch,321 Elm St,Georgetown,GA,30304,,
+2024-005,,Business,Originated,80000,11/25/2024,200000,Main Branch,654 Maple Dr,Springfield,GA,30301,,
+2024-006,Garcia,Commercial,Originated,-5000,11/26/2024,400000,North Branch,987 Cedar Ln,Franklin,GA,30302,,
+2024-007,Miller,Business,Originated,125000,11/28/2024,350000,South Branch,147 Birch Ct,Madison,ZZ,30303,,
+2024-008,Davis,Small Business,Originated,60000,11/30/2024,220000,East Branch,258 Walnut Way,Georgetown,GA,123,,
+2024-009,Rodriguez,Business,Originated,95000,11/05/2024,280000,Main Branch,369 Spruce St,Springfield,GA,30301,,
+2024-010,Martinez,Commercial,Approved,180000,11/10/2024,550000,North Branch,741 Ash Blvd,Franklin,GA,30302,,
+2024-011,Anderson,Small Business,Originated,45000,11/12/2024,160000,South Branch,852 Willow Ln,Madison,GA,30303,,
+2024-012,Taylor,Business,Withdrawn,110000,11/14/2024,300000,East Branch,963 Poplar Ave,Georgetown,GA,30304,,
+2024-013,Thomas,Business,Originated,85000,11/16/2024,240000,Main Branch,147 Hickory Dr,Springfield,GA,30301,,
+2024-014,Hernandez,Commercial,Originated,165000,11/19/2024,480000,North Branch,258 Dogwood Ct,Franklin,GA,30302,,
+2024-015,Moore,Small Business,Originated,55000,11/21/2024,190000,South Branch,369 Magnolia Way,Madison,GA,30303,,
+2024-016,Martin,Business,Originated,120000,11/23/2024,340000,East Branch,741 Sycamore Rd,Georgetown,GA,30304,,
+2024-017,Jackson,Business,Denied,140000,11/27/2024,420000,Main Branch,852 Chestnut St,Springfield,GA,30301,,
+2024-018,Thompson,Commercial,Originated,175000,11/29/2024,520000,North Branch,963 Pecan Ave,Franklin,GA,30302,,
+2024-019,White,Small Business,Originated,65000,10/15/2024,210000,South Branch,147 Walnut Blvd,Madison,GA,30303,,
+2024-020,Lopez,Business,Originated,105000,10/20/2024,290000,East Branch,258 Cedar Ln,Georgetown,GA,30304,,
+2024-021,Lee,Commercial,Approved,155000,10/25/2024,460000,Main Branch,369 Pine Dr,Springfield,GA,30301,,
+2024-022,Gonzalez,Small Business,Originated,48000,10/28/2024,170000,North Branch,741 Oak Ct,Franklin,GA,30302,,
+2024-023,Harris,Business,Originated,92000,09/10/2024,270000,South Branch,852 Maple Way,Madison,GA,30303,,
+2024-024,Clark,Business,Originated,115000,09/15/2024,330000,East Branch,963 Elm Rd,Georgetown,GA,30304,,
+2024-025,Lewis,Commercial,Originated,170000,09/20/2024,500000,Main Branch,147 Birch St,Springfield,GA,30301,,
+2024-026,Robinson,Small Business,Denied,52000,09/25/2024,185000,North Branch,258 Ash Ave,Franklin,GA,30302,,
+2024-027,Walker,Business,Originated,88000,08/05/2024,255000,South Branch,369 Spruce Blvd,Madison,GA,30303,,
+2024-028,Young,Business,Withdrawn,108000,08/10/2024,305000,East Branch,741 Willow Ln,Georgetown,GA,30304,,
+2024-029,Allen,Commercial,Originated,162000,08/15/2024,475000,Main Branch,852 Poplar Dr,Springfield,GA,30301,,
+2024-030,King,Small Business,Originated,58000,08/20/2024,198000,North Branch,963 Hickory Ct,Franklin,GA,30302,,
+2024-031,Wright,Business,Originated,98000,07/12/2024,285000,South Branch,147 Dogwood Way,Madison,GA,30303,,
+2024-032,Scott,Business,Originated,118000,07/18/2024,345000,East Branch,258 Magnolia Rd,Georgetown,GA,30304,,
+2024-033,Torres,Commercial,Approved,168000,07/22/2024,495000,Main Branch,369 Sycamore St,Springfield,GA,30301,,
+2024-034,Nguyen,Small Business,Originated,47000,07/28/2024,165000,North Branch,741 Chestnut Ave,Franklin,GA,30302,,
+2024-035,Hill,Business,Originated,91000,06/08/2024,268000,South Branch,852 Pecan Blvd,Madison,GA,30303,,
+2024-036,Flores,Business,Denied,113000,06/14/2024,325000,East Branch,963 Walnut Ln,Georgetown,GA,30304,,
+2024-037,Green,Commercial,Originated,163000,06/20/2024,482000,Main Branch,147 Cedar Dr,Springfield,GA,30301,,
+2024-038,Adams,Small Business,Originated,54000,06/25/2024,188000,North Branch,258 Pine Ct,Franklin,GA,30302,,
+2024-039,Nelson,Business,Originated,87000,05/10/2024,253000,South Branch,369 Oak Way,Madison,GA,30303,,
+2024-040,Baker,Business,Originated,107000,05/16/2024,302000,East Branch,741 Maple Rd,Georgetown,GA,30304,,
+2024-041,Hall,Commercial,Originated,159000,05/22/2024,468000,Main Branch,852 Elm St,Springfield,GA,30301,,
+2024-042,Rivera,Small Business,Withdrawn,51000,05/28/2024,182000,North Branch,963 Birch Ave,Franklin,GA,30302,,
+2024-043,Campbell,Business,Originated,94000,04/05/2024,275000,South Branch,147 Ash Blvd,Madison,GA,30303,,
+2024-044,Mitchell,Business,Originated,116000,04/12/2024,338000,East Branch,258 Spruce Ln,Georgetown,GA,30304,,
+2024-045,Carter,Commercial,Approved,166000,04/18/2024,490000,Main Branch,369 Willow Dr,Springfield,GA,30301,,
+2024-046,Roberts,Small Business,Originated,56000,04/24/2024,193000,North Branch,741 Poplar Ct,Franklin,GA,30302,,
+```
+
+---
+
+### **FILE 2: VALIDATION TEST CASES (Specific Error Scenarios)**
+
+**Filename:** `validation_test_cases.csv`
+
+```csv
+ApplNumb,Last Name,Loan Type,Action Taken,Loan Amount,Note Date,Revenue,Affiliate,Address,City,State,Zip,Comment,Column14
+TEST-001,ValidRecord,Business,Originated,75000,11/15/2024,250000,Main Branch,123 Main St,Springfield,GA,30301,This is a completely valid record,
+TEST-002,,Business,Originated,80000,11/16/2024,200000,Main Branch,456 Oak Ave,Franklin,GA,30302,ERROR: Missing Last Name,
+TEST-003,MissingLoanType,,Originated,85000,11/17/2024,220000,North Branch,789 Pine Rd,Madison,GA,30303,ERROR: Missing Loan Type,
+TEST-004,MissingAction,Business,,90000,11/18/2024,240000,South Branch,321 Elm St,Georgetown,GA,30304,ERROR: Missing Action Taken,
+TEST-005,ZeroAmount,Business,Originated,0,11/19/2024,260000,East Branch,654 Maple Dr,Springfield,GA,30301,ERROR: Loan Amount is zero,
+TEST-006,NegativeAmount,Commercial,Originated,-50000,11/20/2024,280000,Main Branch,987 Cedar Ln,Franklin,GA,30302,ERROR: Negative Loan Amount,
+TEST-007,InvalidDate,Business,Originated,95000,13/45/2024,300000,North Branch,147 Birch Ct,Madison,GA,30303,ERROR: Invalid date format,
+TEST-008,MissingAddress,Business,Originated,100000,11/21/2024,320000,South Branch,,Georgetown,GA,30304,ERROR: Missing Address,
+TEST-009,MissingCity,Business,Originated,105000,11/22/2024,340000,East Branch,258 Walnut Way,,GA,30301,ERROR: Missing City,
+TEST-010,InvalidState,Business,Originated,110000,11/23/2024,360000,Main Branch,369 Spruce St,Springfield,ZZ,30302,ERROR: Invalid State code (ZZ),
+TEST-011,InvalidZip1,Business,Originated,115000,11/24/2024,380000,North Branch,741 Ash Blvd,Franklin,GA,123,ERROR: ZIP too short (3 digits),
+TEST-012,InvalidZip2,Business,Originated,120000,11/25/2024,400000,South Branch,852 Willow Ln,Madison,GA,ABCDE,ERROR: ZIP contains letters,
+TEST-013,MissingZip,Business,Originated,125000,11/26/2024,420000,East Branch,963 Poplar Ave,Georgetown,GA,,ERROR: Missing ZIP code,
+TEST-014,FutureDate,Business,Originated,130000,12/31/2025,440000,Main Branch,147 Hickory Dr,Springfield,GA,30303,WARNING: Future date,
+TEST-015,VeryOldDate,Business,Originated,135000,01/01/1985,460000,North Branch,258 Dogwood Ct,Franklin,GA,30304,WARNING: Very old date,
+TEST-016,MultipleErrors,,Originated,0,11/27/2024,480000,South Branch,,Madison,ZZ,ABC,ERROR: Multiple validation failures,
+TEST-017,ValidButUnusual,Business,Originated,999999,11/28/2024,9999999,East Branch,741 Sycamore Rd,Georgetown,GA,30301-1234,WARNING: Unusually high amounts (9-digit ZIP OK),
+TEST-018,MinimalValid,Smith,Business,Originated,25000,11/29/2024,100000,Main Branch,123 St,City,GA,30301,Minimal valid record,
+TEST-019,Duplicate1,Johnson,Business,Originated,50000,11/30/2024,150000,North Branch,456 Ave,Town,GA,30302,First instance of duplicate,
+TEST-019,Johnson,Business,Originated,50000,11/30/2024,150000,North Branch,456 Ave,Town,GA,30302,DUPLICATE: Same ApplNumb as TEST-019,
+```
+
+---
+
+### **FILE 3: CURRENT MONTH DATA (November 2024 Filter Test)**
+
+**Filename:** `current_month_test.csv`
+
+```csv
+ApplNumb,Last Name,Loan Type,Action Taken,Loan Amount,Note Date,Revenue,Affiliate,Address,City,State,Zip,Comment,Column14
+NOV-001,November1,Business,Originated,75000,11/01/2024,250000,Main Branch,100 First St,Springfield,GA,30301,Should be included (Nov 2024),
+NOV-002,November2,Business,Originated,80000,11/15/2024,260000,Main Branch,200 Mid St,Springfield,GA,30301,Should be included (Nov 2024),
+NOV-003,November3,Business,Originated,85000,11/30/2024,270000,Main Branch,300 Last St,Springfield,GA,30301,Should be included (Nov 2024),
+OCT-001,October1,Business,Originated,90000,10/15/2024,280000,Main Branch,400 Old St,Springfield,GA,30301,Should be EXCLUDED (Oct 2024),
+OCT-002,October2,Business,Originated,95000,10/31/2024,290000,Main Branch,500 Past St,Springfield,GA,30301,Should be EXCLUDED (Oct 2024),
+DEC-001,December1,Business,Originated,100000,12/01/2024,300000,Main Branch,600 Next St,Springfield,GA,30301,Should be EXCLUDED (Dec 2024),
+SEP-001,September1,Business,Originated,105000,09/15/2024,310000,Main Branch,700 Way St,Springfield,GA,30301,Should be EXCLUDED (Sep 2024),
+```
+
+---
+
+### **FILE 4: DUPLICATE TEST DATA**
+
+**Filename:** `duplicate_test.csv`
+
+```csv
+ApplNumb,Last Name,Loan Type,Action Taken,Loan Amount,Note Date,Revenue,Affiliate,Address,City,State,Zip,Comment,Column14
+DUP-001,UniqueRecord,Business,Originated,75000,11/15/2024,250000,Main Branch,123 Main St,Springfield,GA,30301,No duplicates,
+DUP-002,FirstInstance,Business,Originated,80000,11/16/2024,260000,Main Branch,456 Oak Ave,Franklin,GA,30302,First occurrence,
+DUP-002,DuplicateA,Business,Originated,85000,11/17/2024,270000,North Branch,789 Pine Rd,Madison,GA,30303,DUPLICATE of DUP-002,
+DUP-002,DuplicateB,Business,Originated,90000,11/18/2024,280000,South Branch,321 Elm St,Georgetown,GA,30304,DUPLICATE of DUP-002,
+DUP-003,AnotherUnique,Business,Originated,95000,11/19/2024,290000,East Branch,654 Maple Dr,Springfield,GA,30301,No duplicates,
+DUP-004,TripleFirst,Business,Originated,100000,11/20/2024,300000,Main Branch,987 Cedar Ln,Franklin,GA,30302,First of 3 duplicates,
+DUP-004,TripleSecond,Business,Originated,105000,11/21/2024,310000,North Branch,147 Birch Ct,Madison,GA,30303,DUPLICATE 1 of DUP-004,
+DUP-004,TripleThird,Business,Originated,110000,11/22/2024,320000,South Branch,258 Walnut Way,Georgetown,GA,30304,DUPLICATE 2 of DUP-004,
+DUP-005,LastUnique,Business,Originated,115000,11/23/2024,330000,East Branch,369 Spruce St,Springfield,GA,30301,No duplicates,
+```
+
+---
+
+### **FILE 5: EDGE CASES AND BOUNDARY CONDITIONS**
+
+**Filename:** `edge_cases.csv`
+
+```csv
+ApplNumb,Last Name,Loan Type,Action Taken,Loan Amount,Note Date,Revenue,Affiliate,Address,City,State,Zip,Comment,Column14
+EDGE-001,MinAmount,Business,Originated,1,11/15/2024,50000,Main Branch,123 Main St,Springfield,GA,30301,Minimum loan amount ($1),
+EDGE-002,MaxAmount,Business,Originated,99999999,11/16/2024,99999999,Main Branch,456 Oak Ave,Franklin,GA,30302,Very large amounts,
+EDGE-003,ZipWithDash,Business,Originated,75000,11/17/2024,250000,Main Branch,789 Pine Rd,Madison,GA,30303-1234,9-digit ZIP with dash (valid),
+EDGE-004,ZipNoDash,Business,Originated,80000,11/18/2024,260000,Main Branch,321 Elm St,Georgetown,GA,303041234,9-digit ZIP no dash (valid),
+EDGE-005,ShortZip,Business,Originated,85000,11/19/2024,270000,Main Branch,654 Maple Dr,Springfield,GA,30304,Standard 5-digit ZIP,
+EDGE-006,DCState,Business,Originated,90000,11/20/2024,280000,Main Branch,987 Cedar Ln,Washington,DC,20001,Washington DC as state,
+EDGE-007,LongNames,VeryLongLastNameThatIsUnusuallyLengthyForTesting,Business,Originated,95000,11/21/2024,290000,Main Branch,147 Birch Ct,VeryLongCityNameForTesting,GA,30301,Testing long text fields,
+EDGE-008,SpecialChars,O'Brien-Smith,Business,Originated,100000,11/22/2024,300000,Main Branch,258 Walnut Way,Springfield,GA,30302,Special characters in name,
+EDGE-009,AllCaps,JOHNSON,BUSINESS,ORIGINATED,105000,11/23/2024,310000,MAIN BRANCH,369 SPRUCE ST,SPRINGFIELD,GA,30303,ALL CAPS TEXT,
+EDGE-010,MixedCase,mIxEd CaSe,Business,Originated,110000,11/24/2024,320000,Main Branch,741 Ash Blvd,Franklin,GA,30304,Mixed case inconsistency,
+EDGE-011,Whitespace,  Smith  ,Business,Originated,115000,11/25/2024,330000,Main Branch,852 Willow Ln,Madison,GA,30301,Leading/trailing spaces,
+EDGE-012,EmptyComment,Williams,Business,Originated,120000,11/26/2024,340000,Main Branch,963 Poplar Ave,Georgetown,GA,30302,,Empty comment field (valid),
+EDGE-013,LongComment,Brown,Business,Originated,125000,11/27/2024,350000,Main Branch,147 Hickory Dr,Springfield,GA,30303,This is a very long comment that goes on and on and on to test whether the system can handle lengthy comment fields without breaking or truncating the data in unexpected ways,
+EDGE-014,NumericText,12345,Business,Originated,130000,11/28/2024,360000,Main Branch,258 Dogwood Ct,Franklin,GA,30304,Last name is all numbers (weird but valid),
+EDGE-015,DateEdge1,Martinez,Business,Originated,135000,11/01/2024,370000,Main Branch,369 Magnolia Way,Madison,GA,30301,First day of November,
+EDGE-016,DateEdge2,Garcia,Business,Originated,140000,11/30/2024,380000,Main Branch,741 Sycamore Rd,Georgetown,GA,30302,Last day of November,
+```
+
+---
+
+### **FILE 6: EXPECTED OUTPUT STRUCTURE (For Validation)**
+
+**Filename:** `expected_output_structure.txt`
+
+```
+CONSOLIDATED CSV OUTPUT SHOULD HAVE:
+================================
+- Same 14 columns as input
+- Only records from current month (November 2024)
+- Duplicates removed (first occurrence kept)
+- All data types preserved
+- No error marking symbols
+- UTF-8 encoding
+
+TAB-DELIMITED TXT OUTPUT SHOULD HAVE:
+====================================
+- Tab character (\t) as delimiter
+- No quotes around text fields
+- Same data as CSV
+- Ready for CRAWiz import
+- First row = column headers
+- Subsequent rows = data
+
+ERROR REPORT CSV SHOULD HAVE:
+============================
+Column 1: Row (Excel row number, 1-indexed + 1 for header)
+Column 2: ApplNumb (Application number from record)
+Column 3: Errors (semicolon-separated list of error descriptions)
+Column 4: Error_Count (number of errors for this row)
+
+Example error report row:
+6,TEST-002,Missing Last Name,1
+7,TEST-003,Missing Loan Type,1
+8,TEST-005,Loan Amount must be positive,1
+```
+
+---
+
+### **FILE 7: SAMPLE EXPECTED RESULTS (For Your Reference)**
+
+**Expected Processing Results for `sample_sbsl_cra_export.csv`:**
+
+```
+SUMMARY STATISTICS:
+==================
+Total Records in File: 46
+Current Month Filter (November 2024): 18 records
+Duplicates Found: 1 (ApplNumb 2024-001 appears twice)
+Duplicates Removed: 1
+Records After Deduplication: 17
+
+VALIDATION ERRORS:
+==================
+Row 6 | ApplNumb: 2024-005 | Errors: Missing Last Name | Count: 1
+Row 7 | ApplNumb: 2024-006 | Errors: Loan Amount must be positive | Count: 1
+Row 8 | ApplNumb: 2024-007 | Errors: State must be valid 2-letter code | Count: 1
+Row 9 | ApplNumb: 2024-008 | Errors: Invalid ZIP code format | Count: 1
+
+Total Validation Errors: 4 records with errors
+
+FINANCIAL SUMMARY:
+==================
+Total Loan Amount: $1,598,000
+Average Loan Amount: $94,000
+Date Range: 11/05/2024 to 11/30/2024
+
+LOAN TYPE DISTRIBUTION:
+=======================
+Business: 10 (58.8%)
+Commercial: 5 (29.4%)
+Small Business: 2 (11.8%)
+
+ACTION TAKEN DISTRIBUTION:
+==========================
+Originated: 14 (82.4%)
+Approved: 2 (11.8%)
+Denied: 1 (5.9%)
+```
+
+---
+
+### **FILE 8: TEST PLAN (How to Validate Your MVP)**
+
+**Test Scenario 1: Happy Path**
+```
+1. Upload: sample_sbsl_cra_export.csv
+2. Options: All checkboxes checked
+3. Expected Result:
+   - 18 records filtered for November
+   - 1 duplicate removed
+   - 17 records in final output
+   - 4 validation errors identified
+   - 3 download files generated
+```
+
+**Test Scenario 2: Validation Failures**
+```
+1. Upload: validation_test_cases.csv
+2. Options: All checkboxes checked
+3. Expected Result:
+   - 20 records total
+   - 13+ validation errors caught
+   - Error report clearly shows each issue
+   - Download still works despite errors
+```
+
+**Test Scenario 3: Date Filtering**
+```
+1. Upload: current_month_test.csv
+2. Options: Filter by current month = checked
+3. Expected Result:
+   - Only 3 records (NOV-001, NOV-002, NOV-003)
+   - All October/September/December records excluded
+   - Clear messaging: "Filtered from 7 to 3 records"
+```
+
+**Test Scenario 4: Duplicate Detection**
+```
+1. Upload: duplicate_test.csv
+2. Options: Remove duplicates = checked
+3. Expected Result:
+   - 9 total records
+   - 4 duplicates identified (DUP-002 x2, DUP-004 x2)
+   - 5 records in final output
+   - Duplicate report shows which were removed
+```
+
+**Test Scenario 5: Edge Cases**
+```
+1. Upload: edge_cases.csv
+2. Options: All checkboxes checked
+3. Expected Result:
+   - Handles 9-digit ZIPs correctly
+   - Handles special characters in names
+   - Handles very long text fields
+   - Handles mixed case and whitespace
+   - No crashes or errors
+```
+
+---
+
+### **FILE 9: QUICK REFERENCE - VALID STATE CODES**
+
+```
+Valid US State Codes (for validation logic):
+AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA,
+HI, ID, IL, IN, IA, KS, KY, LA, ME, MD,
+MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ,
+NM, NY, NC, ND, OH, OK, OR, PA, RI, SC,
+SD, TN, TX, UT, VT, VA, WA, WV, WI, WY, DC
+```
+
+---
+
+### **HOW TO USE THIS DATA IN YOUR MVP**
+
+1. **For Replit:**
+   - Create a `sample_data/` folder
+   - Upload all CSV files to this folder
+   - Reference them in your Streamlit app as default test files
+   - Allow users to upload their own files or use samples
+
+2. **For Genspark:**
+   - Include these CSV files in your requirements
+   - Tell Genspark to pre-populate with this test data
+   - Use for automated testing and demos
+
+3. **For Manual Testing:**
+   - Download each CSV file
+   - Upload to your tool one at a time
+   - Verify results match expected outputs
+   - Test all scenarios before showing Ryan
+
+---
+
+**YOU NOW HAVE EVERYTHING YOU NEED TO BUILD AND TEST THE MVP.** 🚀
+
+Save these files, load them into your tool, and validate that everything works as expected before demoing to Ryan.
