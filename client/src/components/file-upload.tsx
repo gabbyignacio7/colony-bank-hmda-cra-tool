@@ -1,6 +1,5 @@
-import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, FileSpreadsheet, CheckCircle, X, AlertCircle } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Upload, FileSpreadsheet, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -12,21 +11,44 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ label, description, accept, onFileSelect, file }: FileUploadProps) {
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      onFileSelect(acceptedFiles[0]);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setIsDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setIsDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      onFileSelect(e.dataTransfer.files[0]);
     }
   }, [onFileSelect]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: accept || {
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/csv': ['.csv']
-    },
-    maxFiles: 1
-  });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      onFileSelect(e.target.files[0]);
+    }
+  };
+
+  const onButtonClick = () => {
+    inputRef.current?.click();
+  };
+
+  // Simple accept string for input
+  const acceptString = accept 
+    ? Object.values(accept).flat().join(',')
+    : ".xlsx,.xls,.csv";
 
   return (
     <div className="w-full">
@@ -40,14 +62,24 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
       </div>
       
       <div
-        {...getRootProps()}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        onClick={onButtonClick}
         className={cn(
           "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer flex flex-col items-center justify-center text-center min-h-[120px]",
           isDragActive ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-accent/50",
           file ? "border-green-200 bg-green-50/30" : ""
         )}
       >
-        <input {...getInputProps()} />
+        <input 
+          ref={inputRef}
+          type="file" 
+          className="hidden" 
+          onChange={handleChange}
+          accept={acceptString}
+        />
         
         {file ? (
           <div className="flex flex-col items-center gap-2">
