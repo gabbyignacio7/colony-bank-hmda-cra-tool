@@ -1,0 +1,761 @@
+## **COMPREHENSIVE REPLIT PROMPT - ADD RYAN'S REQUESTS TO COLONY BANK TOOL**
+
+Copy and paste this into Replit AI:
+
+---
+
+**CONTEXT:**
+
+I just demoed the Colony Bank HMDA/CRA tool to Ryan (CEO). He liked it but has specific requests to add before we deploy. The tool is currently 90% complete. I need to add the remaining 10% based on his feedback from our meeting today.
+
+**CURRENT STATE:**
+- Working Streamlit app that uploads SBSL CRA files
+- Validates data, filters by current month, removes duplicates
+- Generates 3 downloadable files (CSV, TXT, Error Report)
+- Processing takes ~2 seconds
+- Hosted on Replit
+
+---
+
+### **PART 1: RYAN'S SPECIFIC REQUESTS**
+
+#### **Request 1: Password Protection**
+
+**What Ryan Said:** "I'm gonna put some password on it too"
+
+**Implementation:**
+```python
+# Add password protection to the Streamlit app
+# Use streamlit-authenticator or simple password gate
+
+import streamlit as st
+
+# At the very top of main.py, before any other content:
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+    
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.markdown("**Colony Bank HMDA/CRA ETL Tool** - Enter password to access")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+if check_password():
+    # Rest of your app goes here
+    st.title("🏦 Colony Bank HMDA/CRA ETL Automation")
+    # ... all your existing code ...
+```
+
+**Create `.streamlit/secrets.toml` file:**
+```toml
+password = "ColonyBank2024!"
+```
+
+**Notes:**
+- Password will be stored in Replit Secrets (not in code)
+- Simple password gate - no user management needed for MVP
+- Can upgrade to multi-user auth in Phase 2
+
+---
+
+#### **Request 2: Expected Output Comparison (Diff Testing)**
+
+**What Ryan Said:** "I got some of the data files there of like expected output alongside the raw and we can run in that, and then we'll do, like a simple diff or something"
+
+**Implementation:**
+
+Add a new section to the Streamlit app for testing mode:
+
+```python
+# Add this after the main processing section
+
+st.markdown("---")
+st.header("🧪 Testing & Validation (For Ryan)")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Upload Expected Output")
+    expected_file = st.file_uploader(
+        "Upload expected output file for comparison",
+        type=['csv', 'xlsx', 'xls'],
+        key="expected_output",
+        help="Upload the 'expected output' file to compare against actual output"
+    )
+
+with col2:
+    st.subheader("Run Diff Comparison")
+    if st.button("Compare Outputs", type="secondary"):
+        if expected_file and 'df_processed' in locals():
+            st.info("Running diff comparison...")
+            
+            # Load expected output
+            expected_df = load_expected_output(expected_file)
+            
+            # Compare
+            diff_results = compare_dataframes(df_processed, expected_df)
+            
+            # Display results
+            st.subheader("📊 Comparison Results")
+            
+            if diff_results['identical']:
+                st.success("✅ Outputs are IDENTICAL - test passed!")
+            else:
+                st.warning(f"⚠️ Found {diff_results['diff_count']} differences")
+                
+                # Show differences
+                with st.expander("View Differences", expanded=True):
+                    st.dataframe(diff_results['differences'])
+                
+                # Show summary
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Rows in Actual", diff_results['actual_rows'])
+                with col2:
+                    st.metric("Rows in Expected", diff_results['expected_rows'])
+                with col3:
+                    st.metric("Difference", diff_results['row_diff'])
+        else:
+            st.error("Please process a file first and upload expected output")
+```
+
+**Add comparison functions to `etl_functions.py`:**
+
+```python
+def load_expected_output(file) -> pd.DataFrame:
+    """Load expected output file for comparison"""
+    try:
+        if file.name.endswith('.csv'):
+            return pd.read_csv(file)
+        else:
+            return pd.read_excel(file)
+    except Exception as e:
+        raise ValueError(f"Error loading expected output: {str(e)}")
+
+def compare_dataframes(actual_df: pd.DataFrame, expected_df: pd.DataFrame) -> Dict:
+    """
+    Compare actual output vs expected output
+    Returns dictionary with comparison results
+    """
+    results = {
+        'identical': False,
+        'diff_count': 0,
+        'differences': pd.DataFrame(),
+        'actual_rows': len(actual_df),
+        'expected_rows': len(expected_df),
+        'row_diff': abs(len(actual_df) - len(expected_df))
+    }
+    
+    # Check if dataframes are identical
+    if actual_df.equals(expected_df):
+        results['identical'] = True
+        return results
+    
+    # Find differences
+    differences = []
+    
+    # Compare row counts
+    if len(actual_df) != len(expected_df):
+        differences.append({
+            'Type': 'Row Count',
+            'Actual': len(actual_df),
+            'Expected': len(expected_df),
+            'Difference': abs(len(actual_df) - len(expected_df))
+        })
+    
+    # Compare column names
+    actual_cols = set(actual_df.columns)
+    expected_cols = set(expected_df.columns)
+    
+    if actual_cols != expected_cols:
+        missing_in_actual = expected_cols - actual_cols
+        extra_in_actual = actual_cols - expected_cols
+        
+        if missing_in_actual:
+            differences.append({
+                'Type': 'Missing Columns in Actual',
+                'Columns': ', '.join(missing_in_actual)
+            })
+        if extra_in_actual:
+            differences.append({
+                'Type': 'Extra Columns in Actual',
+                'Columns': ', '.join(extra_in_actual)
+            })
+    
+    # Compare values for common columns
+    common_cols = list(actual_cols.intersection(expected_cols))
+    
+    for col in common_cols:
+        # Compare column by column
+        actual_vals = actual_df[col].fillna('')
+        expected_vals = expected_df[col].fillna('')
+        
+        if not actual_vals.equals(expected_vals):
+            diff_count = (actual_vals != expected_vals).sum()
+            differences.append({
+                'Type': 'Value Difference',
+                'Column': col,
+                'Rows Affected': diff_count,
+                'Sample Actual': str(actual_vals.iloc[0]) if len(actual_vals) > 0 else '',
+                'Sample Expected': str(expected_vals.iloc[0]) if len(expected_vals) > 0 else ''
+            })
+    
+    results['diff_count'] = len(differences)
+    results['differences'] = pd.DataFrame(differences)
+    
+    return results
+```
+
+---
+
+#### **Request 3: Stress Testing with Actual Data**
+
+**What Ryan Said:** "I'll look at this and then give me some feedback... stress test it"
+
+**Implementation:**
+
+Add a stress test mode with multiple files and edge cases:
+
+```python
+# Add to main.py
+
+st.markdown("---")
+st.header("💪 Stress Testing Mode")
+
+st.markdown("""
+Upload multiple files to test the tool's performance and accuracy:
+- Large files (500+ rows)
+- Files with many errors
+- Files with many duplicates
+- Files with edge cases (special characters, unusual formats)
+""")
+
+stress_test_files = st.file_uploader(
+    "Upload multiple files for stress testing",
+    type=['xlsx', 'xls', 'csv'],
+    accept_multiple_files=True,
+    key="stress_test"
+)
+
+if stress_test_files and st.button("Run Stress Test", type="secondary"):
+    st.info(f"Running stress test on {len(stress_test_files)} files...")
+    
+    stress_results = []
+    
+    for idx, file in enumerate(stress_test_files):
+        with st.spinner(f"Processing file {idx+1}/{len(stress_test_files)}: {file.name}..."):
+            try:
+                start_time = time.time()
+                
+                # Process file
+                df = etl.load_sbsl_file(file)
+                df_filtered = etl.filter_by_current_month(df, 'Note Date')
+                df_processed, df_duplicates = etl.remove_duplicate_applications(df_filtered)
+                errors = etl.validate_required_fields(df_processed, rules.SBSL_REQUIRED_FIELDS)
+                
+                end_time = time.time()
+                processing_time = end_time - start_time
+                
+                stress_results.append({
+                    'File': file.name,
+                    'Input Rows': len(df),
+                    'Output Rows': len(df_processed),
+                    'Duplicates': len(df_duplicates),
+                    'Errors': len(errors),
+                    'Processing Time (sec)': round(processing_time, 2),
+                    'Status': '✅ Success'
+                })
+                
+            except Exception as e:
+                stress_results.append({
+                    'File': file.name,
+                    'Status': f'❌ Failed: {str(e)}'
+                })
+    
+    # Display results
+    st.subheader("📊 Stress Test Results")
+    results_df = pd.DataFrame(stress_results)
+    st.dataframe(results_df)
+    
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Files Processed", len(stress_test_files))
+    with col2:
+        success_count = len([r for r in stress_results if r['Status'] == '✅ Success'])
+        st.metric("Success Rate", f"{success_count}/{len(stress_test_files)}")
+    with col3:
+        avg_time = results_df['Processing Time (sec)'].mean() if 'Processing Time (sec)' in results_df else 0
+        st.metric("Avg Processing Time", f"{avg_time:.2f}s")
+    with col4:
+        total_rows = results_df['Input Rows'].sum() if 'Input Rows' in results_df else 0
+        st.metric("Total Rows Processed", total_rows)
+    
+    # Download stress test report
+    stress_report_csv = results_df.to_csv(index=False)
+    st.download_button(
+        label="⬇️ Download Stress Test Report",
+        data=stress_report_csv,
+        file_name=f"stress_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv"
+    )
+```
+
+---
+
+#### **Request 4: Simple User Manual**
+
+**What Ryan Said:** "I'll put the manual, like a simple manual"
+
+**Create `USER_MANUAL.md` file:**
+
+```markdown
+# Colony Bank HMDA/CRA ETL Tool - User Manual
+
+## Quick Start Guide
+
+### Step 1: Access the Tool
+1. Go to: [Replit URL]
+2. Enter password: `ColonyBank2024!`
+3. Click "Log In"
+
+### Step 2: Upload Your File
+1. Click "Choose File" or drag-and-drop
+2. Upload your SBSL CRA Export file (.xlsx, .xls, or .csv)
+3. Supported file: "SBSL CRA - (Convert Sheet 1 into CRA Tab for Current Month).xlsx"
+
+### Step 3: Select Processing Options
+✅ **Filter by current month** (recommended)
+- Keeps only records from the current month based on Note Date column
+
+✅ **Remove duplicates** (recommended)
+- Removes duplicate ApplNumb values, keeping first occurrence
+
+✅ **Run data validation** (recommended)
+- Checks for missing required fields and invalid data types
+
+### Step 4: Process Your Data
+1. Click the **"Process Files"** button
+2. Wait ~2 seconds for processing
+3. Review the results summary
+
+### Step 5: Review Results
+The tool shows you:
+- Total records processed
+- Records filtered for current month
+- Duplicates found and removed
+- Validation errors identified
+- Summary statistics (loan amounts, date ranges, etc.)
+
+### Step 6: Download Your Files
+
+**Three files are generated:**
+
+1. **Consolidated CSV** - Clean data for Excel review
+   - Use this to review the processed data in Excel
+   - Same structure as your input file
+
+2. **Tab-Delimited TXT** - Ready for CRAWiz import
+   - This is the file you import into CRAWiz
+   - Tab-separated format required by CRAWiz
+
+3. **Error Report CSV** - List of validation issues
+   - Shows which rows have errors
+   - Lists specific errors for each row
+   - Fix these errors before importing to CRAWiz
+
+---
+
+## What the Tool Does
+
+✅ Loads SBSL CRA Export files (14 columns)
+✅ Filters data by current month
+✅ Removes duplicate application numbers
+✅ Validates required fields
+✅ Validates data types (amounts, dates, ZIP codes, states)
+✅ Generates clean output files
+✅ Creates detailed error reports
+
+---
+
+## What the Tool Does NOT Do
+
+❌ Does not pull files from banking systems (you still export manually)
+❌ Does not import into CRAWiz (you still import manually)
+❌ Does not do geocoding (CRAWiz handles this)
+❌ Does not fix errors automatically (you must correct errors manually)
+
+---
+
+## Validation Rules
+
+### Required Fields (cannot be blank):
+- ApplNumb
+- Last Name
+- Loan Type
+- Action Taken
+- Loan Amount (must be positive number)
+- Note Date (must be valid date)
+- Address
+- City
+- State (must be 2-letter code)
+- Zip (must be 5 or 9 digits)
+
+### Data Type Checks:
+- **Loan Amount:** Must be numeric and greater than $0
+- **ZIP Code:** Must be 5 digits (12345) or 9 digits (12345-6789)
+- **State:** Must be valid 2-letter US state code (GA, FL, NY, etc.)
+- **Note Date:** Must be valid date in Excel date format
+
+---
+
+## Troubleshooting
+
+### File Upload Issues
+**Problem:** "File failed to upload"
+**Solution:** Make sure file is .xlsx, .xls, or .csv format and under 10 MB
+
+### Validation Errors
+**Problem:** "Found X validation errors"
+**Solution:** Download the Error Report CSV to see which rows have issues and what needs fixing
+
+### Zero Records After Filtering
+**Problem:** "Filtered to 0 records for current month"
+**Solution:** Your file may not have any records from the current month. Check the Note Date column.
+
+### Duplicates Found
+**Problem:** "Found X duplicate records"
+**Solution:** This is normal. The tool keeps the first occurrence and removes duplicates. Check the duplicate report to see which ApplNumbs were duplicated.
+
+---
+
+## Next Steps After Using This Tool
+
+1. **Review the Consolidated CSV** in Excel
+2. **Fix any validation errors** listed in the Error Report
+3. **Upload the Tab-Delimited TXT file** to CRAWiz
+4. **Run geocoding** in CRAWiz (automatic)
+5. **Complete CRAWiz import process** manually
+6. **Submit to regulatory agencies** per your normal process
+
+---
+
+## Support
+
+For questions or issues:
+- Contact: gabriel.ignacio@deepsee.ai
+- Response time: Within 24 hours
+
+---
+
+## Version History
+
+**v1.0 (November 20, 2025)**
+- Initial release
+- Basic ETL functionality
+- Validation and error reporting
+- Password protection
+```
+
+**Add link to manual in the Streamlit app:**
+
+```python
+# Add to sidebar
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📖 Help & Documentation")
+st.sidebar.markdown("[View User Manual](link-to-manual)")
+st.sidebar.markdown("[Download Sample Files](link-to-samples)")
+st.sidebar.markdown("Contact: gabriel.ignacio@deepsee.ai")
+```
+
+---
+
+### **PART 2: DEPLOYMENT CHECKLIST**
+
+Before sharing with Ryan, ensure:
+
+```python
+# Add deployment readiness checks
+
+def check_deployment_readiness():
+    """Verify all components are ready for deployment"""
+    
+    checks = {
+        'password_protection': False,
+        'user_manual': False,
+        'diff_testing': False,
+        'stress_testing': False,
+        'error_handling': False,
+        'download_functionality': False
+    }
+    
+    # Run checks...
+    # Display in sidebar
+    
+    st.sidebar.markdown("### ✅ Deployment Readiness")
+    for check, status in checks.items():
+        icon = "✅" if status else "❌"
+        st.sidebar.markdown(f"{icon} {check.replace('_', ' ').title()}")
+```
+
+---
+
+### **PART 3: ADDITIONAL ENHANCEMENTS (NICE TO HAVE)**
+
+#### **Enhancement 1: Processing History Log**
+
+```python
+# Track processing history for audit trail
+
+import json
+from datetime import datetime
+
+def log_processing_event(file_name, input_rows, output_rows, errors, processing_time):
+    """Log each processing event"""
+    
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'file_name': file_name,
+        'input_rows': input_rows,
+        'output_rows': output_rows,
+        'error_count': errors,
+        'processing_time_sec': processing_time,
+        'user': 'colony_bank'  # or get from session
+    }
+    
+    # Append to log file
+    with open('processing_log.json', 'a') as f:
+        f.write(json.dumps(log_entry) + '\n')
+
+# Add to sidebar
+st.sidebar.markdown("### 📜 Processing History")
+if st.sidebar.button("View History"):
+    # Display last 10 processing events
+    pass
+```
+
+#### **Enhancement 2: Export Configuration Settings**
+
+```python
+# Allow Ryan to configure validation rules
+
+st.sidebar.markdown("### ⚙️ Configuration")
+
+with st.sidebar.expander("Validation Settings"):
+    min_loan_amount = st.number_input("Minimum Loan Amount", value=1, min_value=0)
+    max_loan_amount = st.number_input("Maximum Loan Amount", value=10000000)
+    
+    strict_mode = st.checkbox("Strict Validation Mode", value=True)
+    
+    if st.button("Save Settings"):
+        # Save to config file
+        st.success("Settings saved!")
+```
+
+---
+
+### **PART 4: RYAN'S TESTING INSTRUCTIONS**
+
+**Create `TESTING_GUIDE_FOR_RYAN.md`:**
+
+```markdown
+# Testing Guide for Ryan
+
+## How to Test the Colony Bank Tool
+
+### Test 1: Basic Functionality
+1. Upload: `sample_sbsl_cra_export.csv`
+2. Check boxes: All three options
+3. Click "Process Files"
+4. **Expected Result:** 
+   - Should process 46 rows
+   - Filter to ~18 for November
+   - Find 1 duplicate
+   - Find 4 validation errors
+   - Generate 3 download files
+
+### Test 2: Diff Comparison
+1. Process a file (as above)
+2. Upload your "expected output" file in the Testing section
+3. Click "Compare Outputs"
+4. **Expected Result:**
+   - Should show differences (if any)
+   - Or confirm outputs are identical
+
+### Test 3: Stress Test
+1. Upload multiple files at once (use files from OneDrive)
+2. Click "Run Stress Test"
+3. **Expected Result:**
+   - All files process successfully
+   - Processing time < 10 seconds per file
+   - Summary report downloadable
+
+### Test 4: Error Handling
+1. Upload a file with missing columns
+2. Upload a file with invalid data types
+3. Upload a non-Excel file
+4. **Expected Result:**
+   - Clear error messages
+   - Tool doesn't crash
+   - User can try again
+
+### Test 5: Real Data
+1. Use actual Colony Bank export from this month
+2. Process with all validation checks
+3. Download tab-delimited TXT
+4. Try importing into CRAWiz
+5. **Expected Result:**
+   - Import works without issues
+   - Data matches what you expect
+
+## Questions to Answer While Testing
+
+- [ ] Is it fast enough? (target: < 5 seconds for 500 rows)
+- [ ] Are the validation rules correct?
+- [ ] Are the error messages clear and helpful?
+- [ ] Do the output files match expected format?
+- [ ] Can Colony Bank actually use this without training?
+- [ ] What's missing that would make it more useful?
+
+## Provide Feedback On
+
+1. **User Experience:** Is the interface intuitive?
+2. **Performance:** Is it fast enough?
+3. **Accuracy:** Do the validations catch the right errors?
+4. **Output Format:** Are the files formatted correctly for CRAWiz?
+5. **Missing Features:** What else would make this tool better?
+
+## How to Share Feedback
+
+Send me feedback via Slack:
+- What worked well
+- What didn't work
+- What's confusing
+- What's missing
+- Any errors or bugs you encountered
+
+Include screenshots if possible!
+```
+
+---
+
+### **PART 5: FINAL DEPLOYMENT STEPS**
+
+```bash
+# 1. Add all new files to Replit
+# main.py (updated with password, diff testing, stress testing)
+# etl_functions.py (updated with comparison functions)
+# USER_MANUAL.md
+# TESTING_GUIDE_FOR_RYAN.md
+
+# 2. Configure Replit Secrets
+# Go to Replit Secrets panel
+# Add: password = "ColonyBank2024!"
+
+# 3. Test locally
+streamlit run main.py
+
+# 4. Deploy to Replit
+# Click "Run" button
+# Verify password protection works
+# Verify all features work
+
+# 5. Generate shareable link
+# Click "Share" in Replit
+# Copy the public URL
+
+# 6. Send to Ryan via Slack
+```
+
+---
+
+### **SLACK MESSAGE TO SEND RYAN**
+
+```
+@Ryan 
+
+Colony Bank HMDA/CRA tool is ready for your testing! 🎉
+
+**Tool Link:** [Replit URL]
+**Password:** ColonyBank2024!
+
+**What I Added Based on Your Feedback:**
+✅ Password protection (as requested)
+✅ Diff comparison mode (upload expected output, compare against actual)
+✅ Stress testing mode (upload multiple files at once)
+✅ Simple user manual (linked in the app)
+✅ Testing guide for you (see attached)
+
+**How to Test:**
+1. Log in with password
+2. Upload one of the sample files from the OneDrive folder
+3. Click "Process Files"
+4. Try the diff comparison with your expected output files
+5. Try stress testing with multiple files
+
+**What to Look For:**
+- Does it process files correctly?
+- Are the validation rules catching the right errors?
+- Do the output files work in CRAWiz?
+- Is the interface intuitive enough for Colony Bank to use without training?
+
+Let me know what works, what doesn't, and what's missing. I'll iterate based on your feedback.
+
+Attachments:
+- 📖 User Manual
+- 🧪 Testing Guide
+
+Happy testing! Let me know if you hit any snags.
+```
+
+---
+
+**CRITICAL REMINDERS:**
+
+1. ✅ **Password protection is MUST-HAVE** - don't deploy without it
+2. ✅ **Diff testing is key** - Ryan wants to validate accuracy
+3. ✅ **Stress testing shows robustness** - proves it can handle real data
+4. ✅ **User manual prevents support requests** - makes tool self-service
+5. ✅ **Test with actual Colony Bank data** before sending to Ryan
+
+---
+
+**START IMPLEMENTATION NOW.**
+
+Add these features in this order:
+1. Password protection (30 min)
+2. Diff comparison (1 hour)
+3. Stress testing (1 hour)
+4. User manual (30 min)
+5. Final testing (30 min)
+
+**Total time: ~3.5 hours**
+
+You can have this deployed and in Ryan's hands by end of day. GO! 🚀
