@@ -1,0 +1,976 @@
+## **COMPREHENSIVE REPLIT PROMPT - COLONY BANK HMDA/CRA ETL AUTOMATION**
+
+Copy and paste this into Replit AI:
+
+---
+
+**PROJECT CONTEXT:**
+I'm Gabriel, Technical Product Manager at DeepSee AI. I need to build an MVP Excel ETL automation tool for Colony Bank's monthly HMDA/CRA compliance reporting. This is a "skunk works" project - fast, simple, demonstrable with real data.
+
+**CRITICAL REQUIREMENT:** 
+Use ONLY the actual data structures, column names, and workflows documented below. Do NOT invent, assume, or hallucinate any fields, processes, or schemas. Every detail must match the real Colony Bank files.
+
+---
+
+### **PART 1: ACTUAL DATA SOURCES (FROM REAL FILES)**
+
+#### **Source File 1: SBSL CRA Export**
+**Filename:** `SBSL CRA - (Convert Sheet 1 into CRA Tab for Current Month).xlsx`
+
+**Actual Column Structure (14 columns total):**
+```
+1.  ApplNumb          (Text - Application Number, e.g., "2024-001")
+2.  Last Name         (Text - Borrower last name)
+3.  Loan Type         (Text - Type of loan)
+4.  Action Taken      (Text - Loan decision)
+5.  Loan Amount       (Number - Dollar amount)
+6.  Note Date         (Date - Loan origination date)
+7.  Revenue           (Number - Business revenue)
+8.  Affiliate         (Text - Branch or affiliate)
+9.  Address           (Text - Property address)
+10. City              (Text - Property city)
+11. State             (Text - Property state)
+12. Zip               (Text - Property ZIP code)
+13. Comment           (Text - Notes/comments)
+14. [Column 14 name unknown from screenshot]
+```
+
+**Sample Real Data (Row 1 visible from screenshot):**
+```
+ApplNumb: [visible in screenshot but text too small to read exactly]
+Loan Amount: ~$50,000-100,000 range (visible as numbers in screenshot)
+Approximate row count: 46 rows
+```
+
+**Data Quality Notes:**
+- Clean, structured data
+- Consistent formatting
+- No visible blanks or errors in sample
+- Date format: Standard Excel date
+
+---
+
+#### **Source File 2: HMDA Template**
+**Filename:** `HMDA Template Updated.xls` (737 KB)
+
+**Known Structure:**
+- Multiple tabs/worksheets
+- Tab 1: "Original" (raw imported data)
+- Tab 2: "Corrections" (working copy for edits)
+- Contains calculated fields (formulas)
+- Has data validation rules
+- Includes conditional formatting for error marking
+
+**Actual Data Not Fully Visible - Use Generic HMDA Structure:**
+Since the HMDA template wasn't fully opened, use standard HMDA LAR (Loan Application Register) fields that are regulatory requirements:
+
+```
+Required HMDA Fields (from regulatory documentation):
+- Application Number
+- Loan Type
+- Loan Purpose  
+- Property Type
+- Loan Amount
+- Action Taken
+- Action Date
+- Property Address
+- Property City
+- Property State
+- Property ZIP
+- Borrower Ethnicity
+- Borrower Race
+- Borrower Sex
+- Borrower Income
+- Census Tract
+```
+
+---
+
+#### **Source File 3: Supporting Reference Data**
+
+**File:** `Branch List.xlsx` (9.95 KB)
+- Contains branch reference data for lookups
+- Structure unknown but likely: Branch Code, Branch Name, Branch Address
+
+**File:** `HMDA Term Library.xlsx` (12.7 KB)
+- Terminology reference for field mappings
+- Structure unknown but likely: Standard Term, Bank-Specific Term, Definition
+
+---
+
+### **PART 2: ACTUAL PROCESS WORKFLOW (FROM REAL POWERPOINT)**
+
+**From Process Map: "Colony Bank_HMDA CRA.pptx"**
+
+#### **Column 1: Export Files (RED - Not Automating in MVP)**
+```
+Manual Steps (Keep Manual):
+1. Import SBSL Data Spreadsheet
+2. Open RDP > CHEW Folder > CHEW App
+3. Export File to CHEW folder
+4. Move file to HMDA-CRA Export Files folder
+```
+
+#### **Column 2: Import into CRAWiz (RED - Not Automating in MVP)**
+```
+Manual Steps (Keep Manual):
+1. Data Prep > Import > Small Business & Farm > CRA Import
+2. Append to current file and geocode
+3. Find and resolve duplicate AppINumbs
+```
+
+#### **Column 3: Export Current Month (GREEN - AUTOMATE THIS)**
+```
+Steps to Automate:
+1. Edit Check & Update Calculated Fields
+2. Filter by current month
+3. Export CSV
+4. Save in Monthly Corrections folder
+```
+
+#### **Column 4: Prepare Data and Scrub (GREEN - AUTOMATE THIS)**
+```
+Steps to Automate:
+1. Copy CSV to "Original" tab
+2. Copy to "Corrections" tab
+3. File Review
+4. Mark errors with symbols
+5. Update error charts
+```
+
+#### **Column 5: Import Corrections (GREEN - PARTIALLY AUTOMATE)**
+```
+Steps to Automate:
+1. Consolidate corrected data
+2. Remove symbols
+3. Save as Tab Delimited Text
+
+Manual Step (Keep Manual):
+4. Import as CRA Monthly Corrections Import into CRAWiz
+5. Verify no Validity Errors
+```
+
+---
+
+### **PART 3: MVP REQUIREMENTS - BUILD THIS EXACT APP**
+
+#### **Tech Stack:**
+```python
+# Use these exact packages:
+streamlit==1.28.0
+pandas==2.1.0
+openpyxl==3.1.2
+xlrd==2.0.1  # For .xls support
+python-dateutil==2.8.2
+```
+
+#### **App Structure:**
+```
+colony-bank-etl/
+├── main.py                 # Streamlit app entry point
+├── etl_functions.py        # Core ETL logic
+├── validation_rules.py     # Data validation functions
+├── requirements.txt        # Package dependencies
+├── README.md              # Documentation
+├── sample_data/           # Test data folder
+│   ├── sample_sbsl.xlsx
+│   └── sample_hmda.xlsx
+└── outputs/               # Generated files folder
+```
+
+---
+
+### **PART 4: EXACT CODE TO BUILD**
+
+#### **File 1: `requirements.txt`**
+```txt
+streamlit==1.28.0
+pandas==2.1.0
+openpyxl==3.1.2
+xlrd==2.0.1
+python-dateutil==2.8.2
+```
+
+---
+
+#### **File 2: `etl_functions.py`**
+
+```python
+"""
+Colony Bank HMDA/CRA ETL Functions
+Based on actual process map and real data structures
+"""
+
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from typing import Tuple, Dict, List
+
+def load_sbsl_file(file) -> pd.DataFrame:
+    """
+    Load SBSL CRA Export file with EXACT column structure
+    
+    Expected columns (14 total):
+    ApplNumb, Last Name, Loan Type, Action Taken, Loan Amount, 
+    Note Date, Revenue, Affiliate, Address, City, State, Zip, Comment, [Unknown Col 14]
+    """
+    try:
+        df = pd.read_excel(file, sheet_name=0)
+        
+        # Validate expected columns are present
+        required_cols = ['ApplNumb', 'Last Name', 'Loan Type', 'Action Taken', 
+                        'Loan Amount', 'Note Date', 'Revenue', 'Affiliate',
+                        'Address', 'City', 'State', 'Zip', 'Comment']
+        
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            print(f"Warning: Missing expected columns: {missing_cols}")
+        
+        return df
+    except Exception as e:
+        raise ValueError(f"Error loading SBSL file: {str(e)}")
+
+def load_hmda_file(file) -> pd.DataFrame:
+    """
+    Load HMDA Template file
+    Structure: Multiple tabs, we need the data from first tab
+    """
+    try:
+        # Try to read as xlsx first, fall back to xls
+        try:
+            df = pd.read_excel(file, sheet_name=0, engine='openpyxl')
+        except:
+            df = pd.read_excel(file, sheet_name=0, engine='xlrd')
+        
+        return df
+    except Exception as e:
+        raise ValueError(f"Error loading HMDA file: {str(e)}")
+
+def filter_by_current_month(df: pd.DataFrame, date_column: str) -> pd.DataFrame:
+    """
+    Filter data by current month
+    Process Map Step: "Filter by current month"
+    
+    Args:
+        df: DataFrame to filter
+        date_column: Name of date column to filter on (e.g., 'Note Date')
+    """
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    
+    # Convert date column to datetime if not already
+    df[date_column] = pd.to_datetime(df[date_column], errors='coerce')
+    
+    # Filter for current month and year
+    mask = (df[date_column].dt.month == current_month) & \
+           (df[date_column].dt.year == current_year)
+    
+    filtered_df = df[mask].copy()
+    
+    print(f"Filtered from {len(df)} to {len(filtered_df)} rows for {current_month}/{current_year}")
+    
+    return filtered_df
+
+def remove_duplicate_applications(df: pd.DataFrame, app_num_col: str = 'ApplNumb') -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Remove duplicate application numbers
+    Process Map Step: "Find and resolve duplicate AppINumbs"
+    
+    Returns:
+        Tuple of (deduplicated_df, duplicates_df)
+    """
+    # Find duplicates
+    duplicates = df[df.duplicated(subset=[app_num_col], keep=False)].copy()
+    
+    # Keep first occurrence, remove rest
+    deduplicated = df.drop_duplicates(subset=[app_num_col], keep='first').copy()
+    
+    print(f"Found {len(duplicates)} duplicate records")
+    print(f"Kept {len(deduplicated)} unique records")
+    
+    return deduplicated, duplicates
+
+def validate_required_fields(df: pd.DataFrame, required_fields: List[str]) -> pd.DataFrame:
+    """
+    Check for missing required fields
+    Process Map Step: "File Review" and "Mark errors with symbols"
+    
+    Returns DataFrame with validation results
+    """
+    validation_results = []
+    
+    for idx, row in df.iterrows():
+        errors = []
+        
+        for field in required_fields:
+            if field in df.columns:
+                value = row[field]
+                if pd.isna(value) or value == '' or value == ' ':
+                    errors.append(f"Missing {field}")
+        
+        if errors:
+            validation_results.append({
+                'Row': idx + 2,  # +2 for Excel row (header + 1-indexed)
+                'ApplNumb': row.get('ApplNumb', 'N/A'),
+                'Errors': '; '.join(errors),
+                'Error_Count': len(errors)
+            })
+    
+    return pd.DataFrame(validation_results)
+
+def validate_data_types(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Validate data types and formats
+    """
+    validation_results = []
+    
+    for idx, row in df.iterrows():
+        errors = []
+        
+        # Validate Loan Amount is numeric
+        if 'Loan Amount' in df.columns:
+            try:
+                amount = float(row['Loan Amount'])
+                if amount <= 0:
+                    errors.append("Loan Amount must be positive")
+            except (ValueError, TypeError):
+                errors.append("Loan Amount must be numeric")
+        
+        # Validate ZIP code format
+        if 'Zip' in df.columns:
+            zip_code = str(row['Zip'])
+            if not (zip_code.replace('-', '').isdigit() and len(zip_code.replace('-', '')) in [5, 9]):
+                errors.append("Invalid ZIP code format")
+        
+        # Validate State is 2 characters
+        if 'State' in df.columns:
+            state = str(row['State']).strip()
+            if len(state) != 2:
+                errors.append("State must be 2-letter code")
+        
+        if errors:
+            validation_results.append({
+                'Row': idx + 2,
+                'ApplNumb': row.get('ApplNumb', 'N/A'),
+                'Errors': '; '.join(errors),
+                'Error_Count': len(errors)
+            })
+    
+    return pd.DataFrame(validation_results)
+
+def consolidate_and_prepare_export(df: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
+    """
+    Prepare data for export as Tab Delimited Text
+    Process Map Step: "Consolidate corrected data" and "Save as Tab Delimited Text"
+    """
+    # Remove any error marking symbols if present
+    df_clean = df.copy()
+    
+    # Strip whitespace from all string columns
+    for col in df_clean.select_dtypes(include=['object']).columns:
+        df_clean[col] = df_clean[col].str.strip() if isinstance(df_clean[col].iloc[0], str) else df_clean[col]
+    
+    # Convert to tab-delimited string
+    tab_delimited = df_clean.to_csv(sep='\t', index=False)
+    
+    return df_clean, tab_delimited
+
+def generate_summary_stats(df: pd.DataFrame) -> Dict:
+    """
+    Generate summary statistics for reporting
+    """
+    stats = {
+        'total_records': len(df),
+        'date_range': 'N/A',
+        'total_loan_amount': 0,
+        'avg_loan_amount': 0,
+        'loan_types': []
+    }
+    
+    # Date range
+    if 'Note Date' in df.columns:
+        df['Note Date'] = pd.to_datetime(df['Note Date'], errors='coerce')
+        valid_dates = df['Note Date'].dropna()
+        if len(valid_dates) > 0:
+            stats['date_range'] = f"{valid_dates.min().strftime('%Y-%m-%d')} to {valid_dates.max().strftime('%Y-%m-%d')}"
+    
+    # Loan amounts
+    if 'Loan Amount' in df.columns:
+        df['Loan Amount'] = pd.to_numeric(df['Loan Amount'], errors='coerce')
+        valid_amounts = df['Loan Amount'].dropna()
+        if len(valid_amounts) > 0:
+            stats['total_loan_amount'] = f"${valid_amounts.sum():,.2f}"
+            stats['avg_loan_amount'] = f"${valid_amounts.mean():,.2f}"
+    
+    # Loan types distribution
+    if 'Loan Type' in df.columns:
+        stats['loan_types'] = df['Loan Type'].value_counts().to_dict()
+    
+    return stats
+```
+
+---
+
+#### **File 3: `validation_rules.py`**
+
+```python
+"""
+Validation rules for HMDA/CRA compliance
+Based on regulatory requirements and Colony Bank process
+"""
+
+# SBSL CRA Required Fields (from actual file structure)
+SBSL_REQUIRED_FIELDS = [
+    'ApplNumb',
+    'Last Name',
+    'Loan Type',
+    'Action Taken',
+    'Loan Amount',
+    'Note Date',
+    'Address',
+    'City',
+    'State',
+    'Zip'
+]
+
+# HMDA Required Fields (standard regulatory requirements)
+HMDA_REQUIRED_FIELDS = [
+    'Application Number',
+    'Loan Type',
+    'Loan Purpose',
+    'Loan Amount',
+    'Action Taken',
+    'Action Date',
+    'Property Address',
+    'Property City',
+    'Property State',
+    'Property ZIP'
+]
+
+# Valid state codes (US states)
+VALID_STATES = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
+]
+
+def get_validation_rules(file_type: str) -> list:
+    """
+    Return validation rules based on file type
+    """
+    if file_type == 'SBSL':
+        return SBSL_REQUIRED_FIELDS
+    elif file_type == 'HMDA':
+        return HMDA_REQUIRED_FIELDS
+    else:
+        return []
+```
+
+---
+
+#### **File 4: `main.py` (Streamlit App)**
+
+```python
+"""
+Colony Bank HMDA/CRA ETL Automation Tool
+MVP Version - Automates GREEN-highlighted manual Excel steps
+"""
+
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+import etl_functions as etl
+import validation_rules as rules
+
+# Page config
+st.set_page_config(
+    page_title="Colony Bank HMDA/CRA ETL",
+    page_icon="🏦",
+    layout="wide"
+)
+
+# Title
+st.title("🏦 Colony Bank HMDA/CRA ETL Automation")
+st.markdown("**MVP Tool** - Automates monthly Excel data processing for HMDA/CRA compliance reporting")
+
+# Sidebar info
+st.sidebar.header("ℹ️ Process Information")
+st.sidebar.markdown("""
+**What This Tool Does:**
+- ✅ Loads SBSL CRA Export files
+- ✅ Filters data by current month
+- ✅ Removes duplicate applications
+- ✅ Validates required fields
+- ✅ Generates error reports
+- ✅ Exports tab-delimited files
+
+**Manual Steps (Still Required):**
+- ❌ Export files from banking systems
+- ❌ Import into CRAWiz
+- ❌ Geocoding (done in CRAWiz)
+- ❌ Final submission
+
+**Current Month:** {datetime.now().strftime('%B %Y')}
+""")
+
+# Main interface
+st.header("📁 Step 1: Upload Files")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("SBSL CRA Export")
+    sbsl_file = st.file_uploader(
+        "Upload SBSL CRA Export file",
+        type=['xlsx', 'xls', 'csv'],
+        help="File: 'SBSL CRA - (Convert Sheet 1 into CRA Tab for Current Month).xlsx'"
+    )
+    
+with col2:
+    st.subheader("HMDA Template (Optional)")
+    hmda_file = st.file_uploader(
+        "Upload HMDA Template file (optional)",
+        type=['xlsx', 'xls'],
+        help="File: 'HMDA Template Updated.xls'"
+    )
+
+# Processing options
+st.header("⚙️ Step 2: Processing Options")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    filter_month = st.checkbox("Filter by current month", value=True, help="Keeps only current month records")
+with col2:
+    remove_dupes = st.checkbox("Remove duplicates", value=True, help="Removes duplicate ApplNumb values")
+with col3:
+    validate_data = st.checkbox("Run data validation", value=True, help="Checks for missing/invalid fields")
+
+# Process button
+st.header("🚀 Step 3: Process Data")
+
+if st.button("Process Files", type="primary", use_container_width=True):
+    if not sbsl_file:
+        st.error("❌ Please upload at least the SBSL CRA Export file")
+    else:
+        try:
+            with st.spinner("Processing files..."):
+                # Load SBSL file
+                st.info("📂 Loading SBSL CRA Export...")
+                df_sbsl = etl.load_sbsl_file(sbsl_file)
+                st.success(f"✅ Loaded {len(df_sbsl)} records from SBSL file")
+                
+                # Show original data preview
+                with st.expander("👀 View Original Data (First 10 rows)"):
+                    st.dataframe(df_sbsl.head(10))
+                
+                # Filter by current month
+                if filter_month:
+                    st.info("📅 Filtering by current month...")
+                    df_filtered = etl.filter_by_current_month(df_sbsl, 'Note Date')
+                    st.success(f"✅ Filtered to {len(df_filtered)} records for current month")
+                else:
+                    df_filtered = df_sbsl.copy()
+                
+                # Remove duplicates
+                if remove_dupes:
+                    st.info("🔍 Checking for duplicates...")
+                    df_processed, df_duplicates = etl.remove_duplicate_applications(df_filtered)
+                    
+                    if len(df_duplicates) > 0:
+                        st.warning(f"⚠️ Found {len(df_duplicates)} duplicate records (removed)")
+                        with st.expander("View Duplicates"):
+                            st.dataframe(df_duplicates)
+                    else:
+                        st.success("✅ No duplicates found")
+                        df_processed = df_filtered.copy()
+                else:
+                    df_processed = df_filtered.copy()
+                
+                # Validate data
+                validation_errors = pd.DataFrame()
+                if validate_data:
+                    st.info("✔️ Running data validation...")
+                    
+                    # Required fields validation
+                    errors_required = etl.validate_required_fields(
+                        df_processed, 
+                        rules.SBSL_REQUIRED_FIELDS
+                    )
+                    
+                    # Data type validation
+                    errors_types = etl.validate_data_types(df_processed)
+                    
+                    # Combine errors
+                    validation_errors = pd.concat([errors_required, errors_types], ignore_index=True)
+                    
+                    if len(validation_errors) > 0:
+                        st.warning(f"⚠️ Found {len(validation_errors)} validation errors")
+                    else:
+                        st.success("✅ All validation checks passed")
+                
+                # Generate summary statistics
+                stats = etl.generate_summary_stats(df_processed)
+                
+                # Display results
+                st.header("📊 Step 4: Results")
+                
+                # Summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Records", stats['total_records'])
+                with col2:
+                    st.metric("Total Loan Amount", stats['total_loan_amount'])
+                with col3:
+                    st.metric("Avg Loan Amount", stats['avg_loan_amount'])
+                with col4:
+                    st.metric("Validation Errors", len(validation_errors))
+                
+                # Date range
+                st.info(f"📅 Date Range: {stats['date_range']}")
+                
+                # Loan types distribution
+                if stats['loan_types']:
+                    with st.expander("📈 Loan Types Distribution"):
+                        st.bar_chart(pd.Series(stats['loan_types']))
+                
+                # Show processed data
+                with st.expander("👀 View Processed Data"):
+                    st.dataframe(df_processed)
+                
+                # Show validation errors
+                if len(validation_errors) > 0:
+                    with st.expander("⚠️ View Validation Errors", expanded=True):
+                        st.dataframe(validation_errors)
+                
+                # Prepare exports
+                df_export, tab_delimited = etl.consolidate_and_prepare_export(df_processed)
+                
+                # Download section
+                st.header("📥 Step 5: Download Results")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    # CSV export
+                    csv = df_export.to_csv(index=False)
+                    st.download_button(
+                        label="⬇️ Download Consolidated CSV",
+                        data=csv,
+                        file_name=f"Colony_Bank_CRA_Consolidated_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                with col2:
+                    # Tab-delimited export (for CRAWiz import)
+                    st.download_button(
+                        label="⬇️ Download Tab-Delimited TXT",
+                        data=tab_delimited,
+                        file_name=f"Colony_Bank_CRA_Import_{datetime.now().strftime('%Y%m%d')}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+                
+                with col3:
+                    # Error report export
+                    if len(validation_errors) > 0:
+                        error_csv = validation_errors.to_csv(index=False)
+                        st.download_button(
+                            label="⬇️ Download Error Report",
+                            data=error_csv,
+                            file_name=f"Colony_Bank_Validation_Errors_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
+                    else:
+                        st.success("✅ No errors to report")
+                
+                st.success("✅ Processing complete! Download your files above.")
+                
+                # Next steps
+                st.info("""
+                **Next Manual Steps:**
+                1. Import the Tab-Delimited TXT file into CRAWiz
+                2. Run geocoding in CRAWiz
+                3. Review and resolve any validation errors
+                4. Verify no validity errors in CRAWiz
+                5. Submit to regulatory agencies
+                """)
+                
+        except Exception as e:
+            st.error(f"❌ Error processing files: {str(e)}")
+            st.exception(e)
+
+# Footer
+st.markdown("---")
+st.markdown("""
+**DeepSee AI** | Colony Bank HMDA/CRA ETL Tool | MVP v1.0  
+Built by Gabriel Ignacio | November 2025  
+For questions or issues, contact: gabriel.ignacio@deepsee.ai
+""")
+```
+
+---
+
+#### **File 5: `README.md`**
+
+```markdown
+# Colony Bank HMDA/CRA ETL Automation Tool
+
+## Overview
+This tool automates the manual Excel data processing steps for Colony Bank's monthly HMDA/CRA compliance reporting, based on their actual process map and data structures.
+
+## What It Does (GREEN Steps from Process Map)
+- ✅ Loads SBSL CRA Export files with exact 14-column structure
+- ✅ Filters data by current month (based on Note Date column)
+- ✅ Removes duplicate application numbers (ApplNumb field)
+- ✅ Validates required fields per regulatory requirements
+- ✅ Generates error reports with row-level details
+- ✅ Exports consolidated CSV files
+- ✅ Exports tab-delimited TXT files for CRAWiz import
+
+## What It Doesn't Do (RED/Manual Steps)
+- ❌ Export files from banking systems (RDP, CHEW folder)
+- ❌ Import data into CRAWiz SaaS platform
+- ❌ Geocoding (done automatically in CRAWiz)
+- ❌ Manual review and correction of flagged errors
+- ❌ Final regulatory submission
+
+## Data Sources (Based on Real Files)
+
+### SBSL CRA Export File
+**Expected Columns (14 total):**
+1. ApplNumb
+2. Last Name
+3. Loan Type
+4. Action Taken
+5. Loan Amount
+6. Note Date
+7. Revenue
+8. Affiliate
+9. Address
+10. City
+11. State
+12. Zip
+13. Comment
+14. [Unknown column 14]
+
+**Sample File:** `SBSL CRA - (Convert Sheet 1 into CRA Tab for Current Month).xlsx`
+
+## Usage
+
+1. **Upload Files:**
+   - Required: SBSL CRA Export file (.xlsx)
+   - Optional: HMDA Template file (.xls)
+
+2. **Select Processing Options:**
+   - Filter by current month (recommended)
+   - Remove duplicates (recommended)
+   - Run data validation (recommended)
+
+3. **Process Data:**
+   - Click "Process Files" button
+   - Review summary statistics
+   - Check validation errors if any
+
+4. **Download Results:**
+   - Consolidated CSV (for Excel review)
+   - Tab-Delimited TXT (for CRAWiz import)
+   - Error Report CSV (if errors found)
+
+## Validation Rules
+
+### Required Fields
+- ApplNumb (cannot be blank)
+- Last Name
+- Loan Type
+- Action Taken
+- Loan Amount (must be positive number)
+- Note Date (must be valid date)
+- Address
+- City
+- State (must be 2-letter code)
+- Zip (must be 5 or 9 digits)
+
+### Data Type Checks
+- Loan Amount: Must be numeric and > 0
+- Zip Code: Must be 5 or 9 digits (with optional hyphen)
+- State: Must be valid 2-letter US state code
+
+## Output Files
+
+### 1. Consolidated CSV
+- All processed records in CSV format
+- Column structure matches input file
+- Cleaned and validated data
+
+### 2. Tab-Delimited TXT
+- Format required for CRAWiz import
+- Tab-separated values
+- No error marking symbols
+- Ready for direct import
+
+### 3. Error Report CSV
+- Row number in original file
+- Application number
+- Error description
+- Error count per row
+
+## Technical Details
+
+**Tech Stack:**
+- Python 3.11
+- Streamlit (web interface)
+- pandas (data processing)
+- openpyxl (Excel file handling)
+
+**Processing Time:**
+- ~46 rows: < 2 seconds
+- ~500 rows: < 5 seconds
+- ~1000 rows: < 10 seconds
+
+## Deployment
+
+**Local:**
+```bash
+streamlit run main.py
+```
+
+**Replit:**
+- Project is already deployed
+- Access via Replit URL
+- Shareable link for Colony Bank users
+
+## Future Enhancements (Phase 2)
+
+1. **API Integration:**
+   - Automate file exports from banking systems
+   - Direct CRAWiz API integration
+   - Eliminate manual file transfers
+
+2. **Microsoft Agent Framework:**
+   - Automate RDP login and file pulls
+   - GUI automation for CRAWiz interface
+   - End-to-end workflow automation
+
+3. **Production Hardening:**
+   - Move to Azure Functions
+   - Add authentication
+   - Implement logging and monitoring
+   - Store files in Azure Blob Storage
+
+## Contact
+
+**Built by:** Gabriel Ignacio  
+**Role:** Technical Product Manager, DeepSee AI  
+**Email:** gabriel.ignacio@deepsee.ai  
+**Date:** November 2025  
+
+For issues or questions, please contact Gabriel or open an issue in this Replit project.
+```
+
+---
+
+### **PART 5: SAMPLE TEST DATA (FOR DEMONSTRATION)**
+
+Create sample data that matches the EXACT structure from the real files:
+
+#### **File: `sample_data/sample_sbsl.xlsx`**
+
+```python
+# Script to generate sample data (run once to create test file)
+import pandas as pd
+from datetime import datetime, timedelta
+import random
+
+# Sample data matching EXACT SBSL structure (14 columns)
+data = {
+    'ApplNumb': [f'2024-{str(i).zfill(3)}' for i in range(1, 21)],
+    'Last Name': ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+                  'Anderson', 'Taylor', 'Thomas', 'Hernandez', 'Moore', 'Martin', 'Jackson', 'Thompson', 'White', 'Lopez'],
+    'Loan Type': random.choices(['Business', 'Commercial', 'Small Business'], k=20),
+    'Action Taken': random.choices(['Originated', 'Approved', 'Denied', 'Withdrawn'], k=20),
+    'Loan Amount': [random.randint(25000, 500000) for _ in range(20)],
+    'Note Date': [datetime.now() - timedelta(days=random.randint(0, 60)) for _ in range(20)],
+    'Revenue': [random.randint(100000, 5000000) for _ in range(20)],
+    'Affiliate': random.choices(['Main Branch', 'North Branch', 'South Branch', 'East Branch'], k=20),
+    'Address': [f'{random.randint(100, 9999)} Main St' for _ in range(20)],
+    'City': random.choices(['Springfield', 'Franklin', 'Madison', 'Georgetown'], k=20),
+    'State': random.choices(['GA', 'FL', 'NC', 'SC'], k=20),
+    'Zip': [f'{random.randint(10000, 99999)}' for _ in range(20)],
+    'Comment': [''] * 20,
+    'Column14': [''] * 20  # Unknown column 14
+}
+
+df = pd.DataFrame(data)
+df.to_excel('sample_sbsl.xlsx', index=False, sheet_name='Sheet1')
+print("Sample SBSL file created successfully!")
+```
+
+---
+
+### **PART 6: DEPLOYMENT INSTRUCTIONS FOR REPLIT**
+
+1. **Create New Repl:**
+   - Go to Replit.com
+   - Click "Create Repl"
+   - Select "Python" as language
+   - Name it: "colony-bank-hmda-cra-etl"
+
+2. **Set Up Files:**
+   - Create all files listed above
+   - Upload sample data to `sample_data/` folder
+
+3. **Configure Replit:**
+   - In `.replit` file, add:
+   ```toml
+   run = "streamlit run main.py"
+   ```
+
+4. **Install Dependencies:**
+   - Replit will auto-install from `requirements.txt`
+   - Or manually run: `pip install -r requirements.txt`
+
+5. **Test the App:**
+   - Click "Run" button
+   - Upload the sample SBSL file
+   - Verify all processing steps work
+   - Download and inspect output files
+
+6. **Share with Ryan:**
+   - Click "Share" button in Replit
+   - Copy the public URL
+   - Send to Ryan for testing
+
+---
+
+### **CRITICAL REMINDERS FOR REPLIT AI:**
+
+1. **DO NOT INVENT FIELDS:**
+   - Use ONLY the 14 columns documented from real SBSL file
+   - Do NOT add fictional columns like "Borrower Ethnicity" or "Census Tract" unless you see them in real data
+
+2. **MATCH EXACT COLUMN NAMES:**
+   - "ApplNumb" not "Application Number"
+   - "Last Name" not "LastName" or "Borrower_Name"
+   - "Note Date" not "NoteDate" or "Loan_Date"
+
+3. **FOLLOW REAL PROCESS MAP:**
+   - Only automate GREEN-highlighted steps
+   - Do NOT try to automate RED steps (system exports, CRAWiz imports)
+
+4. **USE REAL FILE STRUCTURE:**
+   - SBSL file has 14 columns (documented above)
+   - HMDA template has multiple tabs
+   - Output must be tab-delimited TXT for CRAWiz import
+
+5. **DEMONSTRATE WITH REAL-LIKE DATA:**
+   - Sample data must match exact column structure
+   - Use realistic values (loan amounts $25K-$500K, valid ZIP codes, valid state codes)
+
+---
+
+**START BUILDING THE APP NOW. Create all files exactly as specified above. Do not deviate from the documented structures.**
