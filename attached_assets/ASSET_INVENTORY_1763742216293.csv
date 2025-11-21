@@ -1,0 +1,19 @@
+Category,Filename,Type,Size,Duration,Scene,Description,Usage
+Audio,Colony_Bank_Full_Voiceover_Narration.mp3,MP3,3.2MB,210s,All Scenes,Complete professional voiceover narration,Primary audio track for entire video
+Audio,Background_Music_Tense_Dramatic.mp3,MP3,2.1MB,90s,Scenes 1-3,Tense dramatic background music,Problem scenes underlay (-20dB)
+Audio,Background_Music_Uplifting_Optimistic.mp3,MP3,2.7MB,120s,Scenes 4-7,Uplifting optimistic background music,Solution scenes underlay (-20dB)
+Video,01_Opening_Hook_Stressed_Analyst.mp4,MP4,2.5MB,8s,Scene 1 (0:00-0:30),Stressed analyst at desk late night,Opening problem establishment
+Video,02_Manual_Data_Entry_Pain.mp4,MP4,1.8MB,8s,Scene 2 (0:30-1:45),Hands typing Excel data scrolling,Manual compliance work illustration
+Video,03_Hidden_Costs_Stress_Risk.mp4,MP4,2.7MB,8s,Scene 3 (1:45-2:15),Split-screen costs and penalties,Financial and human costs
+Video,04_Solution_Reveal_DeepSee_Dashboard.mp4,MP4,2.4MB,8s,Scene 4 (2:15-3:00),Modern dashboard interface,DeepSee AI solution introduction
+Video,05_Validation_In_Action_Automated.mp4,MP4,1.1MB,8s,Scene 5 (3:00-4:15),14 rules checking off rapidly,Automated validation demonstration
+Video,06_Before_After_Transformation.mp4,MP4,2.2MB,8s,Scene 6 (4:15-4:45),Split-screen before/after comparison,Dramatic transformation visual
+Video,07_Results_Celebration_Success.mp4,MP4,3.2MB,8s,Scene 6 (4:15-4:45),Happy team celebrating success,Positive outcomes and ROI
+Video,08_Closing_CTA_Branded_Card.mp4,MP4,2.4MB,8s,Scene 7 (4:45-5:00),DeepSee AI branding and CTA,Professional closing card
+Graphics,Process_Flow_5_Column_Manual.png,PNG,1.9MB,Static,Scene 2,5-column manual process diagram,Current state workflow illustration
+Graphics,ROI_Calculation_Breakdown.png,PNG,1.7MB,Static,Scene 6,ROI bar chart $25000+ annual value,Financial value visualization
+Graphics,Time_Comparison_10hrs_vs_30min.png,PNG,1.7MB,Static,Scene 6,Before/after time comparison clocks,Time savings 95% reduction
+Graphics,DeepSee_AI_Title_Card.png,PNG,1.9MB,Static,Opening/Transitions,Branded title card blue gradient,Opening and transition card
+Graphics,Error_Detection_Manual_vs_Automated.png,PNG,2.0MB,Static,Scene 5,Manual vs automated comparison,Automation advantage visual
+Graphics,Validation_Rules_14_Checklist.png,PNG,1.9MB,Static,Scene 5,14 validation rules checklist,Comprehensive validation coverage
+Documentation,README.md,Markdown,14.1KB,N/A,All,Complete assembly guide,Assembly instructions and documentation

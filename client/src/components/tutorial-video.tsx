@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, FileText, CheckCircle, Download, ExternalLink, MonitorPlay, MousePointerClick, Clock, TrendingUp, Shield, FileBarChart } from "lucide-react";
+import { Play, FileText, CheckCircle, Download, ExternalLink, MonitorPlay, MousePointerClick, Clock, TrendingUp, Shield, FileBarChart, Music, Film, File } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import videoUrl from "@assets/Compliance Automation Revolution_1763740890639.mp4";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function TutorialVideo() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -44,9 +45,44 @@ export function TutorialVideo() {
   ];
 
   const resources = [
-    { title: "Process Flow Diagram", type: "PNG", size: "1.9 MB", icon: <FileBarChart className="w-4 h-4" /> },
-    { title: "ROI Calculation Breakdown", type: "PNG", size: "1.7 MB", icon: <TrendingUp className="w-4 h-4" /> },
-    { title: "Validation Rules Checklist", type: "PNG", size: "1.9 MB", icon: <CheckCircle className="w-4 h-4" /> },
+    { 
+      title: "Quick Start Guide", 
+      type: "TXT", 
+      size: "10 KB", 
+      icon: <File className="w-4 h-4" />, 
+      url: "/assets/learning-center/QUICK_START_GUIDE.txt" 
+    },
+    { 
+      title: "Voiceover Narration", 
+      type: "MP3", 
+      size: "3.2 MB", 
+      icon: <Music className="w-4 h-4" />, 
+      url: "/assets/learning-center/Audio/Colony_Bank_Full_Voiceover_Narration.mp3" 
+    },
+    { 
+      title: "Validation Logic (Demo)", 
+      type: "MP4", 
+      size: "1.1 MB", 
+      icon: <Film className="w-4 h-4" />, 
+      url: "/assets/learning-center/Video_Clips/05_Validation_In_Action_Automated.mp4" 
+    },
+  ];
+
+  const audioAssets = [
+    { name: "Full Voiceover", file: "Colony_Bank_Full_Voiceover_Narration.mp3", duration: "3:30" },
+    { name: "Tense Background", file: "Background_Music_Tense_Dramatic.mp3", duration: "1:30" },
+    { name: "Uplifting Background", file: "Background_Music_Uplifting_Optimistic.mp3", duration: "2:00" },
+  ];
+
+  const videoAssets = [
+    { name: "Opening Hook", file: "01_Opening_Hook_Stressed_Analyst.mp4", duration: "0:08" },
+    { name: "Manual Data Pain", file: "02_Manual_Data_Entry_Pain.mp4", duration: "0:08" },
+    { name: "Hidden Costs", file: "03_Hidden_Costs_Stress_Risk.mp4", duration: "0:08" },
+    { name: "Solution Reveal", file: "04_Solution_Reveal_DeepSee_Dashboard.mp4", duration: "0:08" },
+    { name: "Validation Demo", file: "05_Validation_In_Action_Automated.mp4", duration: "0:08" },
+    { name: "Transformation", file: "06_Before_After_Transformation.mp4", duration: "0:08" },
+    { name: "Results & Success", file: "07_Results_Celebration_Success.mp4", duration: "0:08" },
+    { name: "Closing CTA", file: "08_Closing_CTA_Branded_Card.mp4", duration: "0:08" },
   ];
 
   const startTutorial = () => {
@@ -153,6 +189,65 @@ export function TutorialVideo() {
             </Card>
           </div>
 
+          {/* Asset Library */}
+           <Card className="border-slate-200 shadow-sm">
+             <CardHeader className="pb-3 bg-slate-50 border-b border-slate-100">
+               <CardTitle className="text-lg text-[#003366]">Asset Library</CardTitle>
+               <CardDescription>Raw media assets used in the production of the guide.</CardDescription>
+             </CardHeader>
+             <CardContent className="p-6">
+               <Tabs defaultValue="video" className="w-full">
+                 <TabsList className="w-full mb-4">
+                   <TabsTrigger value="video" className="flex-1">Video Clips</TabsTrigger>
+                   <TabsTrigger value="audio" className="flex-1">Audio Tracks</TabsTrigger>
+                 </TabsList>
+                 
+                 <TabsContent value="video" className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                   {videoAssets.map((asset, i) => (
+                     <div key={i} className="flex items-center justify-between p-3 rounded-md border border-slate-100 hover:bg-slate-50 transition-colors">
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded bg-slate-200 flex items-center justify-center text-slate-500">
+                           <Film className="w-5 h-5" />
+                         </div>
+                         <div>
+                           <div className="text-sm font-medium text-slate-900">{asset.name}</div>
+                           <div className="text-xs text-slate-500 font-mono">{asset.duration} • {asset.file}</div>
+                         </div>
+                       </div>
+                       <div className="flex gap-2">
+                         <Button variant="ghost" size="sm" onClick={() => window.open(`/assets/learning-center/Video_Clips/${asset.file}`, '_blank')}>
+                           <Play className="w-4 h-4 mr-1" /> Preview
+                         </Button>
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => window.open(`/assets/learning-center/Video_Clips/${asset.file}`, '_blank')}>
+                           <Download className="w-4 h-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   ))}
+                 </TabsContent>
+                 
+                 <TabsContent value="audio" className="space-y-2">
+                    {audioAssets.map((asset, i) => (
+                     <div key={i} className="flex items-center justify-between p-3 rounded-md border border-slate-100 hover:bg-slate-50 transition-colors">
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded bg-blue-50 flex items-center justify-center text-blue-600">
+                           <Music className="w-5 h-5" />
+                         </div>
+                         <div>
+                           <div className="text-sm font-medium text-slate-900">{asset.name}</div>
+                           <div className="text-xs text-slate-500 font-mono">{asset.duration} • {asset.file}</div>
+                         </div>
+                       </div>
+                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => window.open(`/assets/learning-center/Audio/${asset.file}`, '_blank')}>
+                         <Download className="w-4 h-4" />
+                       </Button>
+                     </div>
+                   ))}
+                 </TabsContent>
+               </Tabs>
+             </CardContent>
+           </Card>
+
         </div>
 
         {/* Sidebar Column (1/3 width) */}
@@ -236,7 +331,7 @@ export function TutorialVideo() {
             <CardContent className="p-0">
               <div className="divide-y divide-slate-100">
                 {resources.map((resource, i) => (
-                  <div key={i} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group">
+                  <div key={i} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group" onClick={() => window.open(resource.url, '_blank')}>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
                         {resource.icon}
@@ -251,6 +346,9 @@ export function TutorialVideo() {
                     </Button>
                   </div>
                 ))}
+              </div>
+              <div className="p-4 bg-slate-50 text-xs text-slate-500 text-center italic border-t border-slate-100">
+                Note: Graphic assets (Process Flow, ROI Charts) are currently pending upload.
               </div>
             </CardContent>
           </Card>
