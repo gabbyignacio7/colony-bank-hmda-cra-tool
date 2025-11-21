@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Play, FileText, CheckCircle, Download, ExternalLink, MonitorPlay, MousePointerClick, Clock, TrendingUp, Shield, FileBarChart } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import videoUrl from "@assets/generated_videos/colony_bank_hmda_cra_tool_tutorial_video_(max_duration).mp4";
+import videoUrl from "@assets/Compliance Automation Revolution_1763740890639.mp4";
 
 export function TutorialVideo() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -87,8 +87,8 @@ export function TutorialVideo() {
                 <div className="flex items-center gap-2">
                   <MonitorPlay className="w-5 h-5 text-[#003366]" />
                   <div>
-                    <CardTitle className="text-lg text-[#003366]">Complete Walkthrough</CardTitle>
-                    <CardDescription>From manual pain to automated success (4:00)</CardDescription>
+                    <CardTitle className="text-lg text-[#003366]">The Compliance Automation Revolution</CardTitle>
+                    <CardDescription>How DeepSee AI transforms HMDA/CRA compliance (4:00)</CardDescription>
                   </div>
                 </div>
                 <div className="hidden sm:flex gap-2">
