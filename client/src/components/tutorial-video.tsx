@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Play, FileText, CheckCircle, Download, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import videoUrl from "@assets/generated_videos/colony_bank_hmda_cra_tool_tutorial_video.mp4";
+import videoUrl from "@assets/generated_videos/colony_bank_hmda_cra_tool_tutorial_video_(max_duration).mp4";
 
 export function TutorialVideo() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -57,7 +57,7 @@ export function TutorialVideo() {
         <Card>
           <CardHeader>
             <CardTitle>Video Walkthrough</CardTitle>
-            <CardDescription>Watch a quick 90-second guide on how to use the tool.</CardDescription>
+            <CardDescription>Watch a quick guide on how to use the tool.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="aspect-video bg-slate-900 rounded-lg flex items-center justify-center relative group cursor-pointer overflow-hidden">
