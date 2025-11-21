@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   Activity,
   FileDiff,
-  BookOpen
+  BookOpen,
+  Video
 } from 'lucide-react';
 import { 
   processFile, 
@@ -51,6 +52,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { TutorialVideo } from '@/components/tutorial-video';
 
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -302,6 +304,16 @@ export default function Dashboard() {
               <Activity className="w-4 h-4" />
               <span className="font-medium text-sm">Stress Test</span>
             </button>
+            
+            {/* Updated Video Tutorial Button */}
+            <button 
+              onClick={() => setActiveTab('tutorial')}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors", activeTab === 'tutorial' ? "bg-white/10 text-white" : "text-blue-200 hover:bg-white/5")}
+            >
+              <Video className="w-4 h-4" />
+              <span className="font-medium text-sm">Video Guide</span>
+            </button>
+
              <button 
               onClick={() => window.open('/USER_MANUAL.md', '_blank')}
               className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-blue-200 hover:bg-white/5")}
@@ -330,6 +342,7 @@ export default function Dashboard() {
             {activeTab === 'review' && 'Data Review & Correction'}
             {activeTab === 'testing' && 'Output Comparison (Diff)'}
             {activeTab === 'stress' && 'System Stress Testing'}
+            {activeTab === 'tutorial' && 'Video Tutorials'}
           </h2>
           <div className="flex items-center gap-4">
              {currentScenario && activeTab !== 'stress' && (
@@ -751,6 +764,11 @@ export default function Dashboard() {
                  </CardContent>
                </Card>
              </TabsContent>
+
+             {/* VIDEO TUTORIAL TAB */}
+            <TabsContent value="tutorial" className="space-y-6 mt-0">
+               <TutorialVideo />
+            </TabsContent>
 
           </Tabs>
         </main>

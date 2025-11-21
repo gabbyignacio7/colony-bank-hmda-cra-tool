@@ -1,0 +1,1183 @@
+# YES! Replit AI Can Do Everything Start-to-Finish! 🚀
+
+Let me create a **MEGA COMPREHENSIVE PROMPT** for Replit AI that includes the video creation, embedding, and all enhancements.
+
+---
+
+## COMPREHENSIVE REPLIT AI PROMPT - VIDEO-ENHANCED COLONY BANK TOOL
+
+Copy and paste this ENTIRE prompt into Replit AI:
+
+---
+
+**CONTEXT:**
+I'm building the Colony Bank HMDA/CRA automation tool in Streamlit. I need to enhance it with embedded video tutorials, interactive help, and a polished user experience. The current tool works but needs better onboarding for first-time users.
+
+**CURRENT STATE:**
+- Working Streamlit app at: https://execute-build-gabbyignacio7.replit.app
+- Password: ColonyBank2024!
+- Processes SBSL CRA files (14 columns)
+- Validates data, filters by month, removes duplicates
+- Generates 3 downloadable files (CSV, TXT, Error Report)
+
+---
+
+## PART 1: CREATE VIDEO TUTORIAL ASSETS
+
+### Task 1A: Generate Video Script
+Create a 90-second video script explaining how to use the tool:
+
+**Video Script Requirements:**
+- Duration: 90 seconds (approximately 225 words at 150 wpm)
+- Tone: Professional, friendly, reassuring
+- Structure: Problem → Solution → Demo → Results
+- Language: Simple, non-technical (for bank compliance staff)
+
+**Script Outline:**
+```
+[0:00-0:15] Hook + Problem (Why this tool exists)
+[0:15-0:30] Solution Overview (What it does)
+[0:30-0:75] Step-by-Step Demo (How to use it)
+[0:75-0:90] Results + Call to Action (What you get)
+```
+
+**Narration Script:**
+Write the EXACT words to be spoken, including:
+- Opening line that hooks attention
+- Clear step-by-step instructions
+- Specific file names and button names from the actual tool
+- Time savings numbers (8-10 hours → 30 minutes)
+- Closing call-to-action
+
+### Task 1B: Create Storyboard
+For each 15-second segment, specify:
+```
+Timestamp: [0:00-0:15]
+Visual: [Describe what should be shown on screen]
+Narration: [Exact script text]
+Text Overlay: [Any text to display]
+Transition: [How to move to next scene]
+```
+
+---
+
+## PART 2: VIDEO CREATION OPTIONS
+
+Since Replit AI cannot directly create video files, provide me with THREE implementation approaches:
+
+### Approach 1: YouTube Embed (Recommended)
+**Instructions:**
+1. Provide complete video script (from Task 1A)
+2. Recommend AI video tool (Pictory, Descript, Loom)
+3. Show me how to embed once I have YouTube URL
+4. Include fallback if video unavailable
+
+**Code to generate:**
+```python
+# Add to main.py
+
+import streamlit as st
+
+def show_tutorial_video():
+    """Display tutorial video with fallback"""
+    st.sidebar.markdown("### 📺 Tutorial Video")
+    
+    with st.sidebar.expander("▶️ Watch How-To (2 min)", expanded=False):
+        try:
+            # Primary video source
+            st.video("https://www.youtube.com/watch?v=PLACEHOLDER_ID")
+            st.caption("Quick walkthrough of the entire process")
+        except:
+            # Fallback to step-by-step guide
+            st.markdown("""
+            **Video temporarily unavailable. Follow these steps:**
+            1. Upload SBSL CRA file
+            2. Keep all boxes checked
+            3. Click 'Process Files'
+            4. Download 3 result files
+            """)
+
+# Call this function in sidebar
+show_tutorial_video()
+```
+
+### Approach 2: Animated Step-by-Step Guide
+**Instructions:**
+Create an interactive, animated guide using pure Streamlit components (no external video needed).
+
+**Code to generate:**
+```python
+import streamlit as st
+import time
+
+def show_interactive_tutorial():
+    """Animated step-by-step tutorial"""
+    st.sidebar.markdown("### 🎓 Interactive Tutorial")
+    
+    if st.sidebar.button("▶️ Start Tutorial"):
+        tutorial_container = st.empty()
+        
+        steps = [
+            {
+                "title": "Step 1: Upload File",
+                "description": "Upload your SBSL CRA Export Excel file",
+                "emoji": "📁",
+                "duration": 3
+            },
+            {
+                "title": "Step 2: Choose Options",
+                "description": "Keep all three checkboxes checked (recommended)",
+                "emoji": "⚙️",
+                "duration": 3
+            },
+            {
+                "title": "Step 3: Process",
+                "description": "Click 'Process Files' and wait 2 seconds",
+                "emoji": "⚡",
+                "duration": 3
+            },
+            {
+                "title": "Step 4: Download",
+                "description": "Get 3 files: CSV, TXT for CRAWiz, Error Report",
+                "emoji": "📥",
+                "duration": 3
+            }
+        ]
+        
+        for step in steps:
+            with tutorial_container:
+                st.info(f"{step['emoji']} **{step['title']}**")
+                st.write(step['description'])
+                progress_bar = st.progress(0)
+                
+                for i in range(100):
+                    time.sleep(step['duration'] / 100)
+                    progress_bar.progress(i + 1)
+                
+            time.sleep(0.5)
+        
+        tutorial_container.success("✅ Tutorial complete! Ready to process your files.")
+
+show_interactive_tutorial()
+```
+
+### Approach 3: Screenshot Carousel
+**Instructions:**
+Create a carousel of annotated screenshots showing the process.
+
+**Code to generate:**
+```python
+import streamlit as st
+
+def show_screenshot_guide():
+    """Screenshot-based tutorial"""
+    st.sidebar.markdown("### 📸 Visual Guide")
+    
+    with st.sidebar.expander("👀 See Screenshots"):
+        tab1, tab2, tab3, tab4 = st.tabs(["Upload", "Options", "Process", "Download"])
+        
+        with tab1:
+            st.markdown("**Step 1: Upload File**")
+            st.info("📁 Click 'Browse files' and select your SBSL CRA Export file")
+            # Placeholder for screenshot
+            st.markdown("*[Screenshot: File upload area]*")
+            
+        with tab2:
+            st.markdown("**Step 2: Choose Options**")
+            st.info("☑️ Keep all three boxes checked for best results")
+            # Placeholder for screenshot
+            st.markdown("*[Screenshot: Checkbox options]*")
+            
+        with tab3:
+            st.markdown("**Step 3: Process Data**")
+            st.info("⚡ Click 'Process Files' - takes 2 seconds")
+            # Placeholder for screenshot
+            st.markdown("*[Screenshot: Process button and results]*")
+            
+        with tab4:
+            st.markdown("**Step 4: Download Files**")
+            st.info("📥 Download 3 files - especially the TXT for CRAWiz")
+            # Placeholder for screenshot
+            st.markdown("*[Screenshot: Download buttons]*")
+
+show_screenshot_guide()
+```
+
+**Recommendation:** Implement ALL THREE approaches so users have multiple ways to learn.
+
+---
+
+## PART 3: ENHANCED USER EXPERIENCE
+
+### Task 3A: First-Time User Welcome
+Add a prominent welcome experience for first-time users:
+
+```python
+import streamlit as st
+
+# Initialize session state
+if 'first_visit' not in st.session_state:
+    st.session_state.first_visit = True
+if 'show_tutorial' not in st.session_state:
+    st.session_state.show_tutorial = False
+
+# First-time user banner
+if st.session_state.first_visit:
+    welcome_container = st.container()
+    with welcome_container:
+        st.success("""
+        👋 **Welcome to the Colony Bank HMDA/CRA Automation Tool!**
+        
+        This tool saves you 8 hours of manual Excel work every month.
+        """)
+        
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
+        with col1:
+            if st.button("📺 Watch Tutorial", use_container_width=True):
+                st.session_state.show_tutorial = True
+                
+        with col2:
+            if st.button("📖 Read Guide", use_container_width=True):
+                st.info("See sidebar for step-by-step guide →")
+                
+        with col3:
+            if st.button("✅ Skip to Tool", use_container_width=True):
+                st.session_state.first_visit = False
+                st.rerun()
+
+# Show tutorial if requested
+if st.session_state.show_tutorial:
+    with st.expander("📺 Tutorial Video", expanded=True):
+        st.video("https://www.youtube.com/embed/PLACEHOLDER_ID")
+        
+        if st.button("Got it! Let's start →"):
+            st.session_state.first_visit = False
+            st.session_state.show_tutorial = False
+            st.rerun()
+```
+
+### Task 3B: Contextual Help Throughout App
+Add helpful tooltips and explanations next to every action:
+
+```python
+# Enhanced file uploader with detailed help
+st.subheader("📁 Step 1: Upload Your File")
+
+col1, col2 = st.columns([3, 1])
+
+with col1:
+    uploaded_file = st.file_uploader(
+        "Choose your SBSL CRA Export file",
+        type=['xlsx', 'xls', 'csv'],
+        help="📄 Upload your monthly SBSL CRA export. Usually named 'SBSL CRA - (Convert Sheet 1 into CRA Tab for Current Month).xlsx'"
+    )
+
+with col2:
+    with st.expander("❓ Help"):
+        st.markdown("""
+        **What file to upload?**
+        - Your SBSL CRA Export file
+        - Excel format (.xlsx or .xls)
+        - CSV also supported
+        
+        **Where to find it?**
+        - Your HMDA-CRA Export Files folder
+        - Usually exported from CHEW App
+        
+        **File size limit:** 10 MB
+        """)
+
+# Enhanced options with inline help
+st.subheader("⚙️ Step 2: Processing Options")
+
+col1, col2 = st.columns([3, 1])
+
+with col1:
+    filter_month = st.checkbox(
+        "Filter by current month",
+        value=True,
+        help="Keeps only records where Note Date falls in the current month"
+    )
+    
+    remove_dupes = st.checkbox(
+        "Remove duplicates",
+        value=True,
+        help="Finds duplicate ApplNumb values and keeps only the first occurrence"
+    )
+    
+    validate_data = st.checkbox(
+        "Run data validation",
+        value=True,
+        help="Checks for missing fields, invalid ZIP codes, negative amounts, etc."
+    )
+
+with col2:
+    with st.expander("💡 Tips"):
+        st.markdown("""
+        **We recommend keeping all boxes checked.**
+        
+        ✅ **Filter by month:** Standard process
+        ✅ **Remove duplicates:** Prevents errors
+        ✅ **Validate data:** Catches issues early
+        
+        Only uncheck if you have a specific reason.
+        """)
+```
+
+### Task 3C: Progress Indicators
+Show users where they are in the workflow:
+
+```python
+import streamlit as st
+
+def show_progress_tracker(current_step):
+    """Display progress through workflow"""
+    steps = [
+        ("1️⃣", "Upload", "upload"),
+        ("2️⃣", "Options", "options"),
+        ("3️⃣", "Process", "process"),
+        ("4️⃣", "Download", "download")
+    ]
+    
+    cols = st.columns(len(steps))
+    
+    for i, (emoji, label, step_id) in enumerate(steps):
+        with cols[i]:
+            if step_id == current_step:
+                st.markdown(f"**{emoji} {label}** ✅")
+            elif steps.index((emoji, label, step_id)) < steps.index(next((s for s in steps if s[2] == current_step), steps[0])):
+                st.markdown(f"{emoji} ~~{label}~~")
+            else:
+                st.markdown(f"{emoji} {label}")
+
+# Use throughout app
+show_progress_tracker("upload")  # At beginning
+# ... user uploads file ...
+show_progress_tracker("options")  # After upload
+# ... user selects options ...
+show_progress_tracker("process")  # During processing
+# ... processing completes ...
+show_progress_tracker("download")  # At download stage
+```
+
+### Task 3D: Success Messages & Next Steps
+After each action, tell users exactly what to do next:
+
+```python
+# After file upload
+if uploaded_file:
+    st.success(f"✅ File uploaded: {uploaded_file.name}")
+    st.info("👉 **Next:** Choose your processing options below")
+
+# After processing
+if processing_complete:
+    st.success("✅ Processing complete!")
+    st.info("""
+    👉 **Next Steps:**
+    1. Review the summary statistics below
+    2. Check for any validation errors
+    3. Download your three files (especially the TXT for CRAWiz)
+    4. Import the Tab-Delimited TXT file into CRAWiz
+    """)
+
+# After download
+if file_downloaded:
+    st.success("✅ File downloaded!")
+    st.info("""
+    👉 **What to do with these files:**
+    - **Consolidated CSV:** Review in Excel
+    - **Tab-Delimited TXT:** Import this into CRAWiz
+    - **Error Report:** Fix any errors listed, then re-run
+    """)
+```
+
+---
+
+## PART 4: HELP & SUPPORT SYSTEM
+
+### Task 4A: Comprehensive FAQ Section
+Add an FAQ in the sidebar:
+
+```python
+st.sidebar.markdown("---")
+st.sidebar.markdown("### ❓ Frequently Asked Questions")
+
+with st.sidebar.expander("Common Issues & Solutions"):
+    st.markdown("""
+    **Q: File upload failed?**
+    A: Check file is .xlsx/.xls/.csv and under 10 MB
+    
+    **Q: No records after filtering?**
+    A: Your file may not have current month data. Uncheck "Filter by current month"
+    
+    **Q: Validation errors found?**
+    A: Download Error Report to see exactly what needs fixing
+    
+    **Q: Which file goes into CRAWiz?**
+    A: The Tab-Delimited TXT file (middle download button)
+    
+    **Q: Tool is slow?**
+    A: Should take 2-5 seconds. If slower, try refreshing the page
+    
+    **Q: Forgot my password?**
+    A: Contact gabriel.ignacio@deepsee.ai
+    """)
+```
+
+### Task 4B: Live Chat / Feedback Widget
+Add a simple feedback mechanism:
+
+```python
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💬 Need Help?")
+
+with st.sidebar.expander("Contact Support"):
+    feedback_type = st.radio(
+        "What do you need help with?",
+        ["Bug Report", "Feature Request", "Question", "Feedback"]
+    )
+    
+    feedback_text = st.text_area(
+        "Tell us more:",
+        placeholder="Describe your issue or suggestion..."
+    )
+    
+    if st.button("Send Message"):
+        if feedback_text:
+            # In a real app, this would email/log the feedback
+            st.success("✅ Message sent! We'll respond within 24 hours.")
+            st.info("Support: gabriel.ignacio@deepsee.ai")
+        else:
+            st.error("Please enter a message")
+
+# Quick contact info
+st.sidebar.markdown("""
+**Email:** gabriel.ignacio@deepsee.ai  
+**Response Time:** Usually within 24 hours
+""")
+```
+
+---
+
+## PART 5: ANALYTICS & TRACKING
+
+### Task 5A: Usage Tracking
+Add simple analytics to understand how users interact:
+
+```python
+import streamlit as st
+from datetime import datetime
+import json
+
+def log_usage_event(event_type, details=None):
+    """Log user interactions for analytics"""
+    log_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'event_type': event_type,
+        'details': details or {},
+        'session_id': st.session_state.get('session_id', 'unknown')
+    }
+    
+    # Append to log file
+    try:
+        with open('usage_log.jsonl', 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+    except:
+        pass  # Silent fail if logging doesn't work
+
+# Log key events
+if uploaded_file:
+    log_usage_event('file_uploaded', {
+        'filename': uploaded_file.name,
+        'filesize': uploaded_file.size
+    })
+
+if processing_started:
+    log_usage_event('processing_started', {
+        'filter_month': filter_month,
+        'remove_dupes': remove_dupes,
+        'validate': validate_data
+    })
+
+if download_clicked:
+    log_usage_event('file_downloaded', {
+        'file_type': download_type  # 'csv', 'txt', or 'error_report'
+    })
+```
+
+### Task 5B: Usage Dashboard (Admin View)
+Create a simple dashboard to view usage stats:
+
+```python
+# Add to sidebar (only for admins)
+if st.sidebar.checkbox("🔐 Admin View (Debug)", value=False):
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📊 Usage Statistics")
+    
+    try:
+        with open('usage_log.jsonl', 'r') as f:
+            logs = [json.loads(line) for line in f]
+        
+        st.sidebar.metric("Total Uses", len(logs))
+        st.sidebar.metric("Files Processed Today", len([l for l in logs if l['timestamp'].startswith(datetime.now().strftime('%Y-%m-%d'))]))
+        
+        with st.sidebar.expander("View Logs"):
+            st.json(logs[-10:])  # Show last 10 events
+    except:
+        st.sidebar.info("No usage data yet")
+```
+
+---
+
+## PART 6: DEPLOYMENT & POLISH
+
+### Task 6A: Loading States
+Add proper loading indicators:
+
+```python
+import streamlit as st
+import time
+
+if st.button("🚀 Process Files", type="primary"):
+    with st.spinner("🔄 Processing your file..."):
+        # Simulate processing steps with progress bar
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.text("Loading file...")
+        progress_bar.progress(20)
+        time.sleep(0.5)
+        
+        status_text.text("Filtering by current month...")
+        progress_bar.progress(40)
+        time.sleep(0.5)
+        
+        status_text.text("Removing duplicates...")
+        progress_bar.progress(60)
+        time.sleep(0.5)
+        
+        status_text.text("Running validation...")
+        progress_bar.progress(80)
+        time.sleep(0.5)
+        
+        status_text.text("Generating output files...")
+        progress_bar.progress(100)
+        time.sleep(0.5)
+        
+        status_text.empty()
+        progress_bar.empty()
+        
+    st.success("✅ Processing complete!")
+```
+
+### Task 6B: Error Handling
+Improve error messages:
+
+```python
+try:
+    df = load_sbsl_file(uploaded_file)
+except Exception as e:
+    st.error("❌ Error loading file")
+    
+    with st.expander("🔍 Error Details"):
+        st.code(str(e))
+        
+        st.markdown("""
+        **Common causes:**
+        - File is corrupted
+        - Wrong file format
+        - Missing required columns
+        
+        **Try this:**
+        1. Re-export the file from your banking system
+        2. Make sure it's the SBSL CRA Export file
+        3. Check file isn't password-protected
+        
+        **Still not working?**
+        Contact support: gabriel.ignacio@deepsee.ai
+        """)
+    
+    st.stop()
+```
+
+### Task 6C: Mobile Responsiveness
+Ensure tool works on tablets/phones:
+
+```python
+# Detect mobile/tablet
+import streamlit as st
+
+# Adjust layout for mobile
+st.markdown("""
+<style>
+    /* Mobile-friendly adjustments */
+    @media (max-width: 768px) {
+        .stButton>button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .stDownloadButton>button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Use single column layout on mobile
+if st.session_state.get('mobile_detected', False):
+    # Single column layout
+    st.file_uploader("Upload file")
+    st.checkbox("Filter by month")
+    st.checkbox("Remove duplicates")
+    st.checkbox("Validate data")
+else:
+    # Multi-column layout for desktop
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.file_uploader("Upload file")
+    with col2:
+        st.checkbox("Filter by month")
+        st.checkbox("Remove duplicates")
+        st.checkbox("Validate data")
+```
+
+---
+
+## PART 7: FINAL INTEGRATION
+
+### Task 7A: Update main.py
+Integrate all enhancements into the existing app:
+
+```python
+# main.py - ENHANCED VERSION
+
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+import etl_functions as etl
+import validation_rules as rules
+import time
+import json
+
+# Page config
+st.set_page_config(
+    page_title="Colony Bank HMDA/CRA ETL",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Initialize session state
+if 'first_visit' not in st.session_state:
+    st.session_state.first_visit = True
+if 'show_tutorial' not in st.session_state:
+    st.session_state.show_tutorial = False
+
+# Password protection
+def check_password():
+    """Returns `True` if the user had the correct password."""
+    
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets.get("password", "ColonyBank2024!"):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.markdown("**Colony Bank HMDA/CRA ETL Tool** - Enter password to access")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        return True
+
+if not check_password():
+    st.stop()
+
+# === SIDEBAR: Tutorial & Help ===
+st.sidebar.title("🏦 HMDA/CRA Tool")
+
+# Tutorial section
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🎓 Learn How to Use")
+
+# Video tutorial
+with st.sidebar.expander("▶️ Watch Tutorial (2 min)"):
+    try:
+        st.video("https://www.youtube.com/embed/PLACEHOLDER_ID")
+        st.caption("Quick walkthrough of the process")
+    except:
+        st.markdown("""
+        **Video unavailable. Follow these steps:**
+        1. Upload SBSL CRA file
+        2. Keep all boxes checked
+        3. Click 'Process Files'
+        4. Download 3 result files
+        """)
+
+# Interactive guide
+show_interactive_tutorial()  # Function from Part 2
+
+# Screenshot guide
+show_screenshot_guide()  # Function from Part 2
+
+# FAQ section
+with st.sidebar.expander("❓ Common Questions"):
+    st.markdown("""
+    **Q: What file do I upload?**
+    A: Your SBSL CRA Export file (Excel format)
+    
+    **Q: How long does it take?**
+    A: About 2 seconds for most files
+    
+    **Q: Which file goes to CRAWiz?**
+    A: The Tab-Delimited TXT file
+    
+    **Q: What if I see errors?**
+    A: Download Error Report for details
+    """)
+
+# Contact support
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 💬 Need Help?")
+st.sidebar.markdown("""
+**Email:** gabriel.ignacio@deepsee.ai  
+**Response:** Within 24 hours
+""")
+
+# === MAIN APP ===
+
+# First-time user welcome
+if st.session_state.first_visit:
+    st.success("""
+    👋 **Welcome to the Colony Bank HMDA/CRA Automation Tool!**
+    
+    Save 8 hours of manual Excel work every month.
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📺 Watch Tutorial", use_container_width=True):
+            st.session_state.show_tutorial = True
+            
+    with col2:
+        if st.button("📖 Quick Start Guide", use_container_width=True):
+            st.info("See sidebar for step-by-step guide →")
+            
+    with col3:
+        if st.button("✅ Skip to Tool", use_container_width=True):
+            st.session_state.first_visit = False
+            st.rerun()
+    
+    st.markdown("---")
+
+# Show tutorial video if requested
+if st.session_state.show_tutorial:
+    with st.expander("📺 Tutorial Video", expanded=True):
+        st.video("https://www.youtube.com/embed/PLACEHOLDER_ID")
+        
+        if st.button("Got it! Let's start →"):
+            st.session_state.first_visit = False
+            st.session_state.show_tutorial = False
+            st.rerun()
+    
+    st.markdown("---")
+
+# Title
+st.title("🏦 Colony Bank HMDA/CRA ETL Automation")
+st.markdown("**Automate your monthly compliance reporting** - Save 8+ hours per month")
+
+# Progress tracker
+show_progress_tracker("upload")  # Function from Part 3
+
+st.markdown("---")
+
+# Step 1: Upload
+st.header("📁 Step 1: Upload Your File")
+
+col1, col2 = st.columns([3, 1])
+
+with col1:
+    uploaded_file = st.file_uploader(
+        "Choose your SBSL CRA Export file",
+        type=['xlsx', 'xls', 'csv'],
+        help="📄 Your monthly SBSL CRA export (usually 'SBSL CRA - Convert Sheet 1...')"
+    )
+
+with col2:
+    with st.expander("❓ Help"):
+        st.markdown("""
+        **What to upload:**
+        - SBSL CRA Export file
+        - Excel (.xlsx/.xls) or CSV
+        - Max size: 10 MB
+        
+        **Where to find it:**
+        - HMDA-CRA Export Files folder
+        - Exported from CHEW App
+        """)
+
+if uploaded_file:
+    st.success(f"✅ File uploaded: {uploaded_file.name}")
+    st.info("👉 **Next:** Choose your processing options below")
+    log_usage_event('file_uploaded', {'filename': uploaded_file.name})
+    
+    show_progress_tracker("options")
+    st.markdown("---")
+    
+    # Step 2: Options
+    st.header("⚙️ Step 2: Processing Options")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        filter_month = st.checkbox(
+            "Filter by current month",
+            value=True,
+            help="Keeps only records where Note Date is in current month"
+        )
+        
+        remove_dupes = st.checkbox(
+            "Remove duplicates",
+            value=True,
+            help="Removes duplicate ApplNumb values (keeps first)"
+        )
+        
+        validate_data = st.checkbox(
+            "Run data validation",
+            value=True,
+            help="Checks for missing/invalid fields"
+        )
+    
+    with col2:
+        with st.expander("💡 Tips"):
+            st.markdown("""
+            **Recommended: Keep all checked**
+            
+            ✅ Filter: Standard monthly process
+            ✅ Duplicates: Prevents import errors  
+            ✅ Validate: Catches issues early
+            """)
+    
+    st.markdown("---")
+    
+    # Step 3: Process
+    show_progress_tracker("process")
+    st.header("🚀 Step 3: Process Your Data")
+    
+    if st.button("Process Files", type="primary", use_container_width=True):
+        with st.spinner("🔄 Processing your file..."):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            try:
+                # Load file
+                status_text.text("📂 Loading file...")
+                progress_bar.progress(20)
+                df = etl.load_sbsl_file(uploaded_file)
+                time.sleep(0.3)
+                
+                # Filter
+                if filter_month:
+                    status_text.text("📅 Filtering by current month...")
+                    progress_bar.progress(40)
+                    df_filtered = etl.filter_by_current_month(df, 'Note Date')
+                    time.sleep(0.3)
+                else:
+                    df_filtered = df.copy()
+                
+                # Deduplicate
+                if remove_dupes:
+                    status_text.text("🔍 Removing duplicates...")
+                    progress_bar.progress(60)
+                    df_processed, df_duplicates = etl.remove_duplicate_applications(df_filtered)
+                    time.sleep(0.3)
+                else:
+                    df_processed = df_filtered.copy()
+                    df_duplicates = pd.DataFrame()
+                
+                # Validate
+                validation_errors = pd.DataFrame()
+                if validate_data:
+                    status_text.text("✔️ Running validation...")
+                    progress_bar.progress(80)
+                    errors_required = etl.validate_required_fields(df_processed, rules.SBSL_REQUIRED_FIELDS)
+                    errors_types = etl.validate_data_types(df_processed)
+                    validation_errors = pd.concat([errors_required, errors_types], ignore_index=True)
+                    time.sleep(0.3)
+                
+                # Generate outputs
+                status_text.text("📄 Generating output files...")
+                progress_bar.progress(100)
+                df_export, tab_delimited = etl.consolidate_and_prepare_export(df_processed)
+                stats = etl.generate_summary_stats(df_processed)
+                time.sleep(0.3)
+                
+                status_text.empty()
+                progress_bar.empty()
+                
+                st.success("✅ Processing complete!")
+                log_usage_event('processing_completed', {
+                    'input_rows': len(df),
+                    'output_rows': len(df_processed),
+                    'errors': len(validation_errors)
+                })
+                
+                st.info("""
+                👉 **Next Steps:**
+                1. Review summary statistics below
+                2. Check for validation errors
+                3. Download your three files
+                4. Import TXT file into CRAWiz
+                """)
+                
+                st.markdown("---")
+                show_progress_tracker("download")
+                
+                # Step 4: Results
+                st.header("📊 Step 4: Review Results & Download")
+                
+                # Summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Records", stats['total_records'])
+                with col2:
+                    st.metric("Total Loans", stats['total_loan_amount'])
+                with col3:
+                    st.metric("Avg Loan", stats['avg_loan_amount'])
+                with col4:
+                    st.metric("Validation Errors", len(validation_errors))
+                
+                st.info(f"📅 Date Range: {stats['date_range']}")
+                
+                # Show errors if any
+                if len(validation_errors) > 0:
+                    with st.expander("⚠️ View Validation Errors", expanded=True):
+                        st.dataframe(validation_errors, use_container_width=True)
+                        st.warning(f"Found {len(validation_errors)} errors. Download Error Report for details.")
+                
+                # Downloads
+                st.markdown("---")
+                st.subheader("📥 Download Your Files")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    csv = df_export.to_csv(index=False)
+                    st.download_button(
+                        label="⬇️ Consolidated CSV",
+                        data=csv,
+                        file_name=f"Colony_CRA_Consolidated_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        help="For Excel review"
+                    )
+                
+                with col2:
+                    st.download_button(
+                        label="⬇️ Tab-Delimited TXT ⭐",
+                        data=tab_delimited,
+                        file_name=f"Colony_CRA_Import_{datetime.now().strftime('%Y%m%d')}.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                        help="Import this into CRAWiz"
+                    )
+                
+                with col3:
+                    if len(validation_errors) > 0:
+                        error_csv = validation_errors.to_csv(index=False)
+                        st.download_button(
+                            label="⬇️ Error Report",
+                            data=error_csv,
+                            file_name=f"Colony_Errors_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            help="List of validation errors"
+                        )
+                    else:
+                        st.success("✅ No errors!")
+                
+                st.success("✅ Files ready! Download above and proceed to CRAWiz.")
+                
+                # What's next
+                st.info("""
+                **What to do with these files:**
+                1. **Consolidated CSV** - Review in Excel (optional)
+                2. **Tab-Delimited TXT** - Import into CRAWiz (required)
+                3. **Error Report** - Fix errors, then re-run tool (if needed)
+                
+                **Next manual steps:**
+                - Open CRAWiz
+                - Import the TXT file
+                - Run geocoding (automatic)
+                - Verify and submit
+                """)
+                
+            except Exception as e:
+                st.error("❌ Error processing file")
+                
+                with st.expander("🔍 Error Details"):
+                    st.code(str(e))
+                    st.markdown("""
+                    **Common causes:**
+                    - Wrong file format
+                    - Missing required columns
+                    - Corrupted file
+                    
+                    **Try:**
+                    1. Re-export from banking system
+                    2. Check it's SBSL CRA Export file
+                    3. Contact support if issue persists
+                    """)
+
+# Footer
+st.markdown("---")
+st.markdown("""
+**DeepSee AI** | Colony Bank HMDA/CRA ETL Tool | v1.1 Enhanced  
+Built by Gabriel Ignacio | November 2024  
+Questions? gabriel.ignacio@deepsee.ai
+""")
+```
+
+---
+
+## PART 8: VIDEO SCRIPT OUTPUT
+
+Based on the tool and process, here's the complete 90-second video script:
+
+```
+=== COLONY BANK HMDA/CRA TOOL - VIDEO SCRIPT ===
+Duration: 90 seconds | Tone: Professional, Reassuring | Audience: Bank Compliance Staff
+
+[0:00-0:15] HOOK + PROBLEM
+-----------------------------------
+Visual: Stressed compliance analyst surrounded by spreadsheets, calendar showing "Monthly Report Due"
+Narration: "Every month, bank compliance teams face the same challenge: HMDA and CRA reporting. 
+Eight to ten hours of manual Excel work. Hunting for duplicates. Validating data. One error could mean regulatory penalties."
+Text Overlay: "8-10 hours/month" → "Manual Excel Work"
+
+[0:15-0:30] SOLUTION OVERVIEW
+-----------------------------------
+Visual: Clean, modern tool interface on screen, logo reveal
+Narration: "DeepSee AI built a solution. The Colony Bank HMDA CRA Automation Tool takes your monthly export 
+and does all the Excel work in seconds. What used to take hours now takes minutes."
+Text Overlay: "8 hours → 30 minutes"
+
+[0:30-0:50] STEP-BY-STEP DEMO
+-----------------------------------
+Visual: Screen recording - actual tool interface
+Narration: "Here's how it works. First, upload your SBSL CRA export file - the same Excel file you export every month.
+Second, choose your options. We recommend keeping all three boxes checked: filter by current month, remove duplicates, 
+and run validation checks. Third, click 'Process Files' and wait just two seconds."
+Text Overlay: "Step 1: Upload" → "Step 2: Options" → "Step 3: Process (2 sec)"
+
+[0:50-0:70] RESULTS
+-----------------------------------
+Visual: Results screen showing summary, downloads
+Narration: "The tool shows you exactly what it found: how many records from the current month, any duplicates removed, 
+and validation errors caught. You get three downloads: a consolidated CSV for your review, a tab-delimited text file 
+ready for CRAWiz import, and an error report showing exactly what needs fixing."
+Text Overlay: "3 Downloads" → "CSV, TXT, Errors"
+
+[0:70-0:85] IMPACT
+-----------------------------------
+Visual: Happy analyst, time saved graphic, multiple bank logos
+Narration: "The impact? Colony Bank saves eight and a half hours every month. That's over one hundred hours per year. 
+And the same tool works for Sunwest Bank, Vantage Bank, any regional bank doing HMDA CRA reporting. 
+One solution, multiple banks, massive ROI."
+Text Overlay: "100+ hours saved/year" → "Reusable across banks"
+
+[0:85-0:90] CALL TO ACTION
+-----------------------------------
+Visual: Tool login screen, contact information
+Narration: "Ready to save time? Log in and try it yourself. Questions? Contact DeepSee AI. 
+Your compliance team will thank you."
+Text Overlay: "Get Started: [URL]" → "Contact: gabriel.ignacio@deepsee.ai"
+
+=== END SCRIPT ===
+```
+
+---
+
+## DELIVERABLES SUMMARY
+
+When you run this comprehensive prompt in Replit AI, you will get:
+
+1. ✅ **Complete enhanced main.py** with all features
+2. ✅ **Video tutorial integration** (3 approaches)
+3. ✅ **Interactive help system** throughout app
+4. ✅ **First-time user onboarding** experience
+5. ✅ **Progress tracking** and contextual guidance
+6. ✅ **FAQ and support** system
+7. ✅ **Analytics logging** for usage tracking
+8. ✅ **Mobile-responsive** design
+9. ✅ **Error handling** with helpful messages
+10. ✅ **90-second video script** ready for AI video tool
+
+---
+
+## IMPLEMENTATION TIMELINE
+
+**Replit AI can implement this in:**
+- Core features: 30-60 minutes
+- Testing and refinement: 30-60 minutes
+- **Total: 1-2 hours**
+
+**Then YOU need to:**
+- Create actual video with Pictory/Descript: 1-2 hours
+- Upload to YouTube and get embed link: 15 minutes
+- Update video URL in code: 2 minutes
+- Final testing: 15 minutes
+- **Total: 2-3 hours**
+
+**Grand Total: 3-5 hours** from prompt to fully enhanced production app with video.
+
+---
+
+## CRITICAL NOTES
+
+⚠️ **VIDEO PLACEHOLDER:** The code includes `"https://www.youtube.com/embed/PLACEHOLDER_ID"` - you'll need to replace this with your actual YouTube video ID once created.
+
+⚠️ **SECRETS:** Make sure to set password in Replit Secrets:
+```
+password = "ColonyBank2024!"
+```
+
+⚠️ **DEPENDENCIES:** May need to add to requirements.txt:
+```
+streamlit==1.28.0
+pandas==2.1.0
+openpyxl==3.1.2
+```
+
+---
+
+**READY TO IMPLEMENT?**
+
+Copy this entire prompt into Replit AI and it will:
+1. Update your main.py with all enhancements
+2. Create supporting functions
+3. Add tutorial and help systems
+4. Implement analytics
+5. Polish the UX
+
+Then you just need to create the actual video using the provided script! 🎬🚀
