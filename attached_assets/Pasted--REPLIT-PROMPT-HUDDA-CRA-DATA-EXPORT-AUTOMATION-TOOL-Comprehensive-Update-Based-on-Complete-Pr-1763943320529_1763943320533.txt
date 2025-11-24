@@ -1,0 +1,1822 @@
+# REPLIT PROMPT: HUDDA/CRA DATA EXPORT AUTOMATION TOOL
+## Comprehensive Update Based on Complete Process Documentation
+
+---
+
+## PROJECT CONTEXT
+
+**Company:** DeepSee AI - Capital Markets Automation  
+**Client:** Colony Bank  
+**Use Case:** Automate monthly HUDDA/CRA compliance reporting process  
+**Current State:** 100+ hours/month manual process across 6 phases  
+**Goal:** Reduce to <10 hours/month with 99%+ accuracy  
+
+**Current Manual Process Duration:**
+- Phase 1 (Data Extraction): ~8 hours
+- Phase 2 (Data Import): ~2 hours  
+- Phase 3 (Data Export): ~1 hour
+- Phase 4 (Scrub Prep): ~10 hours
+- Phase 5 (Manual Scrubbing): ~75 hours (100+ loans × 45 min each)
+- Phase 6 (Final Submission): ~2 hours
+- **TOTAL: ~98 hours/month**
+
+---
+
+## COMPLETE PROCESS FLOW TO AUTOMATE
+
+### **PHASE 1: MULTI-SOURCE DATA EXTRACTION**
+
+#### **Input Source A: LaserPro (Commercial HUDDA Loans)**
+```
+Current Manual Steps:
+1. Open LaserPro software
+2. Navigate to Compliance Reporter export
+3. Set date range (e.g., March 1-31, 2025)
+4. Export to Compliance Reporter (validates no errors)
+5. Check audit log for record count (e.g., 12 records)
+6. Open Compliance Reporter
+7. Set same date range
+8. Export to text file (HUDDA format)
+9. Save to designated folder
+10. Verify file integrity
+
+Output: Text file with commercial loan HUDDA data
+```
+
+**Automation Requirements:**
+- API integration or file watcher for LaserPro exports
+- Automatic date range detection (current month)
+- Error validation and logging
+- Record count verification
+- Text file parsing and ingestion
+
+---
+
+#### **Input Source B: Encompass (Consumer Loans - Primary Export)**
+```
+Current Manual Steps:
+1. Open Encompass loan origination system
+2. Navigate to "Generate HUDDA export"
+3. Set date range (e.g., March 1-31, 2025)
+4. Select relevant loan folders
+5. Export as Excel workbook (.xlsx)
+6. Name file with convention: "Encompass_HUDDA_[Date].xlsx"
+7. Save to designated folder
+
+Output: Excel file with consumer loan HUDDA data (incomplete - missing ~30 fields)
+```
+
+**Automation Requirements:**
+- Encompass API integration or automated export trigger
+- Dynamic date range (current month)
+- Folder selection logic
+- Excel file generation and validation
+
+---
+
+#### **Input Source C: Encompass (Supplemental Data Export)**
+```
+Current Manual Steps:
+1. In Encompass, filter to same date range (March loans)
+2. Export additional columns not in HUDDA export:
+   - Customer name
+   - Borrower name (full)
+   - Lender name
+   - Lender's assistant
+   - Post closer name
+   - APR (if not in HUDDA export)
+   - Rate lock date (full timestamp)
+   - Loan program code
+3. Export to separate Excel file
+4. Save to designated folder
+
+Output: Excel file with supplemental loan data for VLOOKUP
+```
+
+**Automation Requirements:**
+- Secondary Encompass export with specific field list
+- Same date range as primary export
+- Excel generation
+- Column mapping documentation
+
+---
+
+### **PHASE 2: DATA TRANSFORMATION & ENHANCEMENT**
+
+#### **Step 1: Excel Manipulation (Primary Encompass Export)**
+
+**Current Manual Steps:**
+```
+1. Open Encompass_HUDDA_[Date].xlsx
+2. DELETE first 2 columns (row numbers/metadata)
+
+3. ADD 3 new columns at beginning:
+   Column A: "Branch Name" (blank initially)
+   Column B: "Branch" (blank initially)  
+   Column C: "Application Number" (blank initially)
+
+4. ADD multiple new columns after existing data:
+   - "Customer Name" (blank - for VLOOKUP)
+   - "Borrower Name Code" (blank - for VLOOKUP)
+   - "Lender" (blank - for VLOOKUP)
+   - "Lender Assistant" (blank - for VLOOKUP)
+   - "Post Closer" (blank - for VLOOKUP)
+
+5. REARRANGE columns to match template:
+   - Move "Pre-Approval" column to before "Action Taken"
+   - Move after "Interest Rate", add: "APR" and "Rate Lock Date"
+   - After "Loan Term", add: "Loan Term Years" (calculated)
+   - After rate columns, add: "Rate Type", "Variable Term", "Loan Program"
+
+6. COPY column headers from previous month's template
+   - Paste into row 1 to ensure exact naming match
+
+7. DELETE geocoding columns (will be recoded in CRA Wiz)
+
+8. CALCULATE derived fields:
+   Branch: =LEFT([Loan Number], 3)
+   Application Number: =MID([ULI], [LEI Length]+1, [ULI Length]-[LEI Length]-2)
+      Note: Remove LEI prefix and check digit suffix
+   Loan Term Years: =[Loan Term in Months]/12
+```
+
+**Automation Requirements:**
+- Excel file reader (openpyxl or pandas)
+- Column deletion logic (first 2 columns)
+- Column insertion at specific positions
+- Column header template matching
+- Formula implementation:
+  - Branch extraction (first 3 digits of loan number)
+  - Application number derivation (ULI parsing)
+  - Loan term conversion (months → years)
+- Template-based column ordering
+
+---
+
+#### **Step 2: VLOOKUP Data Population**
+
+**Current Manual Steps:**
+```
+1. Open supplemental export file in second tab
+2. Create VLOOKUP formulas in main file:
+
+   Customer Name: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Borrower Name: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Lender: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Lender Assistant: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Post Closer: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   APR: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Rate Lock Date: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+   Rate Type: =IF([Rate Type in Supp]="ARM", "2", "1")
+   Variable Term: =IF([Rate Type]="1", "", [ARM Term from Supp])
+   Loan Program: =VLOOKUP([Loan Number], [Supp Data], [Col], FALSE)
+
+3. Copy formulas down all rows
+4. Convert formulas to values
+```
+
+**Automation Requirements:**
+- Pandas merge/join operations on Loan Number key
+- Conditional logic for Rate Type (ARM detection)
+- Variable Term calculation based on Rate Type
+- Null handling for missing lookups
+- Data type validation after merge
+
+---
+
+#### **Step 3: Data Cleaning & Formatting**
+
+**Current Manual Steps:**
+```
+1. SORT entire dataset by Branch (Column B)
+
+2. FILL IN Branch Names based on Branch codes:
+   Branch "001" → "Main Branch"
+   Branch "002" → "North Branch"
+   [Manual mapping table - ~15 branches]
+
+3. REMOVE trailing zeros from APR values:
+   Before: "7.18800000"
+   After: "7.188"
+
+4. REMOVE leading zeros from County codes:
+   Before: "001045"
+   After: "1045"
+
+5. REFORMAT County code column:
+   Custom format: 5 digits with leading zeros
+   Example: "1045" → "01045"
+
+6. REFORMAT Tract number column:
+   Custom format: 11 digits with leading zeros
+   Example: "123456" → "00000123456"
+
+7. FILTER OUT non-reportable loans:
+   Check "Loan Program" column
+   Remove rows where Loan Program in [excluded list]
+   Common exclusions: "Construction-Only", "Bridge Loan", "Business Purpose"
+
+8. SAVE AS tab-delimited text file (.txt)
+   Naming: "Encompass_HUDDA_CLEAN_[Date].txt"
+```
+
+**Automation Requirements:**
+- Sorting by Branch column
+- Branch code → Branch name mapping (lookup table/dict)
+- String formatting for numeric fields (APR trimming)
+- Zero-padding logic (county: 5 digits, tract: 11 digits)
+- Loan program filtering (exclusion list)
+- Tab-delimited text export
+
+---
+
+### **PHASE 3: CRA WIZ IMPORT SIMULATION**
+
+**Current Manual Steps:**
+```
+1. Open CRA Wiz SaaS application
+2. Navigate to Import → HUDDA
+3. Select "Compliance Reporter" format for LaserPro file
+4. Upload LaserPro text file
+5. Wait ~30 seconds for processing
+6. Verify record count matches (e.g., 12 commercial loans)
+
+7. Navigate to Import → HUDDA
+8. Select "Encompass" format for Encompass file
+9. Upload Encompass clean text file  
+10. Wait ~30 seconds for processing
+11. Verify record count matches (e.g., 143 consumer loans)
+
+12. Navigate to 2025 HUDDA file view
+13. Filter to current month (e.g., March)
+14. Check for duplicates (system flags automatically)
+15. Delete any duplicates found
+16. Review validity errors (acceptable at this stage)
+
+17. Export filtered data to CSV
+18. Save CSV to HUDDA files folder
+```
+
+**Automation Requirements:**
+- File upload simulation (we cannot actually integrate with CRA Wiz)
+- Instead: Replicate CRA Wiz's data validation logic
+- Record count tracking and reporting
+- Duplicate detection algorithm
+- Data quality checks (validity rules)
+- CSV export generation
+
+**CRA Wiz Validation Rules to Replicate:**
+- Application number uniqueness
+- Date field validation (application date < closing date)
+- Required field completeness
+- Code value validation (action taken, loan type, etc.)
+- Numeric range checks (interest rate 0-20%, LTV 0-150%)
+
+---
+
+### **PHASE 4: SCRUB PREPARATION**
+
+#### **Step 1: CSV Post-Processing**
+
+**Current Manual Steps:**
+```
+1. Open exported CSV from CRA Wiz
+2. Open "Scrub Template" Excel file (master template)
+
+3. MATCH columns between CSV and template:
+   - Delete unnecessary columns from CSV
+   - Rearrange columns to match template exactly
+   - Verify data types match (text, number, date)
+
+4. COPY column headers from template
+   - Paste into CSV to ensure exact match
+
+5. DATA CLEANING:
+   - Remove trailing zeros from APRs (again)
+   - Fix county codes (5 digits with leading zeros)
+   - Fix tract numbers (11 digits with leading zeros)
+
+6. SORT by Branch
+
+7. COPY all data from CSV
+
+8. PASTE into Scrub Template on "Original Data" tab
+   (Read-only reference - never modified)
+
+9. COPY from "Original Data" tab
+
+10. PASTE into "Corrections" tab
+    (Working copy - where changes are made)
+```
+
+**Automation Requirements:**
+- CSV reader
+- Column matching logic (template-based)
+- Data type enforcement
+- Cleaning rules (APR, county, tract formatting)
+- Multi-tab Excel generation:
+  - Tab 1: "Original Data" (locked)
+  - Tab 2: "Corrections" (editable)
+  - Tab 3: "Merge Data" (for Word mail merge)
+
+---
+
+#### **Step 2: Originated vs Non-Originated Separation**
+
+**Current Manual Steps:**
+```
+1. In "Corrections" tab, SORT by "Action Taken" column
+
+2. SEPARATE into two sections:
+   Section 1: Originated Loans (Action Taken = 1 or 6)
+      Action 1 = Originated
+      Action 6 = Purchased loan
+   
+   Section 2: Non-Originated Loans (Action Taken = 2, 3, 4, 5, 7, 8)
+      Action 2 = Application approved but not accepted
+      Action 3 = Application denied
+      Action 4 = Application withdrawn
+      Action 5 = File closed for incompleteness
+      Action 7 = Preapproval denied
+      Action 8 = Preapproval approved but not accepted
+
+3. INSERT blank row separator between sections
+
+4. Visual marker: Highlight separator row in yellow
+```
+
+**Automation Requirements:**
+- Action Taken code classification
+- Dataframe splitting into two groups
+- Excel formatting (blank row, highlighting)
+
+---
+
+#### **Step 3: Word Mail Merge Setup**
+
+**Current Manual Steps:**
+```
+1. COPY all data from "Corrections" tab (both sections)
+
+2. PASTE into "Merge Data" tab
+
+3. DELETE separator row (Word doesn't support blank rows)
+
+4. SAVE Excel file
+
+5. OPEN Word document: "HUDDA_Scrub_Worksheet_Template.docx"
+
+6. UPDATE data source:
+   Mailings tab → Select Recipients → Use Existing List
+   Browse to saved Excel file
+   Select "Merge Data" worksheet
+
+7. PREVIEW merge:
+   Each loan becomes one page
+   All fields populated from Excel
+
+8. PRINT to PDF:
+   Generates one PDF with all loans (100+ pages)
+   One loan per page for manual review
+
+9. SAVE PDF: "HUDDA_Scrub_[Month]_[Year].pdf"
+```
+
+**Automation Requirements:**
+- Excel tab creation for merge data
+- Word mail merge automation (python-docx or docx-mailmerge)
+- PDF generation from Word template
+- One-page-per-loan formatting
+- Field mapping from Excel to Word merge fields
+
+**Word Template Fields (100+ merge fields):**
+- {{LoanNumber}}
+- {{ApplicationDate}}
+- {{ActionTaken}}
+- {{LoanType}}
+- {{LoanPurpose}}
+- {{LoanAmount}}
+- {{InterestRate}}
+- [... 90+ more fields]
+
+---
+
+### **PHASE 5: DOCUMENT-BASED DATA EXTRACTION**
+
+**This is the most time-consuming phase: ~75 hours/month**
+
+#### **Step 1: Document Collection from Encompass**
+
+**Current Manual Steps (per loan):**
+```
+1. Open loan file in Encompass using Loan Number
+
+2. Navigate to eFolder (document repository)
+
+3. SELECT required documents (must get exact final versions):
+   ☐ Appraisal (most recent if multiple)
+   ☐ Closing Disclosure - FINAL (ignore preliminary versions)
+   ☐ Credit Report (most recent if multiple)
+   ☐ Note (signed final version)
+   ☐ Application - 1003 (most recent version)
+   ☐ Transmittal Summary / Underwriting Summary
+   ☐ Rate Lock Confirmation
+   ☐ Automated Underwriting Certificate (DU or LP result)
+
+4. PRINT TO PDF (creates single combined PDF)
+   - Do not actually print paper
+   - Preview mode generates PDF
+   - Saves to local folder: "[LoanNumber]_Documents.pdf"
+
+5. VERIFY PDF contains all 8+ documents in correct order
+
+Time per loan: ~5 minutes × 100+ loans = 8+ hours/month
+```
+
+**Automation Requirements:**
+- Encompass API integration for document retrieval
+- Document type classification
+- Version detection (get most recent/final versions only)
+- PDF merging into single file per loan
+- File naming convention
+- Batch processing for all loans
+
+---
+
+#### **Step 2: Data Extraction from Documents**
+
+**100+ DATA POINTS TO EXTRACT PER LOAN**
+
+---
+
+##### **DOCUMENT 1: APPRAISAL**
+
+**Data Points:**
+```
+Field: Construction Method
+Location: Property Description section or implied from photos
+Values: "1" = Site-built, "2" = Manufactured/Mobile Home
+Extraction Logic: 
+  - Look for keyword "manufactured" or "mobile home"
+  - If not found, default to "1" (site-built)
+  - Visual: Look for photos showing permanent foundation vs wheels/chassis
+```
+
+**Automation Requirements:**
+- OCR for text extraction
+- Keyword search for "manufactured", "mobile", "modular"
+- Image analysis (optional) for construction type verification
+- Default logic if uncertain
+
+---
+
+##### **DOCUMENT 2: CLOSING DISCLOSURE (PRIMARY DATA SOURCE)**
+
+**Data Points:**
+
+```
+1. LOAN TERM
+   Location: Page 1, top section "Loan Terms"
+   Format: "[X] years" (e.g., "30 years", "15 years")
+   Extraction: Regex pattern: r'(\d+)\s*years'
+   Field Name: loan_term
+   Data Type: Integer
+
+2. INTEREST RATE
+   Location: Page 1, "Loan Terms" section
+   Format: "X.XXX%" (e.g., "6.725%")
+   Extraction: Regex: r'(\d+\.\d{3})%'
+   Field Name: interest_rate
+   Data Type: Decimal (3 decimal places)
+
+3. RATE TYPE (Fixed vs Adjustable)
+   Location: Page 1, "Loan Terms" section
+   Look for: Checkbox marked or text "Adjustable Rate"
+   Values: If "Adjustable" → "2", else → "1"
+   Field Name: rate_type
+   Data Type: String ("1" or "2")
+
+4. LOAN TYPE
+   Location: Page 1, "Loan Terms" section
+   Look for: "Conventional", "FHA", "VA", "USDA"
+   Values: 
+     Conventional → "1"
+     FHA → "2"
+     VA → "3"
+     USDA/RHS → "4"
+   Field Name: loan_type
+   Data Type: String code
+
+5. LOAN PURPOSE
+   Location: Page 1, near top
+   Values: "Purchase", "Refinance", "Home Improvement"
+   Codes:
+     Purchase → "1"
+     Refinance → "3"
+     Home Improvement → "2"
+     Other → Check further details
+   Field Name: loan_purpose
+   Data Type: String code
+
+6. ORIGINATION CHARGES
+   Location: Page 2, "Loan Costs" section, Line A
+   Format: "$X,XXX.XX"
+   Extraction: Remove "$" and ",", convert to decimal
+   Field Name: origination_charges
+   Data Type: Decimal (2 decimal places)
+
+7. TOTAL POINTS PAID
+   Location: Page 2, "Loan Costs" section, near Line A
+   Format: "$X,XXX.XX"
+   Note: May be labeled "Points" or "Discount Points"
+   Field Name: total_points
+   Data Type: Decimal (2 decimal places)
+
+8. TOTAL LOAN COSTS
+   Location: Page 2, Line D (subtotal line)
+   Format: "$XX,XXX.XX"
+   Field Name: total_loan_costs
+   Data Type: Decimal (2 decimal places)
+
+9. TOTAL LENDER CREDITS
+   Location: Page 2, "Credits" section
+   Format: "$X,XXX.XX" (may be $0.00)
+   Field Name: lender_credits
+   Data Type: Decimal (2 decimal places)
+
+10. APR (Annual Percentage Rate)
+    Location: Page 5 (last page), near signature section
+    Format: "X.XXX%"
+    Extraction: Regex: r'APR.*?(\d+\.\d{3})%'
+    Field Name: apr
+    Data Type: Decimal (3 decimal places)
+
+11. LENDER NMLS NUMBER
+    Location: Page 5, "Contact Information" section
+    Format: "NMLS ID: XXXXXXX" (6-7 digits)
+    Extraction: Regex: r'NMLS.*?(\d{6,7})'
+    Field Name: lender_nmls
+    Data Type: String (preserve leading zeros if any)
+```
+
+**Automation Requirements:**
+- PDF text extraction (PyPDF2 or pdfplumber)
+- Section identification (Loan Terms, Loan Costs, etc.)
+- Regex patterns for each field
+- Currency parsing (remove symbols, convert to decimal)
+- Percentage parsing (remove %, convert to decimal)
+- Code mapping (text values → numeric codes)
+
+---
+
+##### **DOCUMENT 3: CREDIT REPORT**
+
+**Data Points:**
+
+```
+1. CREDIT SCORE (Complex Logic)
+   Location: Credit scores section (usually page 1-2)
+   Format: Three scores shown per borrower (Experian, TransUnion, Equifax)
+   
+   BUSINESS RULE - MULTI-BORROWER LOGIC:
+   Step 1: For EACH borrower, identify middle score:
+     Example: Scores 680, 720, 700 → Middle = 700
+   
+   Step 2: If multiple borrowers, take LOWEST of all middle scores:
+     Borrower 1 middle: 720
+     Borrower 2 middle: 700
+     Co-borrower middle: 680
+     → Report: 680
+   
+   Step 3: Identify which bureau provided that score:
+     If 680 was from Equifax → Report "Equifax"
+   
+   Fields:
+     credit_score: Integer (e.g., 680)
+     credit_model: String (e.g., "Equifax", "TransUnion", "Experian")
+
+2. APPLICANT AGE (Calculated Field)
+   Location: Personal information section (DOB listed)
+   Format: "Date of Birth: MM/DD/YYYY"
+   
+   CALCULATION:
+   Age at Application = Application Date - Date of Birth (in years)
+   Example:
+     DOB: 05/15/1985
+     Application Date: 12/06/2024
+     Age = 39 years
+   
+   Field Name: applicant_age
+   Data Type: Integer
+   
+   NOTE: Calculate for EACH borrower/co-borrower separately
+
+3. CO-APPLICANT AGE
+   Same logic as above, separate field
+   Field Name: co_applicant_age
+   Data Type: Integer
+```
+
+**Automation Requirements:**
+- Credit score extraction (3 scores per borrower)
+- Middle score calculation per borrower
+- Multi-borrower comparison logic
+- Bureau name extraction linked to used score
+- Date of birth extraction
+- Age calculation (date arithmetic)
+- Handle cases with 1-4 borrowers
+
+---
+
+##### **DOCUMENT 4: NOTE**
+
+**Data Points:**
+
+```
+1. NOTE DATE
+   Location: Top of first page
+   Format: "Dated: [Month Day, Year]" or "Date: MM/DD/YYYY"
+   Example: "February 19, 2025" or "02/19/2025"
+   Extraction: Parse date, convert to YYYY-MM-DD
+   Field Name: note_date
+   Data Type: Date
+
+2. NOTE AMOUNT (Loan Amount)
+   Location: First paragraph or "Principal Amount" section
+   Format: "$XXX,XXX.XX" with words: "Two Hundred Thousand Dollars"
+   Extraction: 
+     - Prefer numeric format: "$200,000.00"
+     - Backup: Parse written amount if needed
+   Field Name: note_amount
+   Data Type: Decimal (2 decimal places)
+```
+
+**Automation Requirements:**
+- Date extraction and normalization
+- Currency extraction from multiple formats
+- Verification: Note amount should match closing disclosure loan amount
+
+---
+
+##### **DOCUMENT 5: APPLICATION (1003 URLA)**
+
+**Data Points:**
+
+```
+SECTION 1: PROPERTY INFORMATION
+Location: Section 2 or "Property Information and Purpose of Loan"
+
+1. PROPERTY ADDRESS
+   Components:
+     - Street Address
+     - City
+     - State (2-letter code)
+     - ZIP Code (5 digits, may have +4)
+   Fields:
+     property_street: String
+     property_city: String
+     property_state: String (2 chars)
+     property_zip: String (5 or 9 digits)
+
+2. OCCUPANCY TYPE
+   Location: Property section, checkboxes
+   Values:
+     ☐ Primary Residence → "1"
+     ☐ Second Home → "2"
+     ☐ Investment Property → "3"
+   Field Name: occupancy_type
+   Data Type: String code
+
+3. MANUFACTURED HOME INDICATOR
+   Location: Property section
+   Look for: Checkbox "Manufactured home" or specific question
+   Values: Checked → "2", Unchecked → "1"
+   Field Name: construction_method (verify against appraisal)
+   Data Type: String code
+
+SECTION 2: DEMOGRAPHIC INFORMATION (SECTION X-A)
+Location: Usually pages 8-10 of 1003
+
+APPLICANT/BORROWER:
+
+4. ETHNICITY
+   Location: Ethnicity section with checkboxes
+   Values:
+     ☐ Hispanic or Latino → "1"
+     ☐ Not Hispanic or Latino → "2"
+     ☐ I do not wish to provide → "3"
+   Field Name: applicant_ethnicity
+   Data Type: String code
+
+5. RACE (Can be multiple selections)
+   Location: Race section with checkboxes
+   Values:
+     ☐ American Indian/Alaska Native → "1"
+     ☐ Asian → "2"
+     ☐ Black/African American → "3"
+     ☐ Native Hawaiian/Pacific Islander → "4"
+     ☐ White → "5"
+     ☐ I do not wish to provide → "6"
+   Field Name: applicant_race (may be multiple codes)
+   Data Type: String or Array
+
+6. SEX
+   Location: Sex section with checkboxes
+   Values:
+     ☐ Male → "1"
+     ☐ Female → "2"
+     ☐ I do not wish to provide → "3"
+   Field Name: applicant_sex
+   Data Type: String code
+
+7. INFORMATION COLLECTION METHOD
+   Question: "Was this information collected?"
+   Values:
+     ☐ Face-to-face interview → Check if visual observation used
+     ☐ Telephone interview → "2"
+     ☐ Fax or mail → "2"
+     ☐ Email or internet → "2"
+   
+   BUSINESS RULE:
+   If NOT face-to-face → Information was NOT collected visually
+   
+   Field Name: info_collection_method
+   Data Type: String code
+
+CO-BORROWER:
+Repeat fields 4-7 for co-borrower with prefix "co_applicant_"
+
+8. APPLICATION DATE
+   Location: Signature section or header
+   Look for: "Date: MM/DD/YYYY" next to lender name
+   RULE: Take EARLIEST date if multiple dates shown
+   Example: Multiple dates shown: 12/06/2024, 12/08/2024 → Use 12/06/2024
+   Field Name: application_date
+   Data Type: Date (YYYY-MM-DD)
+```
+
+**Automation Requirements:**
+- Checkbox detection (checked vs unchecked)
+- Multi-selection handling (race can have multiple values)
+- Demographic code mapping
+- Date extraction and comparison (earliest date)
+- Address parsing and validation
+- Handle 1-4 borrowers on same application
+
+---
+
+##### **DOCUMENT 6: UNDERWRITING SUMMARY / TRANSMITTAL SUMMARY**
+
+**Data Points:**
+
+```
+1. APPLICANT TOTAL ANNUAL INCOME
+   Location: Income section
+   Format: May show monthly, must convert to annual
+   Example: 
+     "Total Monthly Income: $8,123"
+     Calculation: $8,123 × 12 = $97,476
+     RULE: Round to nearest $1,000 → $97,000
+   
+   Field Name: applicant_income
+   Data Type: Integer (thousands)
+
+2. COMBINED LOAN-TO-VALUE (CLTV)
+   Location: Loan details or ratios section
+   Format: "XX.XX%" or decimal "0.XXXX"
+   Example: "80.00%" or "0.8000"
+   Extraction: Convert to percentage without decimals
+   Field Name: cltv
+   Data Type: Decimal or Integer (80)
+
+3. DEBT-TO-INCOME RATIO (DTI)
+   Location: Ratios section
+   Format: "XX.XXX%" (usually 3 decimal places)
+   Example: "44.493%"
+   Field Name: dti
+   Data Type: Decimal (3 decimal places)
+
+4. PROPERTY VALUE
+   Location: Property valuation section
+   BUSINESS RULE: Take LOWER of Sales Price or Appraised Value
+   Example:
+     Sales Price: $350,000
+     Appraised Value: $360,000
+     Report: $350,000
+   
+   Field Name: property_value
+   Data Type: Decimal (2 decimal places)
+
+5. NUMBER OF UNITS
+   Location: Property details
+   Format: Integer 1-4 (single-family to fourplex)
+   Default: "1" if not specified
+   Field Name: number_of_units
+   Data Type: Integer
+
+6. LIEN POSITION
+   Location: Loan details section
+   Look for: "First Lien", "Second Lien", "Subordinate Lien"
+   Values:
+     First Lien → "1"
+     Second Lien → "2"
+     Subordinate → "2"
+   Field Name: lien_position
+   Data Type: String code
+
+7. PROPERTY INTEREST
+   Location: Legal description section
+   Look for: "Fee Simple", "Leasehold"
+   Values:
+     Fee Simple → "1"
+     Leasehold → "2"
+   Field Name: property_interest
+   Data Type: String code
+```
+
+**Automation Requirements:**
+- Income calculation (monthly × 12, round to thousands)
+- Percentage extraction and normalization
+- Comparison logic (sales price vs appraised value)
+- Code mapping for categorical fields
+
+---
+
+##### **DOCUMENT 7: RATE LOCK CONFIRMATION**
+
+**Data Points:**
+
+```
+1. RATE LOCK DATE
+   Location: Varies by investor/portfolio
+   
+   CASE 1: Portfolio Loan (kept in-house)
+     Location: Bottom of confirmation letter
+     Format: "Lock Date: MM/DD/YYYY" or "Locked on: [Date]"
+     Example: "Lock Date: 01/29/2025"
+   
+   CASE 2: Sold to Investor (Fannie Mae, Freddie Mac, etc.)
+     Location: Top of confirmation, may be labeled "Commitment Date"
+     Format: Various
+   
+   Field Name: rate_lock_date
+   Data Type: Date (YYYY-MM-DD)
+
+USAGE: Rate Lock Date is used with APR to calculate Rate Spread
+  Rate Spread = (APR - APOR for lock date) 
+  APOR = Average Prime Offer Rate from FFIEC tables
+```
+
+**Automation Requirements:**
+- Date extraction from multiple formats
+- Investor type detection (portfolio vs sold)
+- Rate spread calculation (requires APOR table lookup by date)
+
+---
+
+##### **DOCUMENT 8: AUTOMATED UNDERWRITING SYSTEM (AUS)**
+
+**Data Points:**
+
+```
+1. AUS SYSTEM TYPE
+   Location: Header or title of certificate
+   Look for:
+     "Desktop Underwriter" or "DU" → Desktop Underwriter
+     "Loan Prospector" or "LP" → Loan Prospector
+     "GUS" → Government Underwriting System
+   
+   Values:
+     Desktop Underwriter → "1"
+     Loan Prospector → "2"
+     Other/None → "5"
+   
+   Field Name: aus_type
+   Data Type: String code
+
+2. AUS RESULT
+   Location: Main findings or decision section
+   Common Results:
+     "Approve/Eligible" → "1"
+     "Approve/Ineligible" → "2"
+     "Refer/Eligible" → "3"
+     "Refer/Ineligible" → "4"
+     "Refer with Caution" → "5"
+     "Out of Scope" → "6"
+     "Accept" (for GUS) → "1"
+     "Refer" (for GUS) → "3"
+   
+   Field Name: aus_result
+   Data Type: String code
+   
+   NOTE: Some results may have multiple lines, take primary decision
+```
+
+**Automation Requirements:**
+- Document type detection (DU vs LP vs GUS)
+- Result extraction with fuzzy matching (may have extra words)
+- Code mapping for various result formats
+
+---
+
+### **FULL DATA POINT SUMMARY**
+
+**Total Fields to Extract: 100+**
+
+**Required for EVERY Loan:**
+1. Application Number (derived)
+2. Application Date
+3. Loan Type (Conventional, FHA, VA, USDA)
+4. Loan Purpose (Purchase, Refinance, etc.)
+5. Occupancy Type (Primary, Second, Investment)
+6. Loan Amount
+7. Action Taken (Originated, Denied, etc.)
+8. Action Taken Date
+9. Property Address (Street, City, State, ZIP)
+10. County Code
+11. Census Tract
+12. Property Type (1-4 family, manufactured, etc.)
+13. Construction Method
+14. Number of Units
+15. Lien Position
+16. Property Interest (Fee Simple, Leasehold)
+17. Property Value
+18. Loan Term (months)
+19. Interest Rate
+20. Rate Type (Fixed/Adjustable)
+21. Origination Charges
+22. Total Points
+23. Total Loan Costs
+24. Lender Credits
+25. APR
+26. Rate Spread (calculated)
+27. HOEPA Status (calculated)
+28. Income (rounded to thousands)
+29. DTI
+30. CLTV
+31. Credit Score
+32. Credit Score Model
+33. Applicant Age
+34. Applicant Ethnicity
+35. Applicant Race (1-5 selections possible)
+36. Applicant Sex
+37. Co-Applicant (if present) - Age
+38. Co-Applicant Ethnicity
+39. Co-Applicant Race
+40. Co-Applicant Sex
+41. Information Collection Method
+42. AUS Type
+43. AUS Result
+44. Rate Lock Date
+45. Lender NMLS ID
+46. Branch Code
+47. Branch Name
+48. Lender Name
+49. Lender Assistant
+50. Post Closer
+
+[... Plus 50+ additional fields for detailed reporting]
+
+---
+
+### **PHASE 6: ERROR DETECTION & CORRECTION**
+
+**Current Manual Process:**
+
+```
+1. Print scrub worksheet (one loan per page PDF)
+
+2. For each loan (100+ loans):
+   a. Open loan in Encompass
+   b. Extract all 8 documents to PDF
+   c. Review each document against worksheet
+   d. For EACH of 100+ fields:
+      - Compare document value to worksheet value
+      - If mismatch: Mark in RED on Excel corrections tab
+      - Make correction in Excel
+      - Note source document for correction
+   e. Mark loan as "Reviewed" with error count
+   f. Move to next loan
+
+3. After all loans reviewed:
+   - Sort by error count (high to low)
+   - Review high-error loans again for patterns
+   - Document common error types
+
+Time: 45 minutes per loan × 100 loans = 75 hours/month
+```
+
+**Automation Requirements:**
+
+**Error Detection Logic:**
+- Compare extracted values vs imported values
+- Flag mismatches with severity scoring:
+  - Critical: Loan amount, APR, loan type (affects reporting)
+  - High: Demographics, income, DTI (regulatory scrutiny)
+  - Medium: Addresses, dates (fixable with clarification)
+  - Low: Borrower names, internal IDs (less impactful)
+
+**Error Reporting:**
+- Generate error report per loan
+- Summarize error types across all loans
+- Highlight patterns (e.g., "APR consistently off by 0.001%")
+
+**Suggested Corrections:**
+- For mismatches, show:
+  - Imported value
+  - Extracted value from document
+  - Document source (page, section)
+  - Suggested correction with confidence score
+
+---
+
+### **PHASE 7: RE-IMPORT & FINAL SUBMISSION**
+
+**Current Manual Process:**
+
+```
+1. After corrections made in Excel, save file
+
+2. Open CRA Wiz
+
+3. Navigate to Import → Update from Excel
+
+4. Upload corrected Excel file
+
+5. CRA Wiz updates all records with corrected values
+
+6. Verify update counts match expected corrections
+
+7. Export final HUDDA file for submission
+
+8. Repeat monthly through December
+
+9. In March (annual deadline):
+   - Final data validation
+   - Submit to FFIEC via HMDA Platform
+```
+
+**Automation Requirements:**
+- Excel export with corrections
+- Summary report of changes made
+- Change log for audit trail
+- Final validation before re-import
+
+---
+
+## TOOL REQUIREMENTS
+
+### **INPUT FILES EXPECTED:**
+
+```
+1. LaserPro Export:
+   - Format: Tab-delimited text (.txt)
+   - Fields: ~50 fields for commercial loans
+   - File naming: "LaserPro_HUDDA_[YYYYMM].txt"
+
+2. Encompass Primary Export:
+   - Format: Excel (.xlsx)
+   - Fields: ~70 fields for consumer loans (incomplete)
+   - File naming: "Encompass_HUDDA_[YYYYMM].xlsx"
+
+3. Encompass Supplemental Export:
+   - Format: Excel (.xlsx)
+   - Fields: ~30 fields for VLOOKUPs
+   - File naming: "Encompass_Supplemental_[YYYYMM].xlsx"
+
+4. Loan Documents (per loan):
+   - Format: Individual PDFs or combined PDF
+   - Naming: "[LoanNumber]_Documents.pdf"
+   - 8+ documents per loan
+   - 100+ loans per month
+```
+
+### **OUTPUT FILES REQUIRED:**
+
+```
+1. Cleaned Text File for CRA Wiz:
+   - Format: Tab-delimited text (.txt)
+   - All columns properly formatted
+   - Ready for CRA Wiz import
+
+2. Scrub Preparation Excel:
+   - Multi-tab workbook
+   - Tab 1: Original Data (locked)
+   - Tab 2: Corrections (editable)
+   - Tab 3: Merge Data (for Word)
+
+3. Scrub Worksheet PDF:
+   - One page per loan
+   - All fields pre-populated
+   - Space for manual notes/corrections
+
+4. Error Report:
+   - Summary by loan
+   - Error type breakdown
+   - Suggested corrections
+
+5. Final Corrected File:
+   - Excel format for re-import to CRA Wiz
+   - Change log included
+   - Audit trail maintained
+```
+
+---
+
+## TECHNOLOGY STACK RECOMMENDATIONS
+
+### **Core Libraries:**
+
+```python
+# File Processing
+import pandas as pd              # Excel/CSV manipulation
+import openpyxl                  # Excel reading/writing with formatting
+from openpyxl.styles import Font, PatternFill, Alignment
+import csv                       # Tab-delimited file handling
+
+# PDF Processing
+import PyPDF2                    # PDF reading
+import pdfplumber                # Advanced PDF text extraction
+from pdf2image import convert_from_path  # PDF to image conversion
+
+# OCR (for scanned documents)
+import pytesseract              # OCR engine
+from PIL import Image           # Image processing
+
+# Date/Time
+from datetime import datetime, timedelta
+import calendar
+
+# String Processing
+import re                       # Regex for pattern matching
+from fuzzywuzzy import fuzz     # Fuzzy string matching
+
+# Word Document Generation
+from docx import Document       # Word file creation
+from docxtpl import DocxTemplate  # Mail merge templates
+
+# Data Validation
+from cerberus import Validator  # Schema-based validation
+import jsonschema              # JSON schema validation
+
+# Web Framework (for UI)
+import streamlit as st         # Quick UI development
+# OR
+from flask import Flask, render_template, request, send_file
+```
+
+---
+
+## USER INTERFACE REQUIREMENTS
+
+### **Dashboard Sections:**
+
+```
+1. FILE UPLOAD SECTION
+   - Upload LaserPro export
+   - Upload Encompass primary export
+   - Upload Encompass supplemental export
+   - Upload loan documents (bulk or individual)
+   - Date range selector (defaults to current month)
+   - Drag-and-drop support
+
+2. PROCESSING SECTION
+   - Progress indicators for each phase
+   - Phase 1: Data Extraction (3 sources) [⬛⬛⬛⬜⬜⬜⬜]
+   - Phase 2: Data Transformation      [⬜⬜⬜⬜⬜⬜⬜]
+   - Phase 3: Validation               [⬜⬜⬜⬜⬜⬜⬜]
+   - Phase 4: Document Extraction      [⬜⬜⬜⬜⬜⬜⬜]
+   - Phase 5: Error Detection          [⬜⬜⬜⬜⬜⬜⬜]
+   - Record counts at each stage
+   - Error/warning notifications
+
+3. VALIDATION RESULTS
+   - Record count summary:
+     • LaserPro: 12 commercial loans
+     • Encompass: 143 consumer loans
+     • Total: 155 loans
+   - Duplicates detected: 2
+   - Invalid records: 3
+   - Missing required fields: 5 loans × 8 fields
+   - Data quality score: 94.2%
+
+4. ERROR REVIEW SECTION
+   - Table view of all loans
+   - Columns: Loan #, Borrower, Error Count, Severity, Status
+   - Click loan → Detail view showing:
+     • All extracted fields
+     • Imported fields (for comparison)
+     • Mismatches highlighted in red
+     • Document snippets showing source data
+     • Suggested corrections
+   - Bulk edit capability
+   - Save corrections
+
+5. DOCUMENT VIEWER
+   - Split screen:
+     Left: Extracted data fields
+     Right: Source document (PDF)
+   - Highlight relevant sections in PDF
+   - Click field → Jump to source in PDF
+
+6. EXPORT SECTION
+   - Download cleaned text file for CRA Wiz
+   - Download scrub preparation Excel
+   - Download scrub worksheet PDF
+   - Download error report
+   - Download corrected final file
+   - Export to CRA Wiz (if API available)
+
+7. SETTINGS/CONFIGURATION
+   - Branch name mapping table
+   - Loan program exclusion list
+   - Field validation rules
+   - Template file upload (Excel, Word)
+   - APOR rate table (for rate spread calculation)
+```
+
+---
+
+## VALIDATION RULES TO IMPLEMENT
+
+### **Data Quality Checks:**
+
+```python
+VALIDATION_RULES = {
+    "application_number": {
+        "required": True,
+        "unique": True,
+        "regex": r"^\d{9}$"
+    },
+    "application_date": {
+        "required": True,
+        "type": "date",
+        "min": "2024-01-01",
+        "max": "today"
+    },
+    "action_taken_date": {
+        "required": True,
+        "type": "date",
+        "must_be_after": "application_date"
+    },
+    "loan_amount": {
+        "required": True,
+        "type": "decimal",
+        "min": 1000,
+        "max": 50000000
+    },
+    "interest_rate": {
+        "required": True,
+        "type": "decimal",
+        "min": 0,
+        "max": 20
+    },
+    "loan_term": {
+        "required": True,
+        "type": "integer",
+        "allowed": [60, 120, 180, 240, 360]  # Common terms in months
+    },
+    "occupancy_type": {
+        "required": True,
+        "allowed": ["1", "2", "3"]
+    },
+    "property_value": {
+        "required": True,
+        "type": "decimal",
+        "must_be_greater_than": "loan_amount"
+    },
+    "cltv": {
+        "type": "decimal",
+        "min": 0,
+        "max": 150
+    },
+    "dti": {
+        "type": "decimal",
+        "min": 0,
+        "max": 100
+    },
+    "credit_score": {
+        "type": "integer",
+        "min": 300,
+        "max": 850
+    },
+    "census_tract": {
+        "required": True,
+        "regex": r"^\d{11}$"  # 11 digits with leading zeros
+    },
+    "county_code": {
+        "required": True,
+        "regex": r"^\d{5}$"   # 5 digits with leading zeros
+    }
+}
+```
+
+---
+
+## ERROR HANDLING
+
+### **Common Error Scenarios:**
+
+```python
+ERROR_TYPES = {
+    "FILE_FORMAT_ERROR": {
+        "description": "Uploaded file format does not match expected format",
+        "severity": "critical",
+        "user_action": "Check file extension and contents"
+    },
+    "MISSING_COLUMNS": {
+        "description": "Required columns missing from input file",
+        "severity": "critical",
+        "user_action": "Verify export settings in source system"
+    },
+    "DUPLICATE_LOAN": {
+        "description": "Application number appears multiple times",
+        "severity": "high",
+        "user_action": "Review and delete duplicate entries"
+    },
+    "VLOOKUP_MISS": {
+        "description": "Loan number not found in supplemental data",
+        "severity": "medium",
+        "user_action": "Verify loan exists in both exports"
+    },
+    "INVALID_DATE": {
+        "description": "Date field contains invalid or improperly formatted date",
+        "severity": "high",
+        "user_action": "Correct date format to MM/DD/YYYY"
+    },
+    "OCR_LOW_CONFIDENCE": {
+        "description": "Extracted text from document has low confidence score",
+        "severity": "medium",
+        "user_action": "Manual review recommended"
+    },
+    "DOCUMENT_MISSING": {
+        "description": "Required document not found in loan file",
+        "severity": "high",
+        "user_action": "Upload missing document"
+    },
+    "FIELD_MISMATCH": {
+        "description": "Extracted value differs from imported value",
+        "severity": "varies",
+        "user_action": "Review source documents and confirm correct value"
+    }
+}
+```
+
+---
+
+## PERFORMANCE TARGETS
+
+```
+PHASE 1-3 (File Processing):
+- Current: ~11 hours
+- Target: <30 minutes
+- Method: Automated data pipeline
+
+PHASE 4 (Scrub Prep):
+- Current: ~10 hours
+- Target: <5 minutes
+- Method: Template-based Excel generation
+
+PHASE 5 (Document Extraction):
+- Current: ~75 hours (100 loans × 45 min)
+- Target: <2 hours (100 loans × 1 min + 20 min review)
+- Method: Parallel OCR processing + smart extraction
+
+PHASE 6 (Error Review):
+- Current: Included in Phase 5
+- Target: <1 hour for flagged errors only
+- Method: Automated comparison + exception-based review
+
+OVERALL:
+- Current Total: ~98 hours/month
+- Target Total: <4 hours/month
+- Time Savings: 96% reduction
+```
+
+---
+
+## DEPLOYMENT APPROACH
+
+### **MVP (Minimum Viable Product) - Phase 1:**
+
+```
+Focus: Automate Phases 1-4 (File processing and scrub prep)
+Time Savings: ~20 hours/month
+Features:
+  ✓ Multi-file upload
+  ✓ Excel manipulation automation
+  ✓ VLOOKUP automation
+  ✓ Data cleaning and formatting
+  ✓ Template-based Excel generation
+  ✓ Basic validation
+  ✓ Export to text file for CRA Wiz
+
+Estimated Build Time: 2-3 weeks
+User Testing: 1 week
+```
+
+### **Enhanced Version - Phase 2:**
+
+```
+Focus: Add document extraction (Phase 5)
+Time Savings: Additional 70+ hours/month
+Features:
+  ✓ PDF document processing
+  ✓ OCR for scanned documents
+  ✓ Field extraction from 8 document types
+  ✓ 100+ data point extraction
+  ✓ Automated comparison (imported vs extracted)
+  ✓ Error flagging with severity
+  ✓ Interactive error review UI
+
+Estimated Build Time: 4-6 weeks
+User Testing: 2 weeks
+```
+
+### **Production Version - Phase 3:**
+
+```
+Focus: Enterprise features
+Features:
+  ✓ Batch processing (1000+ loans)
+  ✓ API integrations (Encompass, LaserPro)
+  ✓ Advanced error correction (ML-based suggestions)
+  ✓ Audit trail and change tracking
+  ✓ Multi-user support
+  ✓ Scheduled automation
+  ✓ CRA Wiz API integration (if available)
+  ✓ Comprehensive reporting and analytics
+
+Estimated Build Time: 6-8 weeks
+User Testing: 3 weeks
+```
+
+---
+
+## REPLIT SPECIFIC INSTRUCTIONS
+
+### **Project Structure:**
+
+```
+hudda-cra-automation/
+│
+├── main.py                      # Streamlit app entry point
+├── requirements.txt             # Python dependencies
+├── .replit                      # Replit configuration
+├── replit.nix                   # Nix package configuration
+│
+├── data/
+│   ├── input/                   # Uploaded files
+│   │   ├── laserpro/
+│   │   ├── encompass/
+│   │   └── documents/
+│   ├── output/                  # Generated files
+│   ├── templates/               # Excel/Word templates
+│   └── config/                  # Configuration files
+│       ├── branch_mapping.csv
+│       ├── loan_exclusions.csv
+│       └── validation_rules.json
+│
+├── modules/
+│   ├── __init__.py
+│   ├── file_processor.py        # Phase 1-3: File processing
+│   ├── data_transformer.py      # Excel manipulation, VLOOKUPs
+│   ├── document_extractor.py    # PDF processing, OCR
+│   ├── field_extractor.py       # Extract specific fields from docs
+│   ├── validator.py             # Data validation
+│   ├── error_detector.py        # Compare imported vs extracted
+│   ├── excel_generator.py       # Generate scrub files
+│   ├── word_generator.py        # Mail merge PDFs
+│   └── utils.py                 # Helper functions
+│
+├── extractors/
+│   ├── __init__.py
+│   ├── appraisal_extractor.py
+│   ├── closing_disclosure_extractor.py
+│   ├── credit_report_extractor.py
+│   ├── note_extractor.py
+│   ├── application_extractor.py
+│   ├── underwriting_extractor.py
+│   ├── rate_lock_extractor.py
+│   └── aus_extractor.py
+│
+├── static/
+│   ├── css/
+│   └── images/
+│
+└── tests/
+    ├── test_data/               # Sample files for testing
+    ├── test_file_processor.py
+    ├── test_extractors.py
+    └── test_validator.py
+```
+
+### **requirements.txt:**
+
+```txt
+# Core Data Processing
+pandas==2.1.0
+openpyxl==3.1.2
+numpy==1.24.3
+
+# PDF Processing
+PyPDF2==3.0.1
+pdfplumber==0.10.2
+pdf2image==1.16.3
+
+# OCR
+pytesseract==0.3.10
+Pillow==10.0.0
+
+# Word Processing
+python-docx==0.8.11
+docxtpl==0.16.7
+
+# String Processing
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.21.1
+
+# Date/Time
+python-dateutil==2.8.2
+
+# Validation
+cerberus==1.3.5
+jsonschema==4.19.0
+
+# Web Framework
+streamlit==1.27.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+```
+
+### **.replit:**
+
+```toml
+run = "streamlit run main.py --server.port 5000"
+language = "python3"
+
+[nix]
+channel = "stable-22_11"
+
+[deployment]
+run = ["streamlit", "run", "main.py", "--server.port", "5000"]
+deploymentTarget = "cloudrun"
+```
+
+---
+
+## KEY FEATURES TO BUILD FIRST (MVP Priority)
+
+### **Priority 1: File Upload & Validation**
+- Multi-file upload UI
+- File format validation
+- Preview uploaded data
+- Record count verification
+
+### **Priority 2: Data Transformation**
+- Column deletion (first 2 columns)
+- Column insertion (Branch, Application Number, etc.)
+- Branch code extraction
+- Application number derivation (ULI parsing)
+
+### **Priority 3: VLOOKUP Automation**
+- Merge supplemental data by loan number
+- Populate all missing columns
+- Handle missing lookups gracefully
+
+### **Priority 4: Data Cleaning**
+- APR formatting (remove trailing zeros)
+- County/tract zero-padding
+- Sort by branch
+- Branch name mapping
+
+### **Priority 5: Export Generation**
+- Tab-delimited text file export
+- Multi-tab Excel generation (Original, Corrections, Merge Data)
+- Template matching
+
+---
+
+## TESTING STRATEGY
+
+### **Unit Tests:**
+```python
+# Test each extractor independently
+def test_closing_disclosure_extractor():
+    sample_pdf = "tests/test_data/sample_closing_disclosure.pdf"
+    extractor = ClosingDisclosureExtractor()
+    data = extractor.extract(sample_pdf)
+    
+    assert data['loan_term'] == 360
+    assert data['interest_rate'] == 6.725
+    assert data['apr'] == 7.188
+    # ... test all fields
+```
+
+### **Integration Tests:**
+```python
+# Test full pipeline
+def test_full_pipeline():
+    # Upload test files
+    laserpro_file = "tests/test_data/laserpro_sample.txt"
+    encompass_file = "tests/test_data/encompass_sample.xlsx"
+    
+    # Run pipeline
+    processor = FileProcessor()
+    result = processor.process_all(laserpro_file, encompass_file)
+    
+    # Verify outputs
+    assert result.record_count == 155
+    assert result.error_count == 0
+    assert os.path.exists(result.output_file)
+```
+
+### **User Acceptance Testing:**
+```
+1. Process real March 2025 data (if available)
+2. Compare output to Colleen's manual output
+3. Verify 100% field match
+4. Measure time savings
+5. Collect user feedback
+```
+
+---
+
+## SUCCESS CRITERIA
+
+### **MVP Success:**
+✅ Processes all 3 input files without errors  
+✅ Correctly performs all Excel manipulations  
+✅ Generates clean text file matching manual output 100%  
+✅ Generates scrub preparation Excel matching template  
+✅ Reduces Phases 1-4 time from 11 hours to <30 minutes  
+✅ User can successfully import output into CRA Wiz  
+
+### **Enhanced Version Success:**
+✅ Extracts all 100+ fields from documents with >95% accuracy  
+✅ Detects all errors that Colleen would catch manually  
+✅ Reduces Phase 5 time from 75 hours to <2 hours  
+✅ User reviews only flagged errors, not all loans  
+
+### **Production Success:**
+✅ Processes 100+ loans in <4 hours total (98% time savings)  
+✅ >99% accuracy (better than manual)  
+✅ Handles 1000+ loans per month (scalable)  
+✅ Zero CRA Wiz import errors  
+✅ Passes bank audit requirements  
+
+---
+
+## SPECIAL NOTES FOR AI DEVELOPMENT
+
+### **Complex Business Logic:**
+
+1. **Credit Score Middle-of-Middle Logic:**
+   ```
+   For each borrower:
+     - Extract 3 scores (Experian, TransUnion, Equifax)
+     - Sort ascending, take middle score
+   Across all borrowers:
+     - Take lowest of all middle scores
+   Report:
+     - That score
+     - The bureau that provided it
+   ```
+
+2. **Rate Spread Calculation:**
+   ```
+   Rate Spread = APR - APOR
+   Where APOR = Average Prime Offer Rate from FFIEC table
+   
+   Steps:
+   1. Get rate lock date from document
+   2. Look up APOR for that date from FFIEC tables
+   3. Subtract APOR from APR
+   4. If result >= 1.5%, report value; else report "NA"
+   ```
+
+3. **Application Number Derivation:**
+   ```
+   ULI Format: [LEI][Application Number][Check Digit]
+   Example: "549300ABCDEFGH123456789012"
+   
+   LEI: First 20 characters (e.g., "549300ABCDEFGH")
+   Application Number: Next 9 characters (e.g., "123456789")
+   Check Digit: Last 2 characters (e.g., "01")
+   
+   Extract: Middle 9 characters only
+   ```
+
+4. **Originated vs Non-Originated:**
+   ```
+   Action Taken Codes:
+   Originated: 1, 6
+   Non-Originated: 2, 3, 4, 5, 7, 8
+   
+   Must be separated in Excel for scrubbing workflow
+   ```
+
+---
+
+## QUESTIONS FOR CLARIFICATION
+
+Before starting development, confirm:
+
+1. **File Access:**
+   - Can you provide sample files (anonymized)?
+   - Do you have Encompass API credentials?
+   - Do you have LaserPro API access or is it file-based only?
+
+2. **Templates:**
+   - Can you share Excel scrub template?
+   - Can you share Word mail merge template?
+   - Can you share branch mapping table?
+   - Can you share loan program exclusion list?
+
+3. **Document Formats:**
+   - Are all documents machine-readable PDFs or some scanned?
+   - What's the typical quality of scanned documents?
+   - Are documents always in the same order in combined PDFs?
+
+4. **Validation Rules:**
+   - Do you have a complete list of HUDDA validation rules?
+   - Are there bank-specific validation rules beyond FFIEC requirements?
+   - What's the acceptable error rate?
+
+5. **CRA Wiz:**
+   - Does CRA Wiz have an API for import/export?
+   - If not, is file-based import/export sufficient?
+   - What's the exact format CRA Wiz expects?
+
+6. **Deployment:**
+   - Should this be web-based (Streamlit) or desktop app?
+   - Single user or multi-user?
+   - Any security/compliance requirements for hosting?
+
+---
+
+## NEXT STEPS
+
+1. **Immediate:**
+   - Confirm requirements and answer questions above
+   - Share sample files and templates
+   - Set up Replit project with boilerplate code
+
+2. **Week 1:**
+   - Build file upload and validation
+   - Implement Phase 1-3 automation (file processing)
+   - Create basic UI
+
+3. **Week 2:**
+   - Complete Phase 4 automation (scrub prep)
+   - Add export functionality
+   - Test with real data
+
+4. **Week 3:**
+   - User acceptance testing
+   - Bug fixes and refinements
+   - Deploy MVP
+
+5. **Future Phases:**
+   - Plan Phase 5 implementation (document extraction)
+   - Gather feedback from MVP usage
+   - Iterate and enhance
+
+---
+
+## ESTIMATED DEVELOPMENT TIMELINE
+
+**MVP (Phases 1-4 Automation):**
+- Setup & Planning: 3 days
+- Core Development: 10 days
+- Testing & Refinement: 5 days
+- **Total: ~3 weeks**
+
+**Enhanced (Add Phase 5):**
+- Document Extraction Development: 15 days
+- Testing with Real Documents: 10 days
+- **Total: ~5 weeks**
+
+**Production Ready:**
+- Enterprise Features: 10 days
+- Security & Compliance: 5 days
+- Final Testing: 5 days
+- **Total: ~4 weeks**
+
+**Grand Total: ~12 weeks to full production**
+
+---
+
+## CONTACT & SUPPORT
+
+**Primary User:** Colleen (Colony Bank)  
+**Technical PM:** Gabriel Ignacio (DeepSee AI)  
+**Stakeholder:** Ryan McQueen (CEO/CPO, DeepSee AI)  
+
+**Success Metric:** Reduce Colleen's monthly HUDDA/CRA workload from 98 hours to <4 hours while maintaining >99% accuracy and full regulatory compliance.
+
+---
+
+END OF COMPREHENSIVE REPLIT PROMPT
