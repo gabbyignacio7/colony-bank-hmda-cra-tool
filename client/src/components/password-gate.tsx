@@ -2,27 +2,51 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Lock, AlertCircle } from 'lucide-react';
+import { Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PasswordGateProps {
-  onUnlock: () => void;
+  onUnlock: (username: string) => void;
 }
 
 export function PasswordGate({ onUnlock }: PasswordGateProps) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Hardcoded for MVP as per request, in real app this would be env var or backend check
-    if (password === 'ColonyBank2024!') {
-      onUnlock();
-      toast({ title: "Access Granted", description: "Welcome to Colony Bank ETL Tool." });
-    } else {
+    
+    if (!username.trim()) {
       setError(true);
-      toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
+      toast({ title: "Username Required", description: "Please enter your username.", variant: "destructive" });
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const response = await fetch('/api/auth/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        onUnlock(username);
+        toast({ title: "Access Granted", description: `Welcome, ${username}` });
+      } else {
+        setError(true);
+        toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
+      }
+    } catch (err) {
+      setError(true);
+      toast({ title: "Authentication Error", description: "Unable to validate credentials.", variant: "destructive" });
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -40,6 +64,17 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError(false);
+                }}
+                disabled={isValidating}
+                data-testid="input-username"
+              />
+              <Input
                 type="password"
                 placeholder="Enter Password"
                 value={password}
@@ -48,16 +83,30 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                   setError(false);
                 }}
                 className={error ? "border-red-500 focus-visible:ring-red-500" : ""}
+                disabled={isValidating}
+                data-testid="input-password"
               />
               {error && (
                 <div className="flex items-center gap-1.5 text-sm text-red-600">
                   <AlertCircle className="w-4 h-4" />
-                  <span>Incorrect password. Please try again.</span>
+                  <span>Authentication failed. Please try again.</span>
                 </div>
               )}
             </div>
-            <Button type="submit" className="w-full bg-[#003366] hover:bg-[#002244]">
-              Authenticate
+            <Button 
+              type="submit" 
+              className="w-full bg-[#003366] hover:bg-[#002244]"
+              disabled={isValidating}
+              data-testid="button-authenticate"
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validating...
+                </>
+              ) : (
+                'Authenticate'
+              )}
             </Button>
           </form>
           <div className="mt-6 text-center text-xs text-muted-foreground">
