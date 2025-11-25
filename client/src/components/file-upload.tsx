@@ -48,7 +48,7 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
   // Simple accept string for input
   const acceptString = accept 
     ? Object.values(accept).flat().join(',')
-    : ".xlsx,.xls,.csv";
+    : ".xlsx,.xls,.csv,.txt,.pdf";
 
   return (
     <div className="w-full">
