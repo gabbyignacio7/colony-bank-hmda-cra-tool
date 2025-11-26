@@ -6,11 +6,10 @@ import { Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PasswordGateProps {
-  onUnlock: (username: string) => void;
+  onUnlock: () => void;
 }
 
 export function PasswordGate({ onUnlock }: PasswordGateProps) {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -18,12 +17,6 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username.trim()) {
-      setError(true);
-      toast({ title: "Username Required", description: "Please enter your username.", variant: "destructive" });
-      return;
-    }
 
     setIsValidating(true);
     try {
@@ -36,8 +29,8 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
       const data = await response.json();
       
       if (data.success) {
-        onUnlock(username);
-        toast({ title: "Access Granted", description: `Welcome, ${username}` });
+        onUnlock();
+        toast({ title: "Access Granted", description: "Welcome to Colony Bank ETL Tool" });
       } else {
         setError(true);
         toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
@@ -64,17 +57,6 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError(false);
-                }}
-                disabled={isValidating}
-                data-testid="input-username"
-              />
-              <Input
                 type="password"
                 placeholder="Enter Password"
                 value={password}
@@ -89,7 +71,7 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
               {error && (
                 <div className="flex items-center gap-1.5 text-sm text-red-600">
                   <AlertCircle className="w-4 h-4" />
-                  <span>Authentication failed. Please try again.</span>
+                  <span>Incorrect password. Please try again.</span>
                 </div>
               )}
             </div>

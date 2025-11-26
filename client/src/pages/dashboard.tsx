@@ -55,7 +55,6 @@ import { TutorialVideo } from '@/components/tutorial-video';
 
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUsername, setCurrentUsername] = useState('');
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('upload');
   const [logs, setLogs] = useState<string[]>([]);
@@ -180,7 +179,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: currentUsername,
+          username: 'System User',
           filesProcessed: (files.laserPro ? 1 : 0) + (files.encompass ? 1 : 0) + (files.supp ? 1 : 0),
           recordsProcessed: cleaned.length,
           validationErrors: errors.length,
@@ -209,10 +208,7 @@ export default function Dashboard() {
   };
 
   if (!isAuthenticated) {
-    return <PasswordGate onUnlock={(username) => {
-      setCurrentUsername(username);
-      setIsAuthenticated(true);
-    }} />;
+    return <PasswordGate onUnlock={() => setIsAuthenticated(true)} />;
   }
 
   return (
@@ -283,12 +279,9 @@ export default function Dashboard() {
         
         <div className="p-6 border-t border-white/10">
           <div className="text-xs text-blue-300 mb-2">System Status</div>
-          <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+          <div className="flex items-center gap-2 text-sm text-green-400">
             <ShieldCheck className="w-4 h-4" />
             Authenticated
-          </div>
-          <div className="text-xs text-blue-200">
-            User: {currentUsername}
           </div>
         </div>
       </div>

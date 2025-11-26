@@ -23,12 +23,11 @@
 **What to do:**
 1. Open the application
 2. Show the password-protected login screen
-3. Enter username: `[YourName]` (e.g., "Sarah.Johnson")
-4. Enter password: `ColonyBank2024!`
-5. Click "Authenticate"
+3. Enter password: `ColonyBank2024!`
+4. Click "Authenticate"
 
 **What to say:**
-*"First, notice the tool is password-protected. Only authorized Colony Bank personnel can access it. The system validates credentials server-side and tracks every processing session for audit compliance. I'll log in now with my credentials."*
+*"First, notice the tool is password-protected. Only authorized Colony Bank personnel can access it. The system validates credentials server-side and tracks every processing session for audit compliance. I'll log in now."*
 
 **Key points:**
 - ✅ Server-side authentication (not just client-side)
@@ -170,7 +169,7 @@
 A: Just upload the same files again and click Run Automation. Results are instant.
 
 **Q: "Can multiple people use this?"**
-A: Yes, it's web-based. Each user logs in with their own credentials.
+A: Yes, it's web-based. Multiple team members can access it with the shared password.
 
 **Q: "What happens if there's an error?"**
 A: The system highlights exactly which records have issues and what's wrong. Your team fixes the source data and re-runs.
