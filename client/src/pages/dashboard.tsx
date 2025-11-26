@@ -517,10 +517,7 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-500 mt-2 max-w-md">
                       Upload combined PDF loan files to automatically extract interest rates, loan terms, and property details.
                     </p>
-                    <Button className="mt-6" variant="outline">
-                      Select Files (Coming Soon)
-                    </Button>
-                    <div className="mt-4">
+                    <div className="mt-6">
                       <FileUpload 
                         label="Upload Documents (PDF/Text)" 
                         onFileSelect={(f) => handleFileUpload('laserPro', f)} // Reusing handler for demo
