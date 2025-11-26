@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileUpload } from '@/components/file-upload';
+import { MultiFileUpload } from '@/components/multi-file-upload';
 import { PasswordGate } from '@/components/password-gate';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -75,6 +76,8 @@ export default function Dashboard() {
     stress: [] 
   });
   
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  
   const [rawData, setRawData] = useState<SbslRow[]>([]);
   const [processedData, setProcessedData] = useState<SbslRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationResult[]>([]);
@@ -113,6 +116,18 @@ export default function Dashboard() {
         toast({ title: "Error", description: "Failed to parse Excel file.", variant: "destructive" });
       }
     }
+  };
+
+  const handleDocumentFilesUpload = (newFiles: File[]) => {
+    setDocumentFiles(prev => [...prev, ...newFiles]);
+    toast({ 
+      title: "Documents Uploaded", 
+      description: `Added ${newFiles.length} document${newFiles.length !== 1 ? 's' : ''} for processing.` 
+    });
+  };
+
+  const handleRemoveDocumentFile = (index: number) => {
+    setDocumentFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const runEtlProcess = async () => {
@@ -511,19 +526,41 @@ export default function Dashboard() {
                   <CardDescription>Automated extraction from PDF loan documents (Closing Disclosures, Notes, Appraisals).</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="border-2 border-dashed border-slate-200 rounded-lg p-12 flex flex-col items-center justify-center text-center bg-slate-50">
-                    <FileScan className="w-12 h-12 text-blue-300 mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900">Drag & Drop Loan PDF Packages</h3>
-                    <p className="text-sm text-slate-500 mt-2 max-w-md">
-                      Upload combined PDF loan files to automatically extract interest rates, loan terms, and property details.
-                    </p>
-                    <div className="mt-6">
-                      <FileUpload 
-                        label="Upload Documents (PDF/Text)" 
-                        onFileSelect={(f) => handleFileUpload('laserPro', f)} // Reusing handler for demo
-                        accept={{'application/pdf': ['.pdf'], 'text/plain': ['.txt']}}
-                      />
+                  <div className="space-y-4">
+                    <div className="text-center mb-4">
+                      <FileScan className="w-12 h-12 text-blue-300 mb-4 mx-auto" />
+                      <h3 className="text-lg font-medium text-slate-900">Upload Loan Document Packages</h3>
+                      <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+                        Upload multiple PDF or text files to automatically extract interest rates, loan terms, and property details.
+                      </p>
                     </div>
+                    
+                    <MultiFileUpload 
+                      label="Document Files (PDF/Text)" 
+                      description="Drag & drop multiple files or click to select"
+                      onFilesSelect={handleDocumentFilesUpload}
+                      files={documentFiles}
+                      onRemoveFile={handleRemoveDocumentFile}
+                      accept={{'application/pdf': ['.pdf'], 'text/plain': ['.txt']}}
+                    />
+
+                    {documentFiles.length > 0 && (
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setDocumentFiles([])}
+                          data-testid="button-clear-all"
+                        >
+                          Clear All
+                        </Button>
+                        <Button 
+                          className="bg-[#003366] hover:bg-[#002244]"
+                          data-testid="button-process-documents"
+                        >
+                          Process {documentFiles.length} Document{documentFiles.length !== 1 ? 's' : ''}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-8">
