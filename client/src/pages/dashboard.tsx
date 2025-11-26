@@ -326,6 +326,53 @@ export default function Dashboard() {
     }
   };
 
+  const downloadCorrectedData = async () => {
+    if (processedData.length === 0) {
+      toast({ title: "No Data", description: "Run automation first to generate data", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // Import auto-correction function
+      const { autoCorrectData } = await import('@/lib/etl-engine');
+      
+      // Apply auto-corrections
+      const correctedData = autoCorrectData(processedData);
+      
+      const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const filename = `HMDA_Auto_Corrected_${monthYear.replace(' ', '_')}.xlsx`;
+      
+      // Generate Excel with corrected data
+      const ws = utils.json_to_sheet(correctedData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Corrected Data");
+      
+      // Add a summary sheet
+      const summaryData = [{
+        'Total Records': correctedData.length,
+        'Original Errors': validationErrors.length,
+        'Auto-Corrections Applied': 'Census Tract formatting, Rate decimals, State codes, Whitespace trimming',
+        'Note': 'Review flagged records - some errors require manual correction'
+      }];
+      const summaryWs = utils.json_to_sheet(summaryData);
+      utils.book_append_sheet(wb, summaryWs, "Correction Summary");
+      
+      writeFile(wb, filename);
+      
+      toast({ 
+        title: "Corrected Data Downloaded", 
+        description: `${correctedData.length} records with auto-fixes applied. Review flagged items.`,
+        duration: 5000
+      });
+    } catch (error) {
+      toast({ 
+        title: "Export Failed", 
+        description: "Error creating corrected file", 
+        variant: "destructive" 
+      });
+    }
+  };
+
   if (!isAuthenticated) {
     return <PasswordGate onUnlock={() => setIsAuthenticated(true)} />;
   }
@@ -561,6 +608,13 @@ export default function Dashboard() {
                   </Card>
                   <Card className="bg-white">
                     <CardContent className="pt-6 flex flex-col gap-2">
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                        onClick={downloadCorrectedData}
+                      >
+                        <CheckCircle2 className="mr-2 h-3 w-3" /> Download Corrected
+                      </Button>
                       <Button variant="outline" size="sm" className="w-full" onClick={downloadMailMerge}>
                         <Download className="mr-2 h-3 w-3" /> Export Mail Merge
                       </Button>
@@ -569,7 +623,7 @@ export default function Dashboard() {
                       </Button>
                       {validationErrors.length > 0 && (
                         <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50" onClick={downloadValidationReport}>
-                          <AlertTriangle className="mr-2 h-3 w-3" /> Export Errors
+                          <AlertTriangle className="mr-2 h-3 w-3" /> Error Report
                         </Button>
                       )}
                     </CardContent>

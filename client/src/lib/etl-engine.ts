@@ -395,6 +395,73 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
   return results;
 };
 
+// Auto-correct fixable validation errors
+export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
+  return data.map(row => {
+    const corrected = { ...row };
+    
+    // Fix Census Tract formatting (convert to ##.## or ####.##)
+    if (corrected.Census_Tract) {
+      let tract = String(corrected.Census_Tract).replace(/[^\d.]/g, '');
+      // If it doesn't have decimal, try to format it
+      if (!tract.includes('.')) {
+        if (tract.length >= 4) {
+          tract = tract.slice(0, -2) + '.' + tract.slice(-2);
+        }
+      }
+      // Ensure proper format
+      const parts = tract.split('.');
+      if (parts.length === 2) {
+        const whole = parts[0].padStart(2, '0');
+        const decimal = parts[1].padEnd(2, '0').slice(0, 2);
+        corrected.Census_Tract = `${whole}.${decimal}`;
+      }
+    }
+    
+    // Fix Interest Rate (max 3 decimals, ensure in range)
+    if (corrected.Interest_Rate || corrected['Interest Rate']) {
+      let rate = Number(corrected.Interest_Rate || corrected['Interest Rate']);
+      // Round to 3 decimals
+      rate = Math.round(rate * 1000) / 1000;
+      // Clamp to valid range if slightly out of bounds
+      if (rate > 20 && rate < 21) rate = 20.0;
+      if (rate < 0) rate = 0;
+      corrected.Interest_Rate = rate;
+      corrected['Interest Rate'] = rate;
+    }
+    
+    // Fix APR formatting
+    if (corrected.APR || corrected['APR']) {
+      let apr = String(corrected.APR || corrected['APR']);
+      // Remove trailing zeros and % sign
+      apr = apr.replace('%', '').trim();
+      const aprNum = parseFloat(apr);
+      if (!isNaN(aprNum)) {
+        corrected.APR = Math.round(aprNum * 1000) / 1000;
+        corrected['APR'] = corrected.APR;
+      }
+    }
+    
+    // Trim whitespace from text fields
+    if (corrected.Property_State) {
+      corrected.Property_State = String(corrected.Property_State).trim().toUpperCase().slice(0, 2);
+    }
+    if (corrected.State) {
+      corrected.State = String(corrected.State).trim().toUpperCase().slice(0, 2);
+    }
+    
+    // Fix Income (clamp to valid range if close)
+    if (corrected.Income_Thousands) {
+      let income = Number(corrected.Income_Thousands);
+      if (income > 9999 && income < 10100) income = 9999;
+      if (income < 1 && income > 0) income = 1;
+      corrected.Income_Thousands = income;
+    }
+    
+    return corrected;
+  });
+};
+
 export const generateSummaryStats = (data: SbslRow[]) => {
   const totalLoanAmount = data.reduce((sum, row) => {
     // Check both HMDA and legacy field names
