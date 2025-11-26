@@ -200,16 +200,17 @@ export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], co
   const filtered = data.filter(row => {
     // Check multiple possible date fields
     const dateVal = row['Note Date'] || row.Application_Date || row['Application_Date'];
-    if (!dateVal) return false;
+    
+    // For demo: if no date field exists, keep the record
+    if (!dateVal) return true;
     
     const date = new Date(dateVal);
-    if (isNaN(date.getTime())) return false;
+    // For demo: if date is invalid, keep the record
+    if (isNaN(date.getTime())) return true;
 
-    // For demo/testing: accept current month from current year OR previous year
-    const isCurrentMonth = date.getMonth() === currentMonth;
-    const isRecentYear = date.getFullYear() === currentYear || date.getFullYear() === (currentYear - 1);
-    
-    return isCurrentMonth && isRecentYear;
+    // Accept loans from the last 12 months for demo purposes
+    const monthsAgo = (currentYear - date.getFullYear()) * 12 + (currentMonth - date.getMonth());
+    return monthsAgo >= 0 && monthsAgo <= 12;
   });
   
   return { filtered, count: filtered.length };
