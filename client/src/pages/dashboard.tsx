@@ -501,13 +501,18 @@ export default function Dashboard() {
                         </thead>
                         <tbody className="divide-y">
                           {processedData.map((row, i) => {
-                            const error = validationErrors.find(e => e.applNumb === row.ApplNumb);
+                            const loanId = row.Loan_Number || row.ApplNumb || '-';
+                            const error = validationErrors.find(e => e.applNumb === loanId);
+                            const termYears = row['Loan Term Years'] || (row.Loan_Term_Months ? row.Loan_Term_Months / 12 : '-');
+                            const apr = row['APR'] || row.Interest_Rate || '-';
+                            const branch = row['Branch Name'] || row['Branch'] || row.Property_City || '-';
+                            
                             return (
                               <tr key={i} className={cn("hover:bg-slate-50 transition-colors", error ? "bg-red-50/50 hover:bg-red-50" : "")}>
-                                <td className="px-4 py-3 font-medium">{row.ApplNumb}</td>
-                                <td className="px-4 py-3">{row['Branch Name'] || row['Branch'] || '-'}</td>
-                                <td className="px-4 py-3">{row['Loan Term Years'] || '-'}</td>
-                                <td className="px-4 py-3">{row['APR'] || '-'}%</td>
+                                <td className="px-4 py-3 font-medium">{loanId}</td>
+                                <td className="px-4 py-3">{branch}</td>
+                                <td className="px-4 py-3">{termYears}</td>
+                                <td className="px-4 py-3">{apr}{typeof apr === 'number' ? '%' : ''}</td>
                                 <td className="px-4 py-3">
                                   {error ? (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">

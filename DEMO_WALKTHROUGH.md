@@ -34,6 +34,8 @@
 - ✅ Audit trail tracking
 - ✅ Colony Bank branding (Navy Blue #003366)
 
+**NOTE:** See `DEMO_TEST_FILES_GUIDE.md` for detailed walkthrough using the realistic 15-loan test dataset!
+
 ---
 
 ### **PHASE 2: DATA SOURCES (3 minutes)**

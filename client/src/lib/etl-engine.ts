@@ -1,12 +1,13 @@
 import { read, utils, writeFile } from 'xlsx';
 
 export interface SbslRow {
-  ApplNumb: string;
-  'Last Name': string;
-  'Loan Type': string;
-  'Action Taken': string;
-  'Loan Amount': number;
-  'Note Date': string | number | Date;
+  // Legacy fields
+  ApplNumb?: string;
+  'Last Name'?: string;
+  'Loan Type'?: string;
+  'Action Taken'?: string;
+  'Loan Amount'?: number;
+  'Note Date'?: string | number | Date;
   Revenue?: number;
   Affiliate?: string;
   Address?: string;
@@ -15,7 +16,31 @@ export interface SbslRow {
   Zip?: string;
   Comment?: string;
   
-  // New Fields from Phase 2
+  // HMDA Test File Fields (from test data)
+  Loan_Number?: string;
+  Application_Date?: string | number | Date;
+  Interest_Rate?: number;
+  Loan_Term_Months?: number;
+  Loan_Purpose_Code?: number;
+  Property_Type_Code?: number;
+  Loan_Type_Code?: number;
+  Action_Taken_Code?: number;
+  County_Code?: string;
+  Census_Tract?: string;
+  Borrower_Last_Name?: string;
+  Borrower_First_Name?: string;
+  Property_Street?: string;
+  Property_City?: string;
+  Property_State?: string;
+  Property_Zip?: string;
+  Income_Thousands?: number;
+  Credit_Score?: number;
+  Closing_Date?: string | number | Date;
+  Applicant_Ethnicity?: number;
+  Applicant_Race_1?: number;
+  Applicant_Sex?: number;
+  
+  // Calculated Fields from Phase 2
   'Branch Name'?: string;
   'Branch'?: string;
   'Application Number'?: string;
@@ -206,21 +231,36 @@ export const transformEncompassData = (data: SbslRow[]): SbslRow[] => {
 
 // Phase 2 Step 2: VLOOKUP Simulation
 export const mergeSupplementalData = (mainData: SbslRow[], suppData: SbslRow[]): SbslRow[] => {
-  // Create lookup map
-  const suppMap = new Map(suppData.map(row => [row.ApplNumb, row]));
+  // Create lookup map using either Loan_Number (HMDA) or ApplNumb (legacy)
+  const suppMap = new Map(
+    suppData.map(row => [row.Loan_Number || row.ApplNumb, row])
+  );
   
   return mainData.map(row => {
-    const supp = suppMap.get(row.ApplNumb);
+    const joinKey = row.Loan_Number || row.ApplNumb;
+    const supp = suppMap.get(joinKey);
     if (!supp) return row;
     
     return {
       ...row,
+      // Merge HMDA fields
+      Applicant_Ethnicity: supp.Applicant_Ethnicity,
+      Applicant_Race_1: supp.Applicant_Race_1,
+      Applicant_Sex: supp.Applicant_Sex,
+      Income_Thousands: supp.Income_Thousands,
+      Credit_Score: supp.Credit_Score,
+      Borrower_Last_Name: supp.Borrower_Last_Name,
+      Borrower_First_Name: supp.Borrower_First_Name,
+      Property_Street: supp.Property_Street,
+      Property_City: supp.Property_City,
+      Property_State: supp.Property_State,
+      Property_Zip: supp.Property_Zip,
+      // Legacy fields
       'Customer Name': supp['Customer Name'],
       'Borrower Name': supp['Borrower Name'],
       'Lender': supp['Lender'],
-      'APR': supp['APR'],
+      'APR': supp['APR'] || supp.Interest_Rate,
       'Rate Type': supp['Rate Type'] === 'ARM' ? '2' : '1',
-      // Add other fields as needed
     };
   });
 };
@@ -265,44 +305,82 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
   
   data.forEach((row, idx) => {
     const errors: string[] = [];
+    const loanId = row.Loan_Number || row.ApplNumb || 'N/A';
     
-    // Required Fields
-    const required = ['ApplNumb', 'Last Name', 'Loan Amount', 'Note Date'];
-    required.forEach(field => {
-      if (!row[field]) errors.push(`Missing ${field}`);
-    });
-    
-    // Logic Checks
-    const loanAmount = Number(row['Loan Amount']);
-    if (isNaN(loanAmount) || loanAmount <= 0) errors.push("Loan Amount must be positive");
-    
-    if (row['State'] && String(row['State']).trim().length !== 2) errors.push("State must be 2-letter code");
-    
-    // Zip Validation
-    if (row['Zip']) {
-      const zipStr = String(row['Zip']).trim();
-      if (zipStr.length < 5) errors.push("Invalid ZIP code");
-      if (/[a-zA-Z]/.test(zipStr)) errors.push("ZIP contains letters");
-    }
-    
-    // Phase 3 Validation Rules (CRA Wiz Replication)
-    
-    // 1. Rate Check (0-20%)
-    if (row['Interest Rate']) {
-       const rate = Number(row['Interest Rate']);
-       if (rate < 0 || rate > 20) errors.push("Interest Rate out of bounds (0-20%)");
-    }
-    
-    // 2. LTV Check (0-150%)
-    if (row['LTV']) {
-       const ltv = Number(row['LTV']);
-       if (ltv < 0 || ltv > 150) errors.push("LTV out of bounds (0-150%)");
+    // HMDA Required Fields
+    if (row.Loan_Number) {
+      // HMDA data validation
+      if (!row.Loan_Number) errors.push("Missing Loan_Number");
+      if (!row.Application_Date && !row['Note Date']) errors.push("Missing Application_Date");
+      if (!row.Loan_Amount && !row['Loan Amount']) errors.push("Missing Loan_Amount");
+      
+      // Loan Amount validation
+      const loanAmount = Number(row.Loan_Amount || row['Loan Amount']);
+      if (isNaN(loanAmount) || loanAmount <= 0) errors.push("Loan Amount must be positive");
+      
+      // Interest Rate validation (0-20%, max 3 decimals)
+      if (row.Interest_Rate || row['Interest Rate']) {
+        const rate = Number(row.Interest_Rate || row['Interest Rate']);
+        if (rate < 0 || rate > 20) errors.push("Interest Rate out of bounds (0-20%)");
+        const rateStr = String(rate);
+        if (rateStr.includes('.') && rateStr.split('.')[1].length > 3) {
+          errors.push("Interest Rate max 3 decimal places");
+        }
+      }
+      
+      // Census Tract Format validation (##.## or ####.##)
+      if (row.Census_Tract) {
+        const tract = String(row.Census_Tract);
+        if (!/^\d{2,4}\.\d{2}$/.test(tract)) {
+          errors.push("Census Tract must be ##.## or ####.##");
+        }
+      }
+      
+      // Income validation (1-9999 thousands)
+      if (row.Income_Thousands) {
+        const income = Number(row.Income_Thousands);
+        if (income < 1 || income > 9999) {
+          errors.push("Income must be 1-9999 (thousands)");
+        }
+      }
+      
+      // Action Taken Code validation
+      if (row.Action_Taken_Code) {
+        const action = Number(row.Action_Taken_Code);
+        if (![1, 2, 3, 4, 5, 6, 7, 8].includes(action)) {
+          errors.push("Invalid Action Taken Code");
+        }
+      }
+      
+      // Property State validation
+      if (row.Property_State) {
+        if (String(row.Property_State).trim().length !== 2) {
+          errors.push("State must be 2-letter code");
+        }
+      }
+    } else {
+      // Legacy validation
+      const required = ['ApplNumb', 'Last Name', 'Loan Amount', 'Note Date'];
+      required.forEach(field => {
+        if (!row[field]) errors.push(`Missing ${field}`);
+      });
+      
+      const loanAmount = Number(row['Loan Amount']);
+      if (isNaN(loanAmount) || loanAmount <= 0) errors.push("Loan Amount must be positive");
+      
+      if (row['State'] && String(row['State']).trim().length !== 2) errors.push("State must be 2-letter code");
+      
+      if (row['Zip']) {
+        const zipStr = String(row['Zip']).trim();
+        if (zipStr.length < 5) errors.push("Invalid ZIP code");
+        if (/[a-zA-Z]/.test(zipStr)) errors.push("ZIP contains letters");
+      }
     }
 
     if (errors.length > 0) {
       results.push({
         rowIdx: idx + 2,
-        applNumb: row.ApplNumb || 'N/A',
+        applNumb: loanId,
         errors
       });
     }

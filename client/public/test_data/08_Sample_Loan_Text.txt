@@ -1,0 +1,59 @@
+LOAN APPLICATION SUMMARY REPORT
+================================
+Generated: November 26, 2024
+Institution: Colony Bank
+NMLS ID: 12345
+
+APPLICANT INFORMATION
+---------------------
+Name: Thomas Rodney Conine
+SSN (Last 4): 6629
+DOB: 12/15/1972
+Address: 4366 River Road, Camilla, GA 31730
+Phone: 229-526-0340
+Employment: Mitchell Co School System
+Years at Job: 25
+Annual Income: $107,976
+
+LOAN DETAILS
+------------
+Loan Number: LP2024110001
+Loan Type: Conventional
+Loan Purpose: Purchase
+Property Type: Single Family
+Occupancy: Principal Residence
+Loan Amount: $37,770.60
+Interest Rate: 7.99%
+Term: 180 months
+Monthly Payment: $361.94
+LTV: 112.66%
+
+PROPERTY INFORMATION
+--------------------
+Address: 4366 River Road
+City: Camilla
+State: GA
+Zip: 31730
+County: Mitchell
+Census Tract: 9501.00
+Appraised Value: $33,792.00
+
+COLLATERAL
+----------
+2025 Excel Bay Pro 203 Elite (Marine Vessel)
+Hull ID: XCL143481425
+2025 EZ Trac 203 Bay Trailer
+Serial: 59WBB2016SM000153
+2023 Suzuki DF140 Outboard
+Serial: 14005F346200
+
+ACTION TAKEN
+------------
+Application Date: 10/22/2024
+Decision Date: 10/28/2024
+Action: Loan Originated
+Closing Date: 11/15/2024
+First Payment Due: 12/06/2024
+
+HMDA REPORTABLE: NO (Marine/RV Loan - Not covered under HMDA)
+CRA REPORTABLE: NO (Consumer Loan - Not covered under CRA)
