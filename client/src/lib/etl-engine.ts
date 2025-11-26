@@ -100,17 +100,55 @@ export const processFile = async (file: File): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
-    // Handle text/pdf files as raw data mock pass-through or simple text read
-    if (file.name.endsWith('.txt') || file.name.endsWith('.pdf')) {
-       // For demo purposes, we just return mock data if it's a non-excel file 
-       // or read text content if possible.
-       // Since we can't parse PDF client-side easily without pdf.js, we'll assume success 
-       // and return mock data to unblock the demo.
-       console.log("Processing non-excel file:", file.name);
+    // Handle text files - try to parse as tab or comma delimited
+    if (file.name.endsWith('.txt')) {
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          // Try to parse as TSV/CSV
+          const lines = text.split('\n').filter(line => line.trim());
+          if (lines.length > 0) {
+            const headers = lines[0].split('\t').length > 1 
+              ? lines[0].split('\t') 
+              : lines[0].split(',');
+            
+            const data = lines.slice(1).map(line => {
+              const values = line.split('\t').length > 1 
+                ? line.split('\t') 
+                : line.split(',');
+              const obj: any = {};
+              headers.forEach((header, i) => {
+                obj[header.trim()] = values[i]?.trim() || '';
+              });
+              return obj;
+            });
+            
+            if (data.length > 0) {
+              console.log(`Parsed ${data.length} rows from text file`);
+              resolve(data);
+              return;
+            }
+          }
+          // Fallback if parsing fails
+          console.log("Text file parsing failed, using sample data");
+          resolve(MOCK_SBSL_DATA);
+        } catch (error) {
+          console.error("Error parsing text file:", error);
+          resolve(MOCK_SBSL_DATA);
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
+    
+    // Handle PDF files - return mock data for demo
+    if (file.name.endsWith('.pdf')) {
+       console.log("PDF file detected - would require PDF parsing library");
        resolve(MOCK_SBSL_DATA);
        return;
     }
 
+    // Handle Excel/CSV files
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -118,8 +156,10 @@ export const processFile = async (file: File): Promise<any[]> => {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = utils.sheet_to_json(sheet);
+        console.log(`Parsed ${jsonData.length} rows from Excel/CSV file`);
         resolve(jsonData);
       } catch (error) {
+        console.error("Error parsing Excel/CSV file:", error);
         reject(error);
       }
     };

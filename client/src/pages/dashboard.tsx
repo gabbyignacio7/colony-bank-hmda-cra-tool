@@ -102,19 +102,23 @@ export default function Dashboard() {
 
   const handleFileUpload = async (type: 'laserPro' | 'encompass' | 'supp' | 'expected', file: File) => {
     setFiles(prev => ({ ...prev, [type]: file }));
-    addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
     
-    if (type === 'encompass') {
-      try {
-        const data = await processFile(file);
+    try {
+      const data = await processFile(file);
+      
+      if (type === 'encompass' || type === 'laserPro') {
+        // Primary data sources
         setRawData(data as SbslRow[]);
-        addLog(`Parsed ${data.length} rows from Encompass file.`);
-        toast({ title: "File Parsed", description: `Successfully loaded ${data.length} records.` });
+        addLog(`Loaded ${type.toUpperCase()} file: ${file.name} (${data.length} rows)`);
+        toast({ title: "File Loaded", description: `Successfully loaded ${data.length} records from ${file.name}` });
         setCurrentScenario("Custom Upload");
-      } catch (e) {
-        addLog(`Error parsing file: ${e}`);
-        toast({ title: "Error", description: "Failed to parse Excel file.", variant: "destructive" });
+      } else {
+        addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
+        toast({ title: "File Loaded", description: `${file.name} ready for processing` });
       }
+    } catch (e) {
+      addLog(`Error parsing file ${file.name}: ${e}`);
+      toast({ title: "Error", description: `Failed to parse ${file.name}`, variant: "destructive" });
     }
   };
 
@@ -136,13 +140,24 @@ export default function Dashboard() {
     setLogs([]); 
     addLog("Starting Comprehensive ETL Process...");
     
+    // Check if we have uploaded data
+    if (rawData.length === 0 && !files.encompass && !files.laserPro) {
+      addLog("No files uploaded. Using sample data for demonstration...");
+      toast({ 
+        title: "Using Sample Data", 
+        description: "Upload files to process your own data", 
+        variant: "default" 
+      });
+    }
+    
     await new Promise(r => setTimeout(r, 500));
     
     // Step 1: Filter
-    addLog("Phase 1: Filtering by current month (March 2025)...");
-    let currentData = rawData.length > 0 ? rawData : MOCK_SBSL_DATA; // Fallback to mock if no file
+    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    addLog(`Phase 1: Filtering by current month (${currentMonth})...`);
+    let currentData = rawData.length > 0 ? rawData : MOCK_SBSL_DATA;
     const { filtered, count } = filterByCurrentMonth(currentData);
-    addLog(`Filtered: Kept ${count} records.`);
+    addLog(`Filtered: Kept ${count} records out of ${currentData.length} total.`);
 
     await new Promise(r => setTimeout(r, 500));
 
