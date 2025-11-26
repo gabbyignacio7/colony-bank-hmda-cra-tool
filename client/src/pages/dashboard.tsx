@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { utils, writeFile } from 'xlsx';
 import { FileUpload } from '@/components/file-upload';
 import { MultiFileUpload } from '@/components/multi-file-upload';
 import { PasswordGate } from '@/components/password-gate';
@@ -230,11 +231,99 @@ export default function Dashboard() {
   };
 
   const downloadMailMerge = () => {
-     toast({ title: "Generating Mail Merge Data", description: "Creating 'Merge Data' tab for Word..." });
-     // Mock download
-     setTimeout(() => {
-        toast({ title: "Download Ready", description: "HUDDA_Scrub_Data_March_2025.xlsx" });
-     }, 1000);
+    if (processedData.length === 0) {
+      toast({ title: "No Data", description: "Run automation first to generate data", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const filename = `HMDA_Scrub_Data_${monthYear.replace(' ', '_')}.xlsx`;
+      
+      // Generate Excel file with processed data
+      const ws = utils.json_to_sheet(processedData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Merge Data");
+      
+      writeFile(wb, filename);
+      
+      toast({ 
+        title: "Export Complete", 
+        description: `Downloaded ${filename} with ${processedData.length} records` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Export Failed", 
+        description: "Error creating Excel file", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const downloadCRAWiz = () => {
+    if (processedData.length === 0) {
+      toast({ title: "No Data", description: "Run automation first to generate data", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const filename = `CRA_Wiz_Upload_${monthYear.replace(' ', '_')}.xlsx`;
+      
+      // Generate CRA Wiz format
+      const ws = utils.json_to_sheet(processedData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "CRA Data");
+      
+      writeFile(wb, filename);
+      
+      toast({ 
+        title: "CRA Export Complete", 
+        description: `Downloaded ${filename} for CRA Wiz upload` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Export Failed", 
+        description: "Error creating CRA file", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const downloadValidationReport = () => {
+    if (validationErrors.length === 0) {
+      toast({ title: "No Errors", description: "All records passed validation!" });
+      return;
+    }
+
+    try {
+      const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const filename = `Validation_Errors_${monthYear.replace(' ', '_')}.xlsx`;
+      
+      // Format validation errors for export
+      const errorData = validationErrors.map(err => ({
+        'Row #': err.rowIdx,
+        'Loan Number': err.applNumb,
+        'Errors': err.errors.join('; ')
+      }));
+      
+      const ws = utils.json_to_sheet(errorData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, "Validation Errors");
+      
+      writeFile(wb, filename);
+      
+      toast({ 
+        title: "Error Report Downloaded", 
+        description: `${validationErrors.length} errors exported to ${filename}` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Export Failed", 
+        description: "Error creating error report", 
+        variant: "destructive" 
+      });
+    }
   };
 
   if (!isAuthenticated) {
@@ -473,8 +562,16 @@ export default function Dashboard() {
                   <Card className="bg-white">
                     <CardContent className="pt-6 flex flex-col gap-2">
                       <Button variant="outline" size="sm" className="w-full" onClick={downloadMailMerge}>
-                        <Printer className="mr-2 h-3 w-3" /> Export Mail Merge
+                        <Download className="mr-2 h-3 w-3" /> Export Mail Merge
                       </Button>
+                      <Button variant="outline" size="sm" className="w-full" onClick={downloadCRAWiz}>
+                        <Database className="mr-2 h-3 w-3" /> Export CRA Wiz
+                      </Button>
+                      {validationErrors.length > 0 && (
+                        <Button variant="outline" size="sm" className="w-full text-red-600 border-red-200 hover:bg-red-50" onClick={downloadValidationReport}>
+                          <AlertTriangle className="mr-2 h-3 w-3" /> Export Errors
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
