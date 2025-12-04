@@ -43,6 +43,15 @@ import {
   type ValidationResult
 } from '@/lib/etl-engine';
 import { compareDataframes, type DiffResult } from '@/lib/diff-engine';
+import { 
+  parseCRAWizFile, 
+  transformCRAWizExport, 
+  exportWorkItemFile, 
+  exportTransformSummary,
+  BRANCH_LIST,
+  type CRAWizRow,
+  type TransformResult
+} from '@/lib/cra-wiz-transform';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -96,6 +105,12 @@ export default function Dashboard() {
     avgTime: 0,
     totalRows: 0
   });
+
+  // Phase 3: CRA Wiz Post-Processing State
+  const [craWizFile, setCraWizFile] = useState<File | null>(null);
+  const [craWizData, setCraWizData] = useState<CRAWizRow[]>([]);
+  const [phase3Result, setPhase3Result] = useState<TransformResult | null>(null);
+  const [isPhase3Processing, setIsPhase3Processing] = useState(false);
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
@@ -326,6 +341,76 @@ export default function Dashboard() {
     }
   };
 
+  // Phase 3: CRA Wiz Post-Processing Handlers
+  const handleCRAWizFileUpload = async (file: File) => {
+    setCraWizFile(file);
+    setPhase3Result(null);
+    
+    try {
+      const data = await parseCRAWizFile(file);
+      setCraWizData(data);
+      toast({ 
+        title: "CRA Wiz File Loaded", 
+        description: `Parsed ${data.length} rows with ${Object.keys(data[0] || {}).length} columns` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to parse CRA Wiz export file", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const runPhase3Transform = async () => {
+    if (craWizData.length === 0) {
+      toast({ title: "No Data", description: "Please upload a CRA Wiz export file first", variant: "destructive" });
+      return;
+    }
+
+    setIsPhase3Processing(true);
+    
+    try {
+      await new Promise(r => setTimeout(r, 500)); // Brief delay for UI feedback
+      
+      const result = transformCRAWizExport(craWizData);
+      setPhase3Result(result);
+      
+      toast({ 
+        title: "Transformation Complete", 
+        description: `Converted ${result.inputColumns} columns to ${result.outputColumns} columns. ${result.branchMatchCount} branch matches.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Transform Failed", 
+        description: "Error during CRA Wiz transformation", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsPhase3Processing(false);
+    }
+  };
+
+  const downloadPhase3WorkItem = () => {
+    if (!phase3Result || phase3Result.data.length === 0) {
+      toast({ title: "No Data", description: "Run transformation first", variant: "destructive" });
+      return;
+    }
+    
+    exportWorkItemFile(phase3Result.data);
+    toast({ title: "Download Started", description: "Work Item file is downloading" });
+  };
+
+  const downloadPhase3Summary = () => {
+    if (!phase3Result) {
+      toast({ title: "No Data", description: "Run transformation first", variant: "destructive" });
+      return;
+    }
+    
+    exportTransformSummary(phase3Result);
+    toast({ title: "Download Started", description: "Summary file is downloading" });
+  };
+
   const downloadCorrectedData = async () => {
     if (processedData.length === 0) {
       toast({ title: "No Data", description: "Run automation first to generate data", variant: "destructive" });
@@ -415,6 +500,15 @@ export default function Dashboard() {
           </button>
 
           <button 
+            onClick={() => setActiveTab('phase3')}
+            className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors", activeTab === 'phase3' ? "bg-white/10 text-white" : "text-blue-200 hover:bg-white/5")}
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span className="font-medium text-sm">CRA Wiz Post</span>
+            <span className="ml-auto bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">Step 6</span>
+          </button>
+
+          <button 
             onClick={() => setActiveTab('docs')}
             className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors", activeTab === 'docs' ? "bg-white/10 text-white" : "text-blue-200 hover:bg-white/5")}
           >
@@ -459,6 +553,7 @@ export default function Dashboard() {
             {activeTab === 'upload' && 'Phase 1: Data Extraction'}
             {activeTab === 'process' && 'Phase 2-3: Transformation & Validation'}
             {activeTab === 'review' && 'Phase 4: Scrub Preparation'}
+            {activeTab === 'phase3' && 'Phase 3: CRA Wiz Post-Processing'}
             {activeTab === 'docs' && 'Phase 5: Document Intelligence'}
             {activeTab === 'tutorial' && 'Learning Center'}
           </h2>
@@ -687,6 +782,216 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* PHASE 3: CRA WIZ POST-PROCESSING TAB */}
+            <TabsContent value="phase3" className="space-y-6 mt-0">
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-orange-100 p-2 rounded-lg">
+                    <ArrowRight className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-orange-900">Step 6: CRA Wiz Return Processing</h3>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Upload the file you downloaded from CRA Wiz after processing. This converts the 243-column CRA Wiz export to the 125-column work item format with Branch VLOOKUP applied.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                      Upload CRA Wiz Export
+                    </CardTitle>
+                    <CardDescription>
+                      Upload the CSV file downloaded from CRA Wiz after processing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FileUpload 
+                      label="CRA Wiz Export File (CSV)"
+                      description="243-column CRA Wiz HMDA export"
+                      onFileSelect={(file) => handleCRAWizFileUpload(file)}
+                      file={craWizFile}
+                      accept={{'text/csv': ['.csv'], 'application/vnd.ms-excel': ['.xls', '.xlsx']}}
+                    />
+                    
+                    {craWizData.length > 0 && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span className="font-medium">File Loaded Successfully</span>
+                        </div>
+                        <div className="mt-2 text-sm text-green-600">
+                          {craWizData.length} rows × {Object.keys(craWizData[0] || {}).length} columns
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="w-5 h-5 text-blue-600" />
+                      Branch List Reference
+                    </CardTitle>
+                    <CardDescription>
+                      Using built-in Colony Bank branch list (48 branches)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-blue-700 mb-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="font-medium">Branch List Ready</span>
+                      </div>
+                      <p className="text-sm text-blue-600 mb-3">
+                        {Object.keys(BRANCH_LIST).length} branches configured for VLOOKUP
+                      </p>
+                      <div className="max-h-32 overflow-y-auto text-xs font-mono bg-white rounded p-2 border">
+                        {Object.entries(BRANCH_LIST).slice(0, 10).map(([num, name]) => (
+                          <div key={num} className="py-0.5">{num}: {name}</div>
+                        ))}
+                        <div className="text-slate-400 italic">...and {Object.keys(BRANCH_LIST).length - 10} more</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Transform Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    className="w-full bg-orange-600 hover:bg-orange-700" 
+                    size="lg"
+                    onClick={runPhase3Transform}
+                    disabled={isPhase3Processing || craWizData.length === 0}
+                  >
+                    {isPhase3Processing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Transforming...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Transform for Work Items
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-xs text-muted-foreground px-2">
+                    <p className="font-medium mb-1">Transformation Steps:</p>
+                    <ul className="list-disc pl-3 space-y-1">
+                      <li>Apply Branch VLOOKUP (BRANCHNUMB → BRANCHNAME)</li>
+                      <li>Add new columns: ErrorMadeBy, DSC (blank)</li>
+                      <li>Remove 118 unwanted columns</li>
+                      <li>Reorder to exact 125-column format</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {phase3Result && (
+                <>
+                  <div className="grid grid-cols-4 gap-4">
+                    <Card className="bg-white">
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-orange-600">{phase3Result.inputColumns}</div>
+                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Input Columns</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-white">
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-green-600">{phase3Result.outputColumns}</div>
+                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Output Columns</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-white">
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-blue-600">{phase3Result.rowCount}</div>
+                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Rows</div>
+                      </CardContent>
+                    </Card>
+                    <Card className={cn("bg-white", phase3Result.branchMissCount > 0 && "border-yellow-300 bg-yellow-50")}>
+                      <CardContent className="pt-6">
+                        <div className={cn("text-2xl font-bold", phase3Result.branchMissCount > 0 ? "text-yellow-600" : "text-green-600")}>
+                          {phase3Result.branchMatchCount}/{phase3Result.rowCount}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Branch Matches</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Data Preview</CardTitle>
+                      <CardDescription>First 5 rows of transformed data (125 columns)</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-md border overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-100 text-slate-600 font-medium border-b">
+                              <tr>
+                                <th className="px-4 py-3">BRANCHNAME</th>
+                                <th className="px-4 py-3">BRANCHNUMB</th>
+                                <th className="px-4 py-3">LEI</th>
+                                <th className="px-4 py-3">ULI</th>
+                                <th className="px-4 py-3">LASTNAME</th>
+                                <th className="px-4 py-3">FIRSTNAME</th>
+                                <th className="px-4 py-3">LENDER</th>
+                                <th className="px-4 py-3">LOANAMOUNTINDOLLARS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {phase3Result.data.slice(0, 5).map((row, i) => (
+                                <tr key={i} className="hover:bg-slate-50">
+                                  <td className="px-4 py-3 font-medium">{row.BRANCHNAME || '-'}</td>
+                                  <td className="px-4 py-3">{row.BRANCHNUMB || '-'}</td>
+                                  <td className="px-4 py-3 truncate max-w-[100px]">{row.LEI || '-'}</td>
+                                  <td className="px-4 py-3 truncate max-w-[100px]">{row.ULI || '-'}</td>
+                                  <td className="px-4 py-3">{row.LASTNAME || '-'}</td>
+                                  <td className="px-4 py-3">{row.FIRSTNAME || '-'}</td>
+                                  <td className="px-4 py-3">{row.LENDER || '-'}</td>
+                                  <td className="px-4 py-3">${Number(row.LOANAMOUNTINDOLLARS || 0).toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex gap-4">
+                    <Button 
+                      className="flex-1 bg-green-600 hover:bg-green-700" 
+                      size="lg"
+                      onClick={downloadPhase3WorkItem}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Work Item File
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg"
+                      onClick={downloadPhase3Summary}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Download Summary
+                    </Button>
+                  </div>
+                </>
+              )}
             </TabsContent>
 
             {/* DOCUMENT INTELLIGENCE TAB (MOCK) */}

@@ -1,0 +1,414 @@
+The history gives me enough context. Let me craft a comprehensive Replit prompt:
+
+---
+
+**COMPREHENSIVE REPLIT PROMPT - STEP 6 ETL INTEGRATION**
+
+---
+
+```
+# COLONY BANK HMDA/CRA TOOL - PHASE 3 ENHANCEMENT
+
+## CONTEXT
+We have an existing HMDA/CRA automation tool with:
+- Phase 1: Upload LaserPro, Encompass, Supplemental files
+- Phase 2: ETL processing, validation, export to CRA Wiz format
+
+We need to add Phase 3 to handle the RETURN flow from CRA Wiz.
+
+## THE FULL WORKFLOW (Ryan's 11 Steps)
+
+Steps 1-2: ✅ BUILT (Current Phase 1 & 2)
+- Upload base data (Encompass + LaserPro + Supplemental)
+- ETL formatting
+- Output: File ready for CRA Wiz upload
+
+Steps 3-5: MANUAL (User does in CRA Wiz)
+- Upload to CRA Wiz
+- CRA Wiz internal processing (dedupes, ULI generation)
+- Download from CRA Wiz
+
+Step 6: 🔴 NEED TO BUILD (New Phase 3)
+- Take CRA Wiz export (243 columns)
+- Apply Branch VLOOKUP
+- Transform to work item format (125 columns)
+- Output: Ready for reconciliation
+
+Steps 7-11: Future phases
+
+## WHAT TO BUILD: PHASE 3 - "CRA Wiz Post-Processing"
+
+### New Tab/Phase in UI
+Add a new phase called "Phase 3: Work Item Prep" or "CRA Wiz Post-Processing"
+
+The UI should:
+1. Show instructions: "Upload the file you downloaded from CRA Wiz after processing"
+2. Have ONE file upload zone for the CRA Wiz export CSV
+3. Have a separate upload for Branch List (or use built-in reference)
+4. "Transform" button
+5. Show preview of transformed data
+6. "Download Work Item File" button
+
+### File Specifications
+
+INPUT FILE (CRA Wiz Export):
+- Format: CSV
+- Columns: 243 columns
+- Example filename: "2025 JULY CRAWiz HMDA Export.csv"
+- Key columns include: EDITCOUNT, APPLNUMB, ROWID, ISEXEMPT, LEI, ULI, BRANCHNUMB, BRANCHNAME, LASTNAME, FIRSTNAME, etc.
+
+OUTPUT FILE (Work Item Format):
+- Format: CSV
+- Columns: 125 columns (exact order below)
+- Example filename: "HMDA_WorkItem_Export_[MONTH]_[YEAR].csv"
+
+REFERENCE FILE (Branch List):
+- Format: XLSX
+- Columns: Branch Number, BranchName
+- 48 branches total
+- Used for VLOOKUP: BRANCHNUMB → BRANCHNAME
+
+### EXACT TARGET COLUMN ORDER (125 columns)
+
+The output MUST have these columns in EXACTLY this order:
+
+1. BRANCHNAME (from VLOOKUP on BRANCHNUMB)
+2. BRANCHNUMB
+3. LEI
+4. ULI
+5. LASTNAME
+6. FIRSTNAME
+7. CLASTNAME
+8. CFIRSTNAME
+9. LENDER
+10. AA_LOANPROCESSOR
+11. LDP_POSTCLOSER
+12. ErrorMadeBy (NEW - blank column)
+13. APPLDATE
+14. LOANTYPE
+15. PURPOSE
+16. CONSTRUCTIONMETHOD
+17. OCCUPANCYTYPE
+18. LOANAMOUNTINDOLLARS
+19. PREAPPROVAL
+20. ACTION
+21. ACTIONDATE
+22. ADDRESS
+23. CITY
+24. STATE_ABRV
+25. ZIP
+26. COUNTY_5
+27. TRACT_11
+28. ETHNICITY_1
+29. ETHNICITY_2
+30. ETHNICITY_3
+31. ETHNICITY_4
+32. ETHNICITY_5
+33. ETHNICITYOTHER
+34. COA_ETHNICITY_1
+35. COA_ETHNICITY_2
+36. COA_ETHNICITY_3
+37. COA_ETHNICITY_4
+38. COA_ETHNICITY_5
+39. COA_ETHNICITYOTHER
+40. ETHNICITY_DETERMINANT
+41. COA_ETHNICITY_DETERMINANT
+42. RACE_1
+43. RACE_2
+44. RACE_3
+45. RACE_4
+46. RACE_5
+47. RACE1_OTHER
+48. RACE27_OTHER
+49. RACE44_OTHER
+50. COARACE_1
+51. COARACE_2
+52. COARACE_3
+53. COARACE_4
+54. COARACE_5
+55. COARACE1_OTHER
+56. COARACE27_OTHER
+57. COARACE44_OTHER
+58. RACE_DETERMINANT
+59. COARACE_DETERMINANT
+60. SEX
+61. COASEX
+62. SEX_DETERMINANT
+63. COASEX_DETERMINANT
+64. AGE
+65. COA_AGE
+66. INCOME
+67. PURCHASER
+68. RATE_SPREAD
+69. HOEPA_STATUS
+70. LIEN_STATUS
+71. CREDITSCORE
+72. COA_CREDITSCORE
+73. CREDITMODEL
+74. CREDITMODELOTHER
+75. COA_CREDITMODEL
+76. COA_CREDITMODELOTHER
+77. DENIAL1
+78. DENIAL2
+79. DENIAL3
+80. DENIAL4
+81. DENIALOTHER
+82. TOTALLOANCOSTS
+83. TOTALPTSANDFEES
+84. ORIGFEES
+85. DISCOUNTPTS
+86. LENDERCREDTS
+87. INTERESTRATE
+88. APR
+89. RATE_LOCK_DATE
+90. PPPTERM
+91. DTIRATIO
+92. DSC (NEW - blank column)
+93. CLTV
+94. LOAN_TERM
+95. LOAN_TERM_MONTHS
+96. INTRORATEPERIOD
+97. BALLOONPMT
+98. IOPMT
+99. NEGAM
+100. NONAMORTZ
+101. PROPERTYVALUE
+102. MHSECPROPTYPE
+103. MHLANDPROPINT
+104. TOTALUNITS
+105. MFAHU
+106. APPMETHOD
+107. PAYABLEINST
+108. NMLSRID
+109. AUSYSTEM1
+110. AUSYSTEM2
+111. AUSYSTEM3
+112. AUSYSTEM4
+113. AUSYSTEM5
+114. AUSYSTEMOTHER
+115. AUSRESULT1
+116. AUSRESULT2
+117. AUSRESULT3
+118. AUSRESULT4
+119. AUSRESULT5
+120. AUSRESULTOTHER
+121. REVMTG
+122. OPENLOC
+123. BUSCML
+124. RATETYPE
+125. VAR_TERM
+
+### BRANCH LIST DATA (Embed in code or allow upload)
+
+Branch Number | BranchName
+101 | Columbus
+103 | Leesburg
+104 | Savannah Hwy 17
+107 | Savannah Hodgson
+108 | Centerville
+109 | Warner Robins
+110 | Valdosta
+114 | Statesboro
+116 | LaGrange
+125 | Albany NW
+127 | Thomaston
+129 | Manchester
+131 | Fayetteville
+134 | Cedartown
+136 | Rockmart
+137 | Chickamauga
+201 | Rochelle
+203 | Cordele
+204 | Ashburn
+205 | Moultrie
+206 | Tifton
+207 | Sylvester
+208 | Fitzgerald
+209 | Douglas
+210 | Baxley
+211 | Waycross
+212 | Alma
+213 | Albany Westover
+301 | Quitman
+302 | Thomasville
+303 | Cairo
+304 | Camilla
+305 | Blakely
+306 | Donalsonville
+307 | Bainbridge
+308 | Albany Dawson
+401 | Dothan
+402 | Valdosta Mortgage
+403 | Gulf Shores
+404 | Tallahassee Mortgage
+406 | Albany Mortgage
+407 | Tifton Mortgage
+408 | Valdosta Mall
+410 | Homerville
+411 | Panama City
+414 | Perry
+415 | Tallahassee Mahan
+416 | Tallahassee
+
+### TRANSFORMATION LOGIC
+
+```javascript
+function transformCRAWizExport(inputData, branchList) {
+  // 1. Create branch lookup map
+  const branchLookup = {};
+  branchList.forEach(row => {
+    branchLookup[row['Branch Number']] = row['BranchName'];
+  });
+  
+  // 2. Process each row
+  const output = inputData.map(row => {
+    // VLOOKUP: Get branch name from branch number
+    const branchName = branchLookup[row.BRANCHNUMB] || '';
+    
+    // Build output row with exact column order
+    return {
+      BRANCHNAME: branchName,
+      BRANCHNUMB: row.BRANCHNUMB,
+      LEI: row.LEI,
+      ULI: row.ULI,
+      LASTNAME: row.LASTNAME,
+      FIRSTNAME: row.FIRSTNAME,
+      CLASTNAME: row.CLASTNAME,
+      CFIRSTNAME: row.CFIRSTNAME,
+      LENDER: row.LENDER,
+      AA_LOANPROCESSOR: row.AA_LOANPROCESSOR,
+      LDP_POSTCLOSER: row.LDP_POSTCLOSER,
+      ErrorMadeBy: '', // NEW blank column
+      APPLDATE: row.APPLDATE,
+      // ... continue for all 125 columns
+      DSC: '', // NEW blank column
+      // ... rest of columns
+    };
+  });
+  
+  return output;
+}
+```
+
+### COLUMNS TO DROP (118 columns removed from input)
+
+These columns exist in CRA Wiz export but should NOT be in output:
+- EDITCOUNT, APPLNUMB, ROWID, ISEXEMPT, RECORDID, ULISTATUS
+- LOANAMOUNT (keep LOANAMOUNTINDOLLARS)
+- ZIP4, MANUALGEOCODE, STATE, MSA, COUNTY, CENSUSTRAC
+- ETHNICITY, NOCOAPPLICANT, COA_ETHNICITY, RACE, COARACE
+- APOR, APOR_DATE, RATE_SPREAD_INPUT, RAW_RATE_SPREAD
+- INSTIT_ID, AGENCYCODE
+- All IMPRT_* columns
+- MATURITY_DATE, T_RATE_USED, COMDEVELOP, SOURCE, ASSESSMENT, RECUPD
+- LARTYPE, PERCMINOR, TRCT_INCM_CATG, PERCMEDIAN, MNRTY_TRCT
+- APPL_INCM_PERC, APPL_INCM_CATG
+- All MMW* columns, GS* columns
+- LATITUDE, LONGITUDE, BLOCKGRP, MMWSTAT
+- RACEETH, COARACEETH, EDITSTATUS, QUALITYCHK, RECORD_STATUS
+- OFFICERNAME, BEACON, FAIR_ISAAC, CUST_CREDT, BLOCKCODE, LOANPROG
+- FERATIO, BERATIO, LTV, RATEDIFF
+- All CALC* columns, MINORITY_STATUS, MARITAL_STATUS, LTIRATIO
+- ASSESSMENTNAME, all *_PERC columns
+- CRA_ELIGIBLE, DISTRESSED_UNDERSERVED, AFFILIATE, GENDERIZED
+- All *PROXY columns, NOTERATE
+- All RBIS* columns
+- MAP_LABEL, all IS* boolean columns
+- GDTMCD, GDTPLACE, CONGDIST, STNDSTAT
+
+### UI FLOW
+
+Tab Structure (update existing):
+- Tab 1: Data Sources (Phase 1) - EXISTS
+- Tab 2: ETL Processing (Phase 2) - EXISTS  
+- Tab 3: Review & Scrub - EXISTS
+- Tab 4: CRA Wiz Post-Processing (Phase 3) - NEW
+- Tab 5: Document Intelligence - EXISTS
+
+Phase 3 Tab Content:
+```
+┌─────────────────────────────────────────────────────────────┐
+│  PHASE 3: CRA Wiz Post-Processing                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  📄 Upload CRA Wiz Export                           │   │
+│  │                                                     │   │
+│  │  Drag & drop your CRA Wiz export CSV here          │   │
+│  │  (Downloaded after CRA Wiz processing)             │   │
+│  │                                                     │   │
+│  │  [Browse Files]                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  📋 Branch List Reference                           │   │
+│  │  ✅ Using built-in branch list (48 branches)       │   │
+│  │  [Upload Custom Branch List] (optional)            │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  [ Transform for Work Items ]                              │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│  TRANSFORMATION RESULTS                                    │
+│  ┌──────────────┬──────────────┬──────────────┐           │
+│  │ Input Cols   │ Output Cols  │ Rows         │           │
+│  │ 243          │ 125          │ 125          │           │
+│  └──────────────┴──────────────┴──────────────┘           │
+│                                                             │
+│  Preview:                                                  │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ BRANCHNAME | BRANCHNUMB | LEI | ULI | LASTNAME ...  │   │
+│  │ Tallahassee| 416        | 254 | 254 | Holt     ...  │   │
+│  │ Valdosta   | 402        | 254 | 254 | Corbett  ...  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  [ Download Work Item File ]  [ Download Summary ]         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### SUCCESS CRITERIA
+
+1. User uploads CRA Wiz CSV (243 columns)
+2. System applies Branch VLOOKUP
+3. System adds ErrorMadeBy and DSC columns (blank)
+4. System removes 118 unwanted columns
+5. System reorders to exact 125-column format
+6. User downloads transformed CSV
+7. Output matches format of "2025 Jun July HMDA Export.csv" exactly
+
+### TEST DATA
+
+I will provide test files:
+- Input: "2025_JULY_CRAWiz_HMDA_Export.csv" (125 rows × 243 cols)
+- Expected Output: "2025_Jun_July_HMDA_Export.csv" (125 cols)
+- Branch List: "Branch_List.xlsx" (48 branches)
+
+### INTEGRATION NOTES
+
+- Keep all existing Phase 1, 2 functionality intact
+- Add this as a NEW phase, not replacing anything
+- The Branch List can be embedded in code (48 rows) or uploaded
+- File naming: HMDA_WorkItem_[MONTH]_[YEAR].csv
+
+### ERROR HANDLING
+
+- If BRANCHNUMB not found in lookup → leave BRANCHNAME blank, log warning
+- If input file missing required columns → show error, list missing columns
+- If file is not CSV → show error "Please upload a CSV file"
+
+## SUMMARY
+
+Add Phase 3 to handle Step 6 of Ryan's 11-step process:
+- Input: CRA Wiz export (243 cols)
+- Transform: VLOOKUP + column selection + reorder
+- Output: Work item format (125 cols)
+
+This completes the round-trip: 
+Phase 1-2 → CRA Wiz (manual) → Phase 3 → Work Items
+```
+
+---
+
+This should be comprehensive enough. Want me to also pull the codebase to make sure the integration points are exact, or is this sufficient to send to Replit?
