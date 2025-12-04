@@ -238,9 +238,13 @@ export const transformCRAWizExport = (
   let branchMissCount = 0;
   
   const transformedData = inputData.map(row => {
-    // VLOOKUP: Get branch name from branch number
+    // Use BRANCHNAME from input file first, only fallback to VLOOKUP if blank
+    const inputBranchName = row.BRANCHNAME ? String(row.BRANCHNAME).trim() : '';
     const branchNum = String(row.BRANCHNUMB || '').trim();
-    const branchName = branchLookup[branchNum];
+    const lookupBranchName = branchLookup[branchNum] || '';
+    
+    // Preserve original BRANCHNAME, use lookup only as fallback
+    const branchName = inputBranchName || lookupBranchName;
     
     if (branchName) {
       branchMatchCount++;
@@ -253,7 +257,7 @@ export const transformCRAWizExport = (
     
     OUTPUT_COLUMNS.forEach(col => {
       if (col === 'BRANCHNAME') {
-        outputRow[col] = branchName || '';
+        outputRow[col] = branchName;
       } else if (col === 'ErrorMadeBy' || col === 'DSC') {
         outputRow[col] = '';
       } else if (DATE_COLUMNS.includes(col)) {
