@@ -185,6 +185,18 @@ export interface CRAWizRow {
   [key: string]: any;
 }
 
+// Date columns that need Excel serial number to M/D/YY conversion
+const DATE_COLUMNS = ['APPLDATE', 'ACTIONDATE', 'RATE_LOCK_DATE'];
+
+// Convert Excel serial number to M/D/YY format
+const excelDateToString = (serial: any): string => {
+  if (!serial || isNaN(serial)) return serial;
+  const numSerial = Number(serial);
+  if (numSerial < 1000) return serial; // Not a valid Excel date serial
+  const date = new Date((numSerial - 25569) * 86400 * 1000);
+  return `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
+};
+
 export interface TransformResult {
   data: CRAWizRow[];
   inputColumns: number;
@@ -244,6 +256,9 @@ export const transformCRAWizExport = (
         outputRow[col] = branchName || '';
       } else if (col === 'ErrorMadeBy' || col === 'DSC') {
         outputRow[col] = '';
+      } else if (DATE_COLUMNS.includes(col)) {
+        // Convert Excel serial dates to M/D/YY format
+        outputRow[col] = excelDateToString(row[col]);
       } else {
         outputRow[col] = row[col] !== undefined ? row[col] : '';
       }
