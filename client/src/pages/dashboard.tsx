@@ -27,8 +27,12 @@ import {
   BookOpen,
   Video,
   FileScan,
-  Printer
+  Printer,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { 
   processFile, 
   fetchCsvFile,
@@ -111,6 +115,11 @@ export default function Dashboard() {
   const [craWizData, setCraWizData] = useState<CRAWizRow[]>([]);
   const [phase3Result, setPhase3Result] = useState<TransformResult | null>(null);
   const [isPhase3Processing, setIsPhase3Processing] = useState(false);
+
+  // Progress Tracking State
+  const [progress, setProgress] = useState(0);
+  const [progressStep, setProgressStep] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
