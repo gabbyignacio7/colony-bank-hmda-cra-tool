@@ -1,0 +1,170 @@
+BUG FIX: Phase 1 CRA Wiz Export - Complete Rebuild Based on Client Spec
+
+CLIENT FEEDBACK (Jonathan Hester, Colony Bank):
+"This looks quite a bit off for some reason."
+
+ISSUES TO FIX:
+
+1. SKIP HEADER ROWS:
+   - LaserPro .txt file: Skip line 1 (it's metadata, not data)
+   - Encompass .xlsx file: Skip first 2 rows (metadata)
+
+2. WRONG COLUMN COUNT:
+   - Current output: 31 columns
+   - Required: 128 columns
+
+3. HEADERS ARE DATA:
+   - Column headers are showing "Colony Bank", "Jonathan Hester", etc.
+   - These are values from row 1, not column names
+
+REQUIRED OUTPUT FORMAT - EXACTLY 128 COLUMNS IN THIS ORDER:
+
+1. BranchName
+2. Branch
+3. ApplNumb
+4. LEI
+5. ULI
+6. LastName
+7. FirstName
+8. Coa_LastName
+9. Coa_FirstName
+10. Lender
+11. AA_Processor
+12. LDP_PostCloser
+13. Error_Made_By
+14. ApplDate
+15. LoanType
+16. Purpose
+17. ConstructionMethod
+18. OccupancyType
+19. LoanAmount
+20. Preapproval
+21. Action
+22. ActionDate
+23. Address
+24. City
+25. State_abrv
+26. Zip
+27. County_5
+28. Tract_11
+29. Ethnicity_1
+30. Ethnicity_2
+31. Ethnicity_3
+32. Ethnicity_4
+33. Ethnicity_5
+34. EthnicityOther
+35. Coa_Ethnicity_1
+36. Coa_Ethnicity_2
+37. Coa_Ethnicity_3
+38. Coa_Ethnicity_4
+39. Coa_Ethnicity_5
+40. Coa_EthnicityOther
+41. Ethnicity_Determinant
+42. Coa_Ethnicity_Determinant
+43. Race_1
+44. Race_2
+45. Race_3
+46. Race_4
+47. Race_5
+48. Race1_Other
+49. Race27_Other
+50. Race44_Other
+51. CoaRace_1
+52. CoaRace_2
+53. CoaRace_3
+54. CoaRace_4
+55. CoaRace_5
+56. CoaRace1_Other
+57. CoaRace27_Other
+58. CoaRace44_Other
+59. Race_Determinant
+60. CoaRace_Determinant
+61. Sex
+62. CoaSex
+63. Sex_Determinant
+64. CoaSex_Determinant
+65. Age
+66. Coa_Age
+67. Income
+68. Purchaser
+69. Rate_Spread
+70. HOEPA_Status
+71. Lien_Status
+72. CreditScore
+73. Coa_CreditScore
+74. CreditModel
+75. CreditModelOther
+76. Coa_CreditModel
+77. Coa_CreditModelOther
+78. Denial1
+79. Denial2
+80. Denial3
+81. Denial4
+82. DenialOther
+83. TotalLoanCosts
+84. TotalPtsAndFees
+85. OrigFees
+86. DiscountPts
+87. LenderCredts
+88. InterestRate
+89. APR
+90. Rate_Lock_Date
+91. PPPTerm
+92. DTIRatio
+93. DSC
+94. CLTV
+95. Loan_Term
+96. Loan_Term_Months
+97. IntroRatePeriod
+98. BalloonPMT
+99. IOPMT
+100. NegAM
+101. NonAmortz
+102. PropertyValue
+103. MHSecPropType
+104. MHLandPropInt
+105. TotalUnits
+106. MFAHU
+107. APPMethod
+108. PayableInst
+109. NMLSRID
+110. AUSystem1
+111. AUSystem2
+112. AUSystem3
+113. AUSystem4
+114. AUSystem5
+115. AUSystemOther
+116. AUSResult1
+117. AUSResult2
+118. AUSResult3
+119. AUSResult4
+120. AUSResult5
+121. AUSResultOther
+122. REVMTG
+123. OpenLOC
+124. BUSCML
+125. RateType
+126. Var_Term
+127. LoanProgram
+128. ProductType
+
+PARSING RULES:
+
+LaserPro (.txt):
+- Pipe-delimited (|)
+- Skip row 1 (contains: "1|Colony Bank|2025|4|Jonathan Hester|...")
+- Data starts row 2
+
+Encompass (.xlsx):
+- Skip rows 1-2 (metadata headers)
+- Data starts row 3
+
+FIELD MAPPING:
+Map fields from input files to the 128 output columns. Leave blank if source field not available.
+
+TEST:
+After fix, output should have:
+- Exactly 128 columns
+- Proper header names (BranchName, Branch, ApplNumb, etc.)
+- Data aligned under correct headers
+- 22 data rows (from current test files)
