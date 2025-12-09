@@ -43,6 +43,8 @@ import {
   transformEncompassData,
   cleanAndFormatData,
   mergeSupplementalData,
+  exportCRAWizFormat,
+  CRA_WIZ_128_COLUMNS,
   type SbslRow,
   type ValidationResult
 } from '@/lib/etl-engine';
@@ -291,19 +293,12 @@ export default function Dashboard() {
     }
 
     try {
-      const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      const filename = `CRA_Wiz_Upload_${monthYear.replace(' ', '_')}.xlsx`;
-      
-      // Generate CRA Wiz format
-      const ws = utils.json_to_sheet(processedData);
-      const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, "CRA Data");
-      
-      writeFile(wb, filename);
+      // Use the new 128-column CRA Wiz export format
+      exportCRAWizFormat(processedData);
       
       toast({ 
         title: "CRA Export Complete", 
-        description: `Downloaded ${filename} for CRA Wiz upload` 
+        description: `Downloaded ${CRA_WIZ_128_COLUMNS.length}-column CRA Wiz file with ${processedData.length} records` 
       });
     } catch (error) {
       toast({ 
