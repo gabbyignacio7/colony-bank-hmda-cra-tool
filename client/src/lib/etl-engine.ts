@@ -125,31 +125,41 @@ export const processFile = async (file: File): Promise<any[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
-    // Handle text files - try to parse as tab or comma delimited
+    // Handle text files - try to parse as pipe, tab, or comma delimited
     if (file.name.endsWith('.txt')) {
       reader.onload = (e) => {
         try {
           const text = e.target?.result as string;
-          // Try to parse as TSV/CSV
           const lines = text.split('\n').filter(line => line.trim());
+          
           if (lines.length > 0) {
-            const headers = lines[0].split('\t').length > 1 
-              ? lines[0].split('\t') 
-              : lines[0].split(',');
+            // Detect delimiter: check first line for pipe, tab, or comma
+            const firstLine = lines[0];
+            let delimiter = ',';
+            
+            if (firstLine.split('|').length > 3) {
+              delimiter = '|';
+              console.log('Detected pipe-delimited format (LaserPro)');
+            } else if (firstLine.split('\t').length > 1) {
+              delimiter = '\t';
+              console.log('Detected tab-delimited format');
+            } else {
+              console.log('Using comma-delimited format');
+            }
+            
+            const headers = firstLine.split(delimiter).map(h => h.trim());
             
             const data = lines.slice(1).map(line => {
-              const values = line.split('\t').length > 1 
-                ? line.split('\t') 
-                : line.split(',');
+              const values = line.split(delimiter);
               const obj: any = {};
               headers.forEach((header, i) => {
-                obj[header.trim()] = values[i]?.trim() || '';
+                obj[header] = values[i]?.trim() || '';
               });
               return obj;
             });
             
             if (data.length > 0) {
-              console.log(`Parsed ${data.length} rows from text file`);
+              console.log(`Parsed ${data.length} rows with ${headers.length} columns from text file`);
               resolve(data);
               return;
             }
