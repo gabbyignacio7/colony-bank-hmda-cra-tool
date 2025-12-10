@@ -1,0 +1,58 @@
+**Found the issue.**
+
+Looking at the code, the ETL engine has the right pieces but they're not connected properly. Here's what I see:
+
+**The Good:**
+- Line 156-172: Delimiter detection works (tilde, pipe, tab, comma)
+- Line 125-153: CRA_WIZ_128_COLUMNS is defined correctly
+- Line 377-387: `exportCRAWizFormat()` function exists
+
+**The Problem:**
+The dashboard is likely calling a different export function that outputs LAR format (the "Financial Institution Name", "Calendar Year" headers you saw) OR the raw data is being stored before it's properly split.
+
+---
+
+**Here's the fix prompt for Replit:**
+
+```
+CRITICAL BUG: Two separate export issues
+
+ISSUE 1: "Export CRA Wiz" button outputs wrong format
+- Current: LAR format headers ("Financial Institution Name", "Calendar Year", etc.)
+- Expected: CRA Wiz 128-column format ("BranchName", "Branch", "ApplNumb", etc.)
+
+The dashboard needs to call `exportCRAWizFormat()` from etl-engine.ts for the CRA Wiz export button. Check dashboard.tsx - make sure the "Export CRA Wiz" button calls:
+
+import { exportCRAWizFormat } from '@/lib/etl-engine';
+// In the handler:
+exportCRAWizFormat(processedData);
+
+ISSUE 2: Data still contains delimiter strings  
+- Current: Cell A1 = "114030351~01-07-2025~02~183~..."
+- Expected: Cell A1 = "114030351", Cell B1 = "01-07-2025", etc.
+
+The parsed data is being stored as raw strings instead of split arrays. 
+
+In dashboard.tsx, when storing processed data to state, ensure the data has been split BEFORE storing:
+
+// WRONG - storing raw delimited string
+setProcessedData(rawData);
+
+// CORRECT - storing after split/transform
+const transformedData = transformToCRAWizFormat(rawData);
+setProcessedData(transformedData);
+
+VERIFICATION:
+1. Open Export CRA Wiz output in Excel
+2. Column A header should be "BranchName" (not delimited string)
+3. Column count should be exactly 128
+4. Each value in its own cell
+```
+
+---
+
+**Or, the faster path:**
+
+Ask Replit to show you `dashboard.tsx` - specifically the export button handlers. The bug is in how the dashboard calls the export functions, not in etl-engine.ts itself.
+
+Want to try this prompt or pull dashboard.tsx first?

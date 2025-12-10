@@ -304,6 +304,39 @@ export const processFile = async (file: File): Promise<any[]> => {
           }
         }
         
+        // Check if first cell contains tilde-delimited data (LaserPro in Excel)
+        if (jsonData.length > 0) {
+          const firstRow = jsonData[0];
+          const firstRowKeys = Object.keys(firstRow);
+          const firstValue = String(firstRow[firstRowKeys[0]] || '');
+          
+          // If the first value contains multiple tildes, it's likely tilde-delimited data in a single column
+          if ((firstValue.match(/~/g) || []).length >= 5) {
+            console.log('Detected tilde-delimited data inside Excel cells - splitting...');
+            
+            // Split each row's first column by tilde and map to 128 columns
+            jsonData = jsonData.map((row, idx) => {
+              const rawValue = String(row[firstRowKeys[0]] || '');
+              const values = rawValue.split('~');
+              
+              const newRow: any = {
+                _rowIndex: idx + 1,
+                _columnCount: values.length,
+                _delimiter: '~',
+              };
+              
+              // Map to 128-column format based on position
+              CRA_WIZ_128_COLUMNS.forEach((colName, i) => {
+                newRow[colName] = values[i]?.trim() || '';
+              });
+              
+              return newRow;
+            });
+            
+            console.log(`Split ${jsonData.length} rows into ${CRA_WIZ_128_COLUMNS.length} columns each`);
+          }
+        }
+        
         console.log(`Parsed ${jsonData.length} rows from Excel/CSV file`);
         resolve(jsonData);
       } catch (error) {
