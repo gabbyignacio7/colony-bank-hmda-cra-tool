@@ -408,14 +408,26 @@ export const transformToCRAWizFormat = (data: SbslRow[]): any[] => {
 
 // Export to CRA Wiz 128-column format
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
+  console.log('exportCRAWizFormat called with', data.length, 'rows');
+  console.log('First row keys (before transform):', data.length > 0 ? Object.keys(data[0]).slice(0, 10) : 'no data');
+  
   const transformedData = transformToCRAWizFormat(data);
+  console.log('Transformed data - First row keys:', transformedData.length > 0 ? Object.keys(transformedData[0]).slice(0, 10) : 'no data');
+  console.log('Using CRA_WIZ_128_COLUMNS header (first 5):', CRA_WIZ_128_COLUMNS.slice(0, 5));
+  
   const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const defaultFilename = `CRA_Wiz_Upload_${monthYear.replace(' ', '_')}.xlsx`;
   
-  const ws = utils.json_to_sheet(transformedData, { header: CRA_WIZ_128_COLUMNS });
+  // Force the header order by creating worksheet with explicit column order
+  const ws = utils.json_to_sheet(transformedData, { 
+    header: CRA_WIZ_128_COLUMNS,
+    skipHeader: false 
+  });
+  
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, "CRA Data");
   
+  console.log('Exporting file:', filename || defaultFilename);
   writeFile(wb, filename || defaultFilename);
 };
 
