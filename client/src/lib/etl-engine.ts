@@ -349,53 +349,64 @@ export const processFile = async (file: File): Promise<any[]> => {
   });
 };
 
+// Detect delimiter in a string value
+const detectDelimiterInValue = (value: string): string | null => {
+  if (!value || typeof value !== 'string') return null;
+  const delimiters = ['~', '|', '\t'];
+  for (const delim of delimiters) {
+    const regex = delim === '|' ? /\|/g : new RegExp(delim, 'g');
+    const matches = value.match(regex);
+    // If we find 10+ occurrences of a delimiter, it's likely delimited data
+    if (matches && matches.length >= 10) {
+      return delim;
+    }
+  }
+  return null;
+};
+
+// Split delimited row into proper columns
+const splitDelimitedRow = (row: any): any => {
+  // Check each value in the row for delimited data
+  for (const key of Object.keys(row)) {
+    const value = row[key];
+    const delimiter = detectDelimiterInValue(String(value || ''));
+    
+    if (delimiter) {
+      console.log(`Found delimited data in field "${key}" using delimiter "${delimiter}"`);
+      // Found delimited data - split it and map to CRA_WIZ_128_COLUMNS
+      const values = String(value).split(delimiter);
+      const newRow: any = {};
+      CRA_WIZ_128_COLUMNS.forEach((col, i) => {
+        newRow[col] = values[i]?.trim() || '';
+      });
+      return newRow;
+    }
+  }
+  return row; // Return original if no delimited data found
+};
+
 // Transform data to 128-column CRA Wiz format
 export const transformToCRAWizFormat = (data: SbslRow[]): any[] => {
   return data.map(row => {
+    // First, check if row contains delimited data that needs splitting
+    const processedRow = splitDelimitedRow(row);
+    
     const output: any = {};
     
-    // Map each column, looking for matching field names (case-insensitive)
+    // Map each column using processedRow instead of row
     CRA_WIZ_128_COLUMNS.forEach(col => {
       // Try exact match first
-      if (row[col] !== undefined) {
-        output[col] = row[col];
+      if (processedRow[col] !== undefined) {
+        output[col] = processedRow[col];
         return;
       }
       
       // Try case-insensitive match
       const lowerCol = col.toLowerCase();
-      const matchingKey = Object.keys(row).find(k => k.toLowerCase() === lowerCol);
+      const matchingKey = Object.keys(processedRow).find(k => k.toLowerCase() === lowerCol);
       if (matchingKey) {
-        output[col] = row[matchingKey];
+        output[col] = processedRow[matchingKey];
         return;
-      }
-      
-      // Try common field name variations
-      const fieldMappings: Record<string, string[]> = {
-        'BranchName': ['BranchName', 'Branch Name', 'Branch_Name'],
-        'Branch': ['Branch', 'BranchNumb', 'BRANCHNUMB'],
-        'ApplNumb': ['ApplNumb', 'ULI', 'Loan_Number', 'LoanNumber'],
-        'LastName': ['LastName', 'Last Name', 'Borrower_Last_Name'],
-        'FirstName': ['FirstName', 'First Name', 'Borrower_First_Name'],
-        'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan_Amount'],
-        'Address': ['Address', 'Property_Street', 'PropertyStreet'],
-        'City': ['City', 'Property_City', 'PropertyCity'],
-        'State_abrv': ['State_abrv', 'State', 'Property_State', 'PropertyState'],
-        'Zip': ['Zip', 'Property_Zip', 'PropertyZip', 'ZipCode'],
-        'InterestRate': ['InterestRate', 'Interest_Rate', 'Interest Rate'],
-        'Income': ['Income', 'Income_Thousands'],
-        'CreditScore': ['CreditScore', 'Credit_Score'],
-        'Loan_Term_Months': ['Loan_Term_Months', 'LoanTermMonths', 'Term'],
-      };
-      
-      const mappings = fieldMappings[col];
-      if (mappings) {
-        for (const alt of mappings) {
-          if (row[alt] !== undefined) {
-            output[col] = row[alt];
-            return;
-          }
-        }
       }
       
       // Default to empty string

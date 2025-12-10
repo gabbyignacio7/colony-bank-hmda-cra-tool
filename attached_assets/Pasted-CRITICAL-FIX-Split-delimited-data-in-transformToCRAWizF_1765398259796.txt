@@ -1,0 +1,80 @@
+CRITICAL FIX: Split delimited data in transformToCRAWizFormat
+
+THE BUG:
+When Excel files contain tilde-delimited data in single cells (e.g., "114030351~01-07-2025~02~183~..." all in cell A1), the export dumps the entire string into Column A instead of splitting into 128 columns.
+
+THE FIX:
+Add these two helper functions BEFORE transformToCRAWizFormat in client/src/lib/etl-engine.ts:
+```typescript
+// Detect delimiter in a string value
+const detectDelimiterInValue = (value: string): string | null => {
+  if (!value || typeof value !== 'string') return null;
+  const delimiters = ['~', '|', '\t'];
+  for (const delim of delimiters) {
+    const regex = delim === '|' ? /\|/g : new RegExp(delim, 'g');
+    const matches = value.match(regex);
+    // If we find 10+ occurrences of a delimiter, it's likely delimited data
+    if (matches && matches.length >= 10) {
+      return delim;
+    }
+  }
+  return null;
+};
+
+// Split delimited row into proper columns
+const splitDelimitedRow = (row: any): any => {
+  // Check each value in the row for delimited data
+  for (const key of Object.keys(row)) {
+    const value = row[key];
+    const delimiter = detectDelimiterInValue(String(value || ''));
+    
+    if (delimiter) {
+      // Found delimited data - split it and map to CRA_WIZ_128_COLUMNS
+      const values = String(value).split(delimiter);
+      const newRow: any = {};
+      CRA_WIZ_128_COLUMNS.forEach((col, i) => {
+        newRow[col] = values[i]?.trim() || '';
+      });
+      return newRow;
+    }
+  }
+  return row; // Return original if no delimited data found
+};
+```
+
+Then UPDATE transformToCRAWizFormat to use it:
+```typescript
+export const transformToCRAWizFormat = (data: SbslRow[]): any[] => {
+  return data.map(row => {
+    // First, check if row contains delimited data that needs splitting
+    const processedRow = splitDelimitedRow(row);
+    
+    const output: any = {};
+    
+    // Map each column using processedRow instead of row
+    CRA_WIZ_128_COLUMNS.forEach(col => {
+      // Try exact match first
+      if (processedRow[col] !== undefined) {
+        output[col] = processedRow[col];
+        return;
+      }
+      
+      // Try case-insensitive match
+      const lowerCol = col.toLowerCase();
+      const matchingKey = Object.keys(processedRow).find(k => k.toLowerCase() === lowerCol);
+      if (matchingKey) {
+        output[col] = processedRow[matchingKey];
+        return;
+      }
+      
+      // Default to empty string
+      output[col] = '';
+    });
+    
+    return output;
+  });
+};
+```
+
+VERIFICATION:
+After fix, Column A header must be "BranchName", not a delimited string.
