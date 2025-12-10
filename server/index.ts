@@ -1,8 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Serve downloadable files from client/public via /downloads route
+const publicDir = path.resolve(import.meta.dirname, "..", "client", "public");
+app.use("/downloads", express.static(publicDir));
 
 declare module 'http' {
   interface IncomingMessage {
