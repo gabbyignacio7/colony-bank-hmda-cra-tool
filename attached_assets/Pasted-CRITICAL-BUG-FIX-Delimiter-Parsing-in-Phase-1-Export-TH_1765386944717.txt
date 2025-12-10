@@ -1,0 +1,105 @@
+CRITICAL BUG FIX: Delimiter Parsing in Phase 1 Export
+
+THE PROBLEM:
+The Excel export is dumping raw delimited strings into a single cell instead of splitting them into separate columns.
+
+CURRENT OUTPUT (BROKEN):
+- Cell A1 contains: "114030351~01-07-2025~02~183~1~03-05-2025~~~~~1~~1~Marcus Ted~Bozeman~..."
+- All data crammed into Column A as delimited text
+- Other columns are empty or have wrong headers
+
+EXPECTED OUTPUT:
+- Cell A1: "114030351"
+- Cell B1: "01-07-2025"
+- Cell C1: "02"
+- Cell D1: "183"
+- etc. - EACH VALUE IN ITS OWN COLUMN
+
+ROOT CAUSE:
+The code is reading delimited text files but NOT splitting on the delimiter before writing to Excel. It's treating the entire delimited line as a single cell value.
+
+THE FIX:
+
+1. DETECT AND SPLIT ALL DELIMITERS:
+The input files use DIFFERENT delimiters:
+- LaserPro .txt: Uses TILDE (~) delimiter
+- Some files: Use PIPE (|) delimiter  
+- Some files: Use TAB delimiter
+- Some files: Use COMMA delimiter
+
+Add this logic to detect and split:
+```javascript
+function parseDelimitedLine(line) {
+  // Detect delimiter by checking which one appears most
+  const delimiters = ['~', '|', '\t', ','];
+  let bestDelimiter = ',';
+  let maxCount = 0;
+  
+  for (const delim of delimiters) {
+    const count = (line.match(new RegExp(delim === '|' ? '\\|' : delim, 'g')) || []).length;
+    if (count > maxCount) {
+      maxCount = count;
+      bestDelimiter = delim;
+    }
+  }
+  
+  return line.split(bestDelimiter);
+}
+```
+
+2. APPLY SPLITTING WHEN READING FILES:
+When reading LaserPro .txt files:
+- Read each line
+- Split by detected delimiter (likely ~)
+- Map each split value to the corresponding column
+- Skip row 1 (metadata)
+
+3. APPLY SPLITTING WHEN WRITING EXCEL:
+The xlsx export must create SEPARATE CELLS, not dump a string:
+```javascript
+// WRONG - dumps entire string into one cell
+worksheet['A1'] = { v: "value1~value2~value3" };
+
+// CORRECT - each value in separate cell
+worksheet['A1'] = { v: "value1" };
+worksheet['B1'] = { v: "value2" };
+worksheet['C1'] = { v: "value3" };
+```
+
+4. FILE PARSING RULES:
+LaserPro (.txt):
+- Delimiter: TILDE (~)
+- Skip row 1 (metadata: "1|Colony Bank|2025|4|Jonathan Hester|...")
+- Data starts row 2
+- Split each line by ~ into array of values
+
+Encompass (.xlsx):
+- Skip rows 1-2 (metadata headers)
+- Data starts row 3
+
+5. OUTPUT FORMAT - 128 COLUMNS:
+After splitting, map to these exact column headers in order:
+
+BranchName, Branch, ApplNumb, LEI, ULI, LastName, FirstName, Coa_LastName, Coa_FirstName, Lender, AA_Processor, LDP_PostCloser, Error_Made_By, ApplDate, LoanType, Purpose, ConstructionMethod, OccupancyType, LoanAmount, Preapproval, Action, ActionDate, Address, City, State_abrv, Zip, County_5, Tract_11, Ethnicity_1, Ethnicity_2, Ethnicity_3, Ethnicity_4, Ethnicity_5, EthnicityOther, Coa_Ethnicity_1, Coa_Ethnicity_2, Coa_Ethnicity_3, Coa_Ethnicity_4, Coa_Ethnicity_5, Coa_EthnicityOther, Ethnicity_Determinant, Coa_Ethnicity_Determinant, Race_1, Race_2, Race_3, Race_4, Race_5, Race1_Other, Race27_Other, Race44_Other, CoaRace_1, CoaRace_2, CoaRace_3, CoaRace_4, CoaRace_5, CoaRace1_Other, CoaRace27_Other, CoaRace44_Other, Race_Determinant, CoaRace_Determinant, Sex, CoaSex, Sex_Determinant, CoaSex_Determinant, Age, Coa_Age, Income, Purchaser, Rate_Spread, HOEPA_Status, Lien_Status, CreditScore, Coa_CreditScore, CreditModel, CreditModelOther, Coa_CreditModel, Coa_CreditModelOther, Denial1, Denial2, Denial3, Denial4, DenialOther, TotalLoanCosts, TotalPtsAndFees, OrigFees, DiscountPts, LenderCredts, InterestRate, APR, Rate_Lock_Date, PPPTerm, DTIRatio, DSC, CLTV, Loan_Term, Loan_Term_Months, IntroRatePeriod, BalloonPMT, IOPMT, NegAM, NonAmortz, PropertyValue, MHSecPropType, MHLandPropInt, TotalUnits, MFAHU, APPMethod, PayableInst, NMLSRID, AUSystem1, AUSystem2, AUSystem3, AUSystem4, AUSystem5, AUSystemOther, AUSResult1, AUSResult2, AUSResult3, AUSResult4, AUSResult5, AUSResultOther, REVMTG, OpenLOC, BUSCML, RateType, Var_Term, LoanProgram, ProductType
+
+6. VALIDATION - THE OUTPUT MUST PASS THESE CHECKS:
+[ ] Column A header = "BranchName" (not a data string with ~)
+[ ] Column count = 128
+[ ] Row 1 = headers only
+[ ] Row 2+ = data with each value in separate cell
+[ ] No cell contains delimiter characters as part of data strings
+[ ] Opening in Excel shows data in separate columns, not one long string
+
+7. TEST CASE:
+Input line: "114030351~01-07-2025~02~183~1~03-05-2025"
+Expected Excel output:
+| A         | B          | C  | D   | E | F          |
+|-----------|------------|----|-----|---|------------|
+| 114030351 | 01-07-2025 | 02 | 183 | 1 | 03-05-2025 |
+
+NOT:
+| A                                                |
+|--------------------------------------------------|
+| 114030351~01-07-2025~02~183~1~03-05-2025         |
+
+FIX THE CORE PARSING LOGIC. The delimiter must be split BEFORE writing to Excel cells.
