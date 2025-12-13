@@ -1,6 +1,9 @@
+// CRA Wiz Transform - Colony Bank HMDA/CRA Compliance Tool
+// Post-CRA Wiz processing (Step 6) - Transform 243 columns to 125 columns
+
 import { read, utils, writeFile } from 'xlsx';
 
-// Embedded Branch List (48 branches)
+// Embedded Branch List (48 branches) - Updated to match specification exactly
 export const BRANCH_LIST: Record<string, string> = {
   '101': 'Columbus',
   '103': 'Leesburg',
@@ -23,37 +26,37 @@ export const BRANCH_LIST: Record<string, string> = {
   '204': 'Ashburn',
   '205': 'Moultrie',
   '206': 'Tifton',
-  '207': 'Sylvester',
-  '208': 'Fitzgerald',
-  '209': 'Douglas',
-  '210': 'Baxley',
-  '211': 'Waycross',
-  '212': 'Alma',
-  '213': 'Albany Westover',
-  '301': 'Quitman',
-  '302': 'Thomasville',
-  '303': 'Cairo',
-  '304': 'Camilla',
-  '305': 'Blakely',
-  '306': 'Donalsonville',
-  '307': 'Bainbridge',
-  '308': 'Albany Dawson',
-  '401': 'Dothan',
+  '208': 'Sylvester',
+  '209': 'Fitzgerald',
+  '210': 'Douglas',
+  '212': 'Broxton',
+  '213': 'Quitman',
+  '216': 'Eastman',
+  '218': 'Macon',
+  '219': 'Northwest GA LPO',
+  '220': 'Pooler LPO',
+  '221': 'Birmingham LPO',
+  '223': 'Augusta LPO',
+  '226': 'Tallahassee LPO',
+  '401': 'Savannah',
   '402': 'Valdosta Mortgage',
-  '403': 'Gulf Shores',
-  '404': 'Tallahassee Mortgage',
-  '406': 'Albany Mortgage',
-  '407': 'Tifton Mortgage',
-  '408': 'Valdosta Mall',
-  '410': 'Homerville',
-  '411': 'Panama City',
-  '414': 'Perry',
-  '415': 'Tallahassee Mahan',
+  '403': 'Macon',
+  '404': 'Athens',
+  '405': 'Lagrange',
+  '406': 'Warner Robins',
+  '407': 'Albany',
+  '408': 'Columbus',
+  '409': 'Statesboro',
+  '410': 'Augusta',
+  '412': 'Pooler',
+  '413': 'Birmingham',
+  '414': 'Milledgeville',
+  '415': 'Atlanta',
   '416': 'Tallahassee'
 };
 
-// Exact 125-column output order
-export const OUTPUT_COLUMNS = [
+// Work Item 125-Column Format (Phase 3 / Step 6 Output)
+export const OUTPUT_COLUMNS: string[] = [
   'BRANCHNAME',
   'BRANCHNUMB',
   'LEI',
@@ -189,12 +192,35 @@ export interface CRAWizRow {
 const DATE_COLUMNS = ['APPLDATE', 'ACTIONDATE', 'RATE_LOCK_DATE'];
 
 // Convert Excel serial number to M/D/YY format
-const excelDateToString = (serial: any): string => {
-  if (!serial || isNaN(serial)) return serial;
+export const excelDateToString = (serial: any): string => {
+  if (!serial) return '';
+  
+  // If already a string that looks like a date, return it
+  if (typeof serial === 'string' && serial.includes('/')) {
+    return serial;
+  }
+  
   const numSerial = Number(serial);
-  if (numSerial < 1000) return serial; // Not a valid Excel date serial
+  if (isNaN(numSerial) || numSerial < 1000 || numSerial > 100000) {
+    return String(serial || '');
+  }
+  
+  // Excel serial date conversion (epoch is December 30, 1899)
   const date = new Date((numSerial - 25569) * 86400 * 1000);
-  return `${date.getMonth() + 1}/${date.getDate()}/${String(date.getFullYear()).slice(-2)}`;
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = String(date.getFullYear()).slice(-2);
+  
+  return `${month}/${day}/${year}`;
+};
+
+// Get branch name with priority: preserve existing, then VLOOKUP
+export const getBranchName = (branchNumber: string | number, existingName?: string): string => {
+  if (existingName && String(existingName).trim() !== '') {
+    return String(existingName).trim();
+  }
+  const normalized = String(branchNumber).trim();
+  return BRANCH_LIST[normalized] || '';
 };
 
 export interface TransformResult {
@@ -261,8 +287,10 @@ export const transformCRAWizExport = (
       } else if (col === 'ErrorMadeBy' || col === 'DSC') {
         outputRow[col] = '';
       } else if (DATE_COLUMNS.includes(col)) {
-        // Convert Excel serial dates to M/D/YY format
         outputRow[col] = excelDateToString(row[col]);
+      } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
+        const value = row[col] || '';
+        outputRow[col] = value || '9999';
       } else {
         outputRow[col] = row[col] !== undefined ? row[col] : '';
       }
@@ -320,4 +348,44 @@ export const exportTransformSummary = (result: TransformResult) => {
   utils.book_append_sheet(wb, branchWs, "Branch Reference");
   
   writeFile(wb, filename);
+};
+
+// Process CRA Wiz export file for Step 6 transformation
+export const processCRAWizExport = async (file: File): Promise<{
+  inputColumns: number;
+  outputColumns: number;
+  rowCount: number;
+  branchMatches: number;
+  dateConversions: number;
+  data: any[];
+}> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = utils.sheet_to_json(worksheet);
+        
+        const result = transformCRAWizExport(jsonData);
+        
+        resolve({
+          inputColumns: result.inputColumns,
+          outputColumns: result.outputColumns,
+          rowCount: result.rowCount,
+          branchMatches: result.branchMatchCount,
+          dateConversions: result.rowCount * DATE_COLUMNS.length,
+          data: result.data
+        });
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
+  });
 };
