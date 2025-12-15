@@ -1,0 +1,72 @@
+The fix isn't working despite deployment. This means Replit is either:
+
+1. **Applying the fix to the wrong export function** - There may be multiple export buttons/functions and it's only fixing one
+2. **The code path isn't being triggered** - The dashboard might be calling a different function entirely
+3. **The fix is being overwritten** - Something else in the code is resetting the output format
+
+Let's try a more aggressive approach. Send this to Replit:
+
+---
+
+**URGENT: Export Still Wrong - Need Full Audit**
+
+The fix isn't working. Output still shows "Legal Entity Identifier (LEI)" as Column 1 instead of "BranchName".
+
+**STEP 1: Find ALL export functions**
+```bash
+grep -rn "export\|download\|writeFile\|book_new\|sheet_to\|json_to_sheet" client/src/ --include="*.ts" --include="*.tsx"
+```
+
+**STEP 2: Find what the "HMDA Auto Corrected" button actually calls**
+```bash
+grep -rn "Auto_Corrected\|AutoCorrected\|HMDA_Auto\|hmda.*corrected" client/src/ --include="*.ts" --include="*.tsx"
+```
+
+**STEP 3: Find where LAR headers are defined**
+```bash
+grep -rn "Legal Entity Identifier\|Universal Loan Identifier\|Application Date\|Loan Type\|Loan Purpose" client/src/ --include="*.ts" --include="*.tsx"
+```
+
+**STEP 4: Show me the EXACT code path**
+
+Tell me:
+1. Which file contains the "HMDA Auto Corrected" export button?
+2. What function does that button call?
+3. What does that function do with the data before exporting?
+
+**STEP 5: Force the fix**
+
+Whatever function generates "HMDA_Auto_Corrected_December_2025.xlsx" - that specific function needs to:
+
+1. Use `CRA_WIZ_128_COLUMNS` as the header row
+2. Map input fields to output columns using `INPUT_TO_CRAWIZ_MAPPING`
+3. Output exactly 128 columns starting with "BranchName"
+
+Do NOT tell me it's fixed until you show me the actual code that runs when the user clicks the export button and confirm Column 1 will be "BranchName".
+
+**Expected output structure:**
+```
+Column 1: BranchName
+Column 2: Branch  
+Column 3: ApplNumb
+Column 4: LEI
+Column 5: ULI
+Column 6: LastName
+Column 7: FirstName
+...
+Column 128: ProductType
+```
+
+**Current WRONG output:**
+```
+Column 1: Legal Entity Identifier (LEI)
+Column 2: Universal Loan Identifier (ULI)
+Column 3: Application Date
+...
+```
+
+Find the disconnect and fix it completely.
+
+---
+
+Copy this to Replit. This forces it to actually trace the code path instead of assuming it knows which function to fix.

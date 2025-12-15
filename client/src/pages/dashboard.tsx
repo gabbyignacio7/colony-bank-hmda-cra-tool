@@ -44,6 +44,7 @@ import {
   cleanAndFormatData,
   mergeSupplementalData,
   exportCRAWizFormat,
+  transformToCRAWizFormat,
   CRA_WIZ_128_COLUMNS,
   type SbslRow,
   type ValidationResult
@@ -266,16 +267,19 @@ export default function Dashboard() {
       const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       const filename = `HMDA_Scrub_Data_${monthYear.replace(' ', '_')}.xlsx`;
       
-      // Generate Excel file with processed data
-      const ws = utils.json_to_sheet(processedData);
+      // Transform to 128-column CRA Wiz format
+      const transformedData = transformToCRAWizFormat(processedData);
+      
+      // Generate Excel file with 128-column format
+      const ws = utils.json_to_sheet(transformedData, { header: CRA_WIZ_128_COLUMNS });
       const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, "Merge Data");
+      utils.book_append_sheet(wb, ws, "CRA Data");
       
       writeFile(wb, filename);
       
       toast({ 
         title: "Export Complete", 
-        description: `Downloaded ${filename} with ${processedData.length} records` 
+        description: `Downloaded ${filename} with ${processedData.length} records in 128-column format` 
       });
     } catch (error) {
       toast({ 
@@ -422,23 +426,30 @@ export default function Dashboard() {
     }
 
     try {
-      // Import auto-correction function
-      const { autoCorrectData } = await import('@/lib/etl-engine');
+      // Import auto-correction and transform functions
+      const { autoCorrectData, transformToCRAWizFormat, CRA_WIZ_128_COLUMNS } = await import('@/lib/etl-engine');
       
       // Apply auto-corrections
       const correctedData = autoCorrectData(processedData);
       
+      // Transform to 128-column CRA Wiz format
+      const transformedData = transformToCRAWizFormat(correctedData);
+      
       const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       const filename = `HMDA_Auto_Corrected_${monthYear.replace(' ', '_')}.xlsx`;
       
-      // Generate Excel with corrected data
-      const ws = utils.json_to_sheet(correctedData);
+      // Generate Excel with 128-column CRA Wiz format
+      const ws = utils.json_to_sheet(transformedData, { header: CRA_WIZ_128_COLUMNS });
       const wb = utils.book_new();
-      utils.book_append_sheet(wb, ws, "Corrected Data");
+      utils.book_append_sheet(wb, ws, "CRA Data");
       
       // Add a summary sheet
       const summaryData = [{
-        'Total Records': correctedData.length,
+        'Total Records': transformedData.length,
+        'Output Columns': CRA_WIZ_128_COLUMNS.length,
+        'Column A': 'BranchName',
+        'Column B': 'Branch',
+        'Column C': 'ApplNumb',
         'Original Errors': validationErrors.length,
         'Auto-Corrections Applied': 'Census Tract formatting, Rate decimals, State codes, Whitespace trimming',
         'Note': 'Review flagged records - some errors require manual correction'
@@ -450,7 +461,7 @@ export default function Dashboard() {
       
       toast({ 
         title: "Corrected Data Downloaded", 
-        description: `${correctedData.length} records with auto-fixes applied. Review flagged items.`,
+        description: `${transformedData.length} records in 128-column CRA Wiz format. Review flagged items.`,
         duration: 5000
       });
     } catch (error) {
