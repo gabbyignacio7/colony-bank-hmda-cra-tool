@@ -184,10 +184,6 @@ export const OUTPUT_COLUMNS: string[] = [
   'VAR_TERM'
 ];
 
-export interface CRAWizRow {
-  [key: string]: any;
-}
-
 // Date columns that need Excel serial number conversion
 const DATE_COLUMNS = ['APPLDATE', 'ACTIONDATE', 'RATE_LOCK_DATE'];
 
@@ -195,15 +191,19 @@ const DATE_COLUMNS = ['APPLDATE', 'ACTIONDATE', 'RATE_LOCK_DATE'];
  * Convert Excel serial date to M/D/YY format
  */
 export const excelDateToString = (value: any): string => {
+  // If already a string that looks like a date, return it
   if (typeof value === 'string' && value.includes('/')) {
     return value;
   }
   
+  // If it's a number, convert from Excel serial
   const serial = Number(value);
   if (isNaN(serial) || serial < 1000 || serial > 100000) {
     return String(value || '');
   }
   
+  // Excel serial date conversion
+  // Excel's epoch is December 30, 1899
   const date = new Date((serial - 25569) * 86400 * 1000);
   const month = date.getMonth() + 1;
   const day = date.getDate();
@@ -216,43 +216,13 @@ export const excelDateToString = (value: any): string => {
  * Get branch name with priority: preserve existing, then VLOOKUP
  */
 export const getBranchName = (branchNumber: string | number, existingName?: string): string => {
+  // Priority 1: Keep existing name if present
   if (existingName && String(existingName).trim() !== '') {
     return String(existingName).trim();
   }
+  // Priority 2: VLOOKUP from branch list
   const normalized = String(branchNumber).trim();
   return BRANCH_LIST[normalized] || '';
-};
-
-export interface TransformResult {
-  data: CRAWizRow[];
-  inputColumns: number;
-  outputColumns: number;
-  rowCount: number;
-  branchMatchCount: number;
-  branchMissCount: number;
-}
-
-export const parseCRAWizFile = async (file: File): Promise<CRAWizRow[]> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = utils.sheet_to_json(sheet) as CRAWizRow[];
-        console.log(`Parsed CRA Wiz file: ${jsonData.length} rows, ${Object.keys(jsonData[0] || {}).length} columns`);
-        resolve(jsonData);
-      } catch (error) {
-        console.error("Error parsing CRA Wiz file:", error);
-        reject(error);
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
 };
 
 /**
@@ -263,20 +233,29 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
     const output: Record<string, any> = {};
     
     OUTPUT_COLUMNS.forEach(col => {
+      // Special handling for BRANCHNAME - preserve from input
       if (col === 'BRANCHNAME') {
         output[col] = getBranchName(
           row.BRANCHNUMB || row.Branch || row.BranchNumb || '',
           row.BRANCHNAME || row.BranchName || ''
         );
-      } else if (col === 'ErrorMadeBy' || col === 'DSC') {
+      }
+      // New blank columns
+      else if (col === 'ErrorMadeBy' || col === 'DSC') {
         output[col] = '';
-      } else if (DATE_COLUMNS.includes(col)) {
+      }
+      // Date columns - convert from Excel serial
+      else if (DATE_COLUMNS.includes(col)) {
         const rawValue = row[col] || row[col.toLowerCase()] || '';
         output[col] = excelDateToString(rawValue);
-      } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
+      }
+      // Co-applicant age/credit score - use 9999 if no co-applicant
+      else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
         const value = row[col] || row[col.toLowerCase()] || '';
         output[col] = value || '9999';
-      } else {
+      }
+      // Standard field lookup with case variations
+      else {
         output[col] = row[col] || 
                       row[col.toLowerCase()] || 
                       row[col.replace(/_/g, '')] || 
@@ -288,105 +267,30 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
   });
 };
 
-export const transformCRAWizExport = (
-  inputData: CRAWizRow[], 
-  customBranchList?: Record<string, string>
-): TransformResult => {
-  const branchLookup = customBranchList || BRANCH_LIST;
-  let branchMatchCount = 0;
-  let branchMissCount = 0;
-  
-  const transformedData = inputData.map(row => {
-    const inputBranchName = row.BRANCHNAME ? String(row.BRANCHNAME).trim() : '';
-    const branchNum = String(row.BRANCHNUMB || '').trim();
-    const lookupBranchName = branchLookup[branchNum] || '';
-    
-    const branchName = inputBranchName || lookupBranchName;
-    
-    if (branchName) {
-      branchMatchCount++;
-    } else {
-      branchMissCount++;
-    }
-    
-    const outputRow: CRAWizRow = {};
-    
-    OUTPUT_COLUMNS.forEach(col => {
-      if (col === 'BRANCHNAME') {
-        outputRow[col] = branchName;
-      } else if (col === 'ErrorMadeBy' || col === 'DSC') {
-        outputRow[col] = '';
-      } else if (DATE_COLUMNS.includes(col)) {
-        outputRow[col] = excelDateToString(row[col]);
-      } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
-        const value = row[col] || '';
-        outputRow[col] = value || '9999';
-      } else {
-        outputRow[col] = row[col] !== undefined ? row[col] : '';
-      }
-    });
-    
-    return outputRow;
-  });
-  
-  return {
-    data: transformedData,
-    inputColumns: Object.keys(inputData[0] || {}).length,
-    outputColumns: OUTPUT_COLUMNS.length,
-    rowCount: transformedData.length,
-    branchMatchCount,
-    branchMissCount
-  };
-};
-
 /**
  * Export Work Item file (Phase 3 / Step 6)
  */
-export const exportWorkItemFile = (data: CRAWizRow[], filename?: string) => {
+export const exportWorkItemFile = (data: any[]): void => {
+  // Transform to 125-column format
   const transformedData = transformToWorkItemFormat(data);
   
+  // Create worksheet with exact headers
   const ws = utils.json_to_sheet(transformedData, {
     header: OUTPUT_COLUMNS
   });
   
+  // Create workbook
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'Work Items');
   
+  // Generate filename with month/year
   const now = new Date();
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
-  const defaultFilename = `HMDA_WorkItem_${monthNames[now.getMonth()]}_${now.getFullYear()}.csv`;
+  const filename = `HMDA_WorkItem_${monthNames[now.getMonth()]}_${now.getFullYear()}.csv`;
   
-  writeFile(wb, filename || defaultFilename, { bookType: 'csv' });
-};
-
-export const exportTransformSummary = (result: TransformResult) => {
-  const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const filename = `HMDA_Transform_Summary_${monthYear.replace(' ', '_')}.xlsx`;
-  
-  const summaryData = [{
-    'Transformation Date': new Date().toLocaleString(),
-    'Input Columns': result.inputColumns,
-    'Output Columns': result.outputColumns,
-    'Total Rows': result.rowCount,
-    'Branch Matches': result.branchMatchCount,
-    'Branch Misses': result.branchMissCount,
-    'New Columns Added': 'ErrorMadeBy, DSC',
-    'Columns Removed': result.inputColumns - result.outputColumns + 2
-  }];
-  
-  const ws = utils.json_to_sheet(summaryData);
-  const wb = utils.book_new();
-  utils.book_append_sheet(wb, ws, "Summary");
-  
-  const branchData = Object.entries(BRANCH_LIST).map(([num, name]) => ({
-    'Branch Number': num,
-    'Branch Name': name
-  }));
-  const branchWs = utils.json_to_sheet(branchData);
-  utils.book_append_sheet(wb, branchWs, "Branch Reference");
-  
-  writeFile(wb, filename);
+  // Download
+  writeFile(wb, filename, { bookType: 'csv' });
 };
 
 /**
@@ -409,17 +313,29 @@ export const processCRAWizExport = async (file: File): Promise<{
         const workbook = read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = utils.sheet_to_json(worksheet) as CRAWizRow[];
+        const jsonData = utils.sheet_to_json(worksheet);
         
-        const result = transformCRAWizExport(jsonData);
+        // Get input column count
+        const inputColumns = Object.keys(jsonData[0] || {}).length;
+        
+        // Transform to work item format
+        const transformed = transformToWorkItemFormat(jsonData);
+        
+        // Count branch matches
+        const branchMatches = transformed.filter(row => 
+          row.BRANCHNAME && row.BRANCHNAME.trim() !== ''
+        ).length;
+        
+        // Count date conversions (approximate)
+        const dateConversions = transformed.length * DATE_COLUMNS.length;
         
         resolve({
-          inputColumns: result.inputColumns,
-          outputColumns: result.outputColumns,
-          rowCount: result.rowCount,
-          branchMatches: result.branchMatchCount,
-          dateConversions: result.rowCount * DATE_COLUMNS.length,
-          data: result.data
+          inputColumns,
+          outputColumns: OUTPUT_COLUMNS.length,
+          rowCount: transformed.length,
+          branchMatches,
+          dateConversions,
+          data: transformed
         });
       } catch (error) {
         reject(error);

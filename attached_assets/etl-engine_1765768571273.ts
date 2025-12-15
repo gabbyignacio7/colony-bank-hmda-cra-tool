@@ -247,7 +247,7 @@ const LASERPRO_FIELD_MAP: Record<number, string> = {
   4: 'Action',
   5: 'ActionDate',
   11: 'Preapproval',
-  14: 'BorrowerFullName',
+  14: 'BorrowerFullName',  // Combined first + last
   15: 'LastName',
   16: 'Address',
   17: 'City',
@@ -257,6 +257,7 @@ const LASERPRO_FIELD_MAP: Record<number, string> = {
   21: 'Tract_11',
   22: 'LoanAmount',
   23: 'Income',
+  // Add more positions as needed based on actual LaserPro export format
 };
 
 /**
@@ -265,15 +266,19 @@ const LASERPRO_FIELD_MAP: Record<number, string> = {
 export const excelDateToString = (value: any): string => {
   if (!value) return '';
   
+  // If already a string that looks like a date, return it
   if (typeof value === 'string' && (value.includes('/') || value.includes('-'))) {
     return value;
   }
   
+  // If it's a number, convert from Excel serial
   const serial = Number(value);
   if (isNaN(serial) || serial < 1000 || serial > 100000) {
     return String(value || '');
   }
   
+  // Excel serial date conversion
+  // Excel's epoch is December 30, 1899
   const date = new Date((serial - 25569) * 86400 * 1000);
   const month = date.getMonth() + 1;
   const day = date.getDate();
@@ -298,6 +303,7 @@ export const detectDelimiterInValue = (value: any): string | null => {
   for (const { char } of delimiters) {
     const regex = char === '|' ? /\|/g : new RegExp(char, 'g');
     const matches = str.match(regex);
+    // If 10+ occurrences, it's delimited data stuck in one cell
     if (matches && matches.length >= 10) {
       return char;
     }
@@ -312,18 +318,21 @@ export const splitDelimitedRow = (
   row: Record<string, any>,
   targetColumns: string[]
 ): Record<string, any> => {
+  // Check each cell for delimited data
   for (const [key, value] of Object.entries(row)) {
     const delimiter = detectDelimiterInValue(value);
     if (delimiter) {
+      // Split the delimited string
       const values = String(value).split(delimiter);
+      // Map to target columns
       const newRow: Record<string, any> = {};
       targetColumns.forEach((col, index) => {
-        newRow[col] = values[index] !== undefined ? values[index].trim() : '';
+        newRow[col] = values[index] !== undefined ? values[index] : '';
       });
       return newRow;
     }
   }
-  return row;
+  return row; // Return original if no delimited data found
 };
 
 /**
@@ -337,13 +346,16 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
     const line = lines[i].trim();
     if (!line) continue;
     
-    if (i === 0 && ((line.includes('|') && line.includes('Colony Bank')) || line.startsWith('1|'))) {
+    // Skip metadata row (row 1) - pipe-delimited with "Colony Bank"
+    if (i === 0 && (line.includes('|') && line.includes('Colony Bank')) || line.startsWith('1|')) {
       console.log('Skipping LaserPro metadata row');
       continue;
     }
     
+    // Parse tilde-delimited data
     const values = line.split('~');
     
+    // Map to columns using LASERPRO_FIELD_MAP
     const row: SbslRow = {};
     Object.entries(LASERPRO_FIELD_MAP).forEach(([position, fieldName]) => {
       const index = parseInt(position);
@@ -352,6 +364,7 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
       }
     });
     
+    // Also store all values by index for unmapped fields
     values.forEach((val, idx) => {
       if (!Object.values(LASERPRO_FIELD_MAP).some((_, i) => parseInt(Object.keys(LASERPRO_FIELD_MAP)[i]) === idx)) {
         row[`Field_${idx}`] = val;
@@ -368,6 +381,7 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
  * Parse Encompass Excel file
  */
 export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
+  // Skip rows with metadata indicators
   const metadataIndicators = [
     'Financial Institution Name',
     'Calendar Year',
@@ -385,9 +399,11 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
     }
   }
   
+  // Find actual header row
   let headerRow = dataStartRow;
   for (let i = dataStartRow; i < Math.min(dataStartRow + 3, worksheet.length); i++) {
     const row = worksheet[i];
+    // Look for row that has typical header names
     if (row && row.some((cell: any) => 
       String(cell).includes('Loan') || 
       String(cell).includes('Applicant') ||
@@ -416,59 +432,40 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
  * Field mapping helper - finds value from various possible field names
  */
 export const findFieldValue = (row: Record<string, any>, targetField: string): any => {
+  // Direct match
   if (row[targetField] !== undefined) return row[targetField];
   
+  // Check common variations
   const variations: Record<string, string[]> = {
     'BranchName': ['BranchName', 'Branch Name', 'BRANCHNAME', 'Branch_Name'],
     'Branch': ['Branch', 'BranchNumb', 'BRANCHNUMB', 'Branch_Number'],
     'ApplNumb': ['ApplNumb', 'Loan_Number', 'LoanNumber', 'Application_Number', 'ULI'],
-    'LEI': ['LEI', 'Legal Entity Identifier (LEI)', 'Legal Entity Identifier'],
-    'ULI': ['ULI', 'Universal Loan Identifier (ULI)', 'Universal Loan Identifier'],
-    'LastName': ['LastName', 'Last Name', 'Borrower_Last_Name', 'LASTNAME', 'Last_Name', 'Applicant Last Name'],
-    'FirstName': ['FirstName', 'First Name', 'Borrower_First_Name', 'FIRSTNAME', 'First_Name', 'Applicant First Name'],
-    'Coa_LastName': ['Coa_LastName', 'CLASTNAME', 'Co_Borrower_Last_Name', 'Co-Applicant Last Name'],
-    'Coa_FirstName': ['Coa_FirstName', 'CFIRSTNAME', 'Co_Borrower_First_Name', 'Co-Applicant First Name'],
+    'LastName': ['LastName', 'Last Name', 'Borrower_Last_Name', 'LASTNAME', 'Last_Name'],
+    'FirstName': ['FirstName', 'First Name', 'Borrower_First_Name', 'FIRSTNAME', 'First_Name'],
     'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan_Amount', 'LOANAMOUNTINDOLLARS'],
-    'Address': ['Address', 'Property_Street', 'PropertyStreet', 'ADDRESS', 'Property_Address', 'Street Address'],
+    'Address': ['Address', 'Property_Street', 'PropertyStreet', 'ADDRESS', 'Property_Address'],
     'City': ['City', 'Property_City', 'PropertyCity', 'CITY'],
     'State_abrv': ['State_abrv', 'State', 'Property_State', 'STATE_ABRV', 'State_Abrv'],
-    'Zip': ['Zip', 'Property_Zip', 'PropertyZip', 'ZipCode', 'ZIP', 'Zip_Code', 'ZIP Code'],
-    'County_5': ['County_5', 'County', 'County_Code', 'COUNTY_5', 'County Code'],
-    'Tract_11': ['Tract_11', 'Census_Tract', 'Tract', 'TRACT_11', 'Census Tract'],
+    'Zip': ['Zip', 'Property_Zip', 'PropertyZip', 'ZipCode', 'ZIP', 'Zip_Code'],
+    'County_5': ['County_5', 'County', 'County_Code', 'COUNTY_5'],
+    'Tract_11': ['Tract_11', 'Census_Tract', 'Tract', 'TRACT_11'],
     'InterestRate': ['InterestRate', 'Interest_Rate', 'Interest Rate', 'INTERESTRATE'],
-    'Income': ['Income', 'Income_Thousands', 'INCOME', 'Gross Annual Income'],
-    'CreditScore': ['CreditScore', 'Credit_Score', 'CREDITSCORE', 'Credit Score'],
-    'Coa_CreditScore': ['Coa_CreditScore', 'COA_CREDITSCORE', 'Co_Credit_Score'],
-    'ApplDate': ['ApplDate', 'Application_Date', 'ApplicationDate', 'APPLDATE', 'Application Date'],
-    'ActionDate': ['ActionDate', 'Action_Date', 'ACTIONDATE', 'Action Date'],
-    'Action': ['Action', 'Action_Taken', 'ActionTaken', 'ACTION', 'Action Taken'],
-    'LoanType': ['LoanType', 'Loan_Type', 'LOANTYPE', 'Loan Type'],
-    'Purpose': ['Purpose', 'Loan_Purpose', 'PURPOSE', 'Loan Purpose'],
-    'Lender': ['Lender', 'Loan_Officer', 'LENDER', 'Originator'],
-    'AA_Processor': ['AA_Processor', 'AA_LOANPROCESSOR', 'Processor'],
-    'LDP_PostCloser': ['LDP_PostCloser', 'LDP_POSTCLOSER', 'Post_Closer'],
-    'APR': ['APR', 'Annual_Percentage_Rate', 'Annual Percentage Rate'],
-    'Rate_Lock_Date': ['Rate_Lock_Date', 'RateLockDate', 'Rate Lock Date', 'RATE_LOCK_DATE'],
-    'Ethnicity_1': ['Ethnicity_1', 'ETHNICITY_1', 'Applicant_Ethnicity', 'Applicant Ethnicity'],
-    'Race_1': ['Race_1', 'RACE_1', 'Applicant_Race_1', 'Applicant Race'],
-    'Sex': ['Sex', 'SEX', 'Applicant_Sex', 'Applicant Sex'],
-    'Age': ['Age', 'AGE', 'Applicant Age'],
-    'Coa_Age': ['Coa_Age', 'COA_AGE', 'Co-Applicant Age'],
-    'DTIRatio': ['DTIRatio', 'DTIRATIO', 'Debt_to_Income', 'DTI Ratio'],
-    'CLTV': ['CLTV', 'Combined LTV', 'Combined_LTV'],
-    'PropertyValue': ['PropertyValue', 'PROPERTYVALUE', 'Property Value', 'Property_Value'],
-    'Lien_Status': ['Lien_Status', 'LIEN_STATUS', 'Lien Status'],
-    'HOEPA_Status': ['HOEPA_Status', 'HOEPA_STATUS', 'HOEPA Status'],
-    'Rate_Spread': ['Rate_Spread', 'RATE_SPREAD', 'Rate Spread'],
-    'Purchaser': ['Purchaser', 'PURCHASER', 'Type of Purchaser'],
-    'Loan_Term': ['Loan_Term', 'LOAN_TERM', 'Loan Term'],
-    'TotalUnits': ['TotalUnits', 'TOTALUNITS', 'Total Units'],
-    'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLS ID'],
+    'Income': ['Income', 'Income_Thousands', 'INCOME'],
+    'CreditScore': ['CreditScore', 'Credit_Score', 'CREDITSCORE'],
+    'ApplDate': ['ApplDate', 'Application_Date', 'ApplicationDate', 'APPLDATE'],
+    'ActionDate': ['ActionDate', 'Action_Date', 'ACTIONDATE'],
+    'Action': ['Action', 'Action_Taken', 'ActionTaken', 'ACTION'],
+    'LoanType': ['LoanType', 'Loan_Type', 'LOANTYPE'],
+    'Purpose': ['Purpose', 'Loan_Purpose', 'PURPOSE'],
+    'Lender': ['Lender', 'Loan_Officer', 'LENDER'],
+    'APR': ['APR', 'Annual_Percentage_Rate'],
+    'Rate_Lock_Date': ['Rate_Lock_Date', 'RateLockDate', 'Rate Lock Date'],
   };
   
   const possibleNames = variations[targetField] || [targetField];
   for (const name of possibleNames) {
     if (row[name] !== undefined) return row[name];
+    // Also try uppercase/lowercase variations
     if (row[name.toUpperCase()] !== undefined) return row[name.toUpperCase()];
     if (row[name.toLowerCase()] !== undefined) return row[name.toLowerCase()];
   }
@@ -484,6 +481,7 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
     return primaryData;
   }
   
+  // Create lookup map from supplemental data
   const suppMap = new Map<string, SbslRow>();
   supplementalData.forEach(row => {
     const key = String(row.Loan_Number || row.ApplNumb || row.LoanNumber || '').trim();
@@ -492,6 +490,7 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
     }
   });
   
+  // Merge supplemental fields into primary data
   return primaryData.map(row => {
     const key = String(row.ApplNumb || row.Loan_Number || row.LoanNumber || '').trim();
     const supp = suppMap.get(key);
@@ -517,23 +516,28 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
  */
 export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
   return data.map(row => {
+    // Check for delimited data and split if necessary
     const processedRow = splitDelimitedRow(row, CRA_WIZ_128_COLUMNS);
     
+    // Map to output columns in exact order
     const output: SbslRow = {};
     CRA_WIZ_128_COLUMNS.forEach(col => {
       output[col] = findFieldValue(processedRow, col) || '';
     });
     
+    // Apply branch VLOOKUP
     const branchNum = String(output['Branch'] || processedRow['Branch'] || processedRow['BranchNumb'] || '').trim();
     if (!output['BranchName'] || String(output['BranchName']).trim() === '') {
       output['BranchName'] = BRANCH_LIST[branchNum] || '';
     }
     
+    // Set default values for blank required columns
     if (!output['Error_Made_By']) output['Error_Made_By'] = '';
     if (!output['DSC']) output['DSC'] = '';
     
-    if (!output['Coa_Age'] || String(output['Coa_Age']) === '') output['Coa_Age'] = '9999';
-    if (!output['Coa_CreditScore'] || String(output['Coa_CreditScore']) === '') output['Coa_CreditScore'] = '9999';
+    // Handle co-applicant defaults
+    if (!output['Coa_Age'] || output['Coa_Age'] === '') output['Coa_Age'] = '9999';
+    if (!output['Coa_CreditScore'] || output['Coa_CreditScore'] === '') output['Coa_CreditScore'] = '9999';
     
     return output;
   });
@@ -549,6 +553,7 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
     const warnings: string[] = [];
     const autoCorrected: Record<string, { from: any; to: any }> = {};
     
+    // 1. Census Tract validation: Must be ##.## or ####.##
     const tract = row.Tract_11 || row.Census_Tract || row.TRACT_11;
     if (tract && !/^\d{2,4}\.\d{2}$/.test(String(tract))) {
       const corrected = formatCensusTract(tract);
@@ -559,6 +564,7 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       }
     }
     
+    // 2. Interest Rate validation: 0-20%
     const rate = parseFloat(String(row.InterestRate || row.Interest_Rate || row.INTERESTRATE || 0));
     if (!isNaN(rate) && rate > 0) {
       if (rate < 0 || rate > 20) {
@@ -566,6 +572,7 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       }
     }
     
+    // 3. Income validation: 1-9999 thousands
     const income = parseInt(String(row.Income || row.INCOME || 0));
     if (!isNaN(income) && income > 0) {
       if (income < 1 || income > 9999) {
@@ -573,6 +580,7 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       }
     }
     
+    // 4. Action Taken Code validation: Must be 1-8
     const action = parseInt(String(row.Action || row.ACTION || row.Action_Taken || 0));
     if (!isNaN(action) && action > 0) {
       if (![1, 2, 3, 4, 5, 6, 7, 8].includes(action)) {
@@ -580,12 +588,14 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       }
     }
     
+    // 5. State validation: 2-letter code
     const state = row.State_abrv || row.State || row.STATE_ABRV || row.Property_State;
     if (state && String(state).length !== 2) {
       const corrected = String(state).trim().toUpperCase().substring(0, 2);
       autoCorrected['State'] = { from: state, to: corrected };
     }
     
+    // 6. County validation: 5 digits
     const county = row.County_5 || row.County || row.COUNTY_5;
     if (county) {
       const padded = String(county).padStart(5, '0');
@@ -594,15 +604,18 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       }
     }
     
+    // 7. Loan Amount validation
     const loanAmt = parseFloat(String(row.LoanAmount || row.Loan_Amount || row.LOANAMOUNTINDOLLARS || 0));
     if (loanAmt <= 0) {
       warnings.push('Loan Amount is zero or missing');
     }
     
+    // 8. Date format validation
     const dateFields = ['ApplDate', 'ActionDate', 'Rate_Lock_Date'];
     dateFields.forEach(field => {
       const value = row[field];
       if (value && typeof value === 'number' && value > 40000 && value < 50000) {
+        // Excel serial number detected
         autoCorrected[field] = { from: value, to: excelDateToString(value) };
       }
     });
@@ -623,8 +636,10 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
 const formatCensusTract = (value: any): string | null => {
   const str = String(value).replace(/[^\d.]/g, '');
   
+  // Already correct format
   if (/^\d{2,4}\.\d{2}$/.test(str)) return str;
   
+  // Try to fix common issues
   const match = str.match(/^(\d{2,4})\.?(\d{2})$/);
   if (match) {
     return `${match[1]}.${match[2]}`;
@@ -640,6 +655,7 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
   return data.map(row => {
     const corrected = { ...row };
     
+    // Census Tract formatting
     const tract = row.Tract_11 || row.Census_Tract;
     if (tract) {
       const formatted = formatCensusTract(tract);
@@ -649,6 +665,7 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
       }
     }
     
+    // State abbreviation
     const state = row.State_abrv || row.State || row.Property_State;
     if (state && String(state).length !== 2) {
       const abbr = String(state).trim().toUpperCase().substring(0, 2);
@@ -656,17 +673,20 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
       corrected.State = abbr;
     }
     
+    // County padding
     const county = row.County_5 || row.County;
     if (county) {
       corrected.County_5 = String(county).padStart(5, '0');
     }
     
+    // Date formatting
     ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {
       if (row[field] && typeof row[field] === 'number') {
         corrected[field] = excelDateToString(row[field]);
       }
     });
     
+    // Interest rate formatting
     const rate = row.InterestRate || row.Interest_Rate;
     if (rate) {
       const numRate = parseFloat(String(rate).replace('%', ''));
@@ -682,27 +702,27 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
 /**
  * Export CRA Wiz 128-column format (Phase 1)
  */
-export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
-  console.log('exportCRAWizFormat called with', data.length, 'rows');
-  
+export const exportCRAWizFormat = (data: SbslRow[]): void => {
+  // Transform to 128-column format
   const transformedData = transformToCRAWizFormat(data);
-  console.log('Transformed data - First row keys:', transformedData.length > 0 ? Object.keys(transformedData[0]).slice(0, 5) : 'no data');
-  console.log('Using CRA_WIZ_128_COLUMNS header (first 5):', CRA_WIZ_128_COLUMNS.slice(0, 5));
   
+  // Create worksheet with exact headers
   const ws = utils.json_to_sheet(transformedData, {
     header: CRA_WIZ_128_COLUMNS
   });
   
+  // Create workbook
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'CRA Data');
   
+  // Generate filename
   const now = new Date();
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
-  const defaultFilename = `CRA_Wiz_Upload_${monthNames[now.getMonth()]}_${now.getFullYear()}.xlsx`;
+  const filename = `CRA_Wiz_Upload_${monthNames[now.getMonth()]}_${now.getFullYear()}.xlsx`;
   
-  console.log('Exporting file:', filename || defaultFilename);
-  writeFile(wb, filename || defaultFilename);
+  // Download
+  writeFile(wb, filename);
 };
 
 /**
@@ -716,22 +736,27 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
     reader.onload = (e) => {
       try {
         if (fileName.endsWith('.txt')) {
+          // LaserPro text file
           const content = e.target?.result as string;
           resolve(parseLaserProFile(content));
         } else {
+          // Excel file
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
+          // Get as array of arrays for Encompass parsing
           const rows = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           
+          // Check if it's Encompass format (has metadata rows)
           const firstCell = String(rows[0]?.[0] || '');
           if (firstCell.includes('Financial Institution') || 
               firstCell.includes('Calendar') || 
               firstCell.includes('Colony Bank')) {
             resolve(parseEncompassFile(rows));
           } else {
+            // Standard Excel - use default parsing
             const jsonData = utils.sheet_to_json(worksheet) as SbslRow[];
             resolve(jsonData);
           }
@@ -770,10 +795,7 @@ export const fetchCsvFile = async (url: string): Promise<SbslRow[]> => {
 };
 
 // Legacy functions for compatibility
-export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], count: number } => {
-  return { filtered: data, count: data.length };
-};
-
+export const filterByCurrentMonth = (data: SbslRow[]): SbslRow[] => data;
 export const generateSummaryStats = (data: SbslRow[]) => {
   const totalLoanAmount = data.reduce((sum, row) => {
     const amount = parseFloat(String(row.LoanAmount || row.Loan_Amount || row['Loan Amount'] || 0));
@@ -786,7 +808,6 @@ export const generateSummaryStats = (data: SbslRow[]) => {
     avgLoanAmount: data.length > 0 ? totalLoanAmount / data.length : 0
   };
 };
-
 export const transformEncompassData = (data: SbslRow[]): SbslRow[] => data;
 export const cleanAndFormatData = (data: SbslRow[]): SbslRow[] => autoCorrectData(data);
 
