@@ -2,74 +2,6 @@ import { read, utils, writeFile } from 'xlsx';
 import { BRANCH_LIST } from './cra-wiz-transform';
 
 export interface SbslRow {
-  // Legacy fields
-  ApplNumb?: string;
-  'Last Name'?: string;
-  'Loan Type'?: string;
-  'Action Taken'?: string;
-  'Loan Amount'?: number;
-  'Note Date'?: string | number | Date;
-  Revenue?: number;
-  Affiliate?: string;
-  Address?: string;
-  City?: string;
-  State?: string;
-  Zip?: string;
-  Comment?: string;
-
-  // HMDA Fields
-  Loan_Number?: string;
-  Application_Date?: string;
-  Action_Date?: string;
-  Loan_Type?: string;
-  Loan_Purpose?: string;
-  Action?: string;
-  Preapproval?: string;
-  LastName?: string;
-  FirstName?: string;
-  Coa_LastName?: string;
-  Coa_FirstName?: string;
-  Property_Street?: string;
-  Property_City?: string;
-  Property_State?: string;
-  Property_Zip?: string;
-  County_Code?: string;
-  Census_Tract?: string;
-  Loan_Amount?: number;
-  Interest_Rate?: number;
-  Income?: number;
-  Ethnicity_1?: string;
-  Race_1?: string;
-  Sex?: string;
-  Age?: number;
-  Coa_Age?: number;
-  Credit_Score?: number;
-  Coa_Credit_Score?: number;
-  
-  // Branch fields
-  Branch?: string;
-  BranchNumb?: string;
-  BranchName?: string;
-  'Branch Name'?: string;
-  
-  // Supplemental fields
-  Lender?: string;
-  LDP_PostCloser?: string;
-  APR?: string | number;
-  Rate_Lock_Date?: string;
-  RateType?: string;
-  LoanProgram?: string;
-  
-  // Additional fields
-  ApplDate?: string;
-  ActionDate?: string;
-  LoanType?: string;
-  Purpose?: string;
-  ConstructionMethod?: string;
-  OccupancyType?: string;
-  LoanAmount?: number;
-  
-  // Allow any additional fields
   [key: string]: any;
 }
 
@@ -83,180 +15,284 @@ export interface ValidationResult {
 
 // Complete 128-Column CRA Wiz Format (Jonathan Hester's Exact Requirement)
 export const CRA_WIZ_128_COLUMNS: string[] = [
-  // Columns 1-10
-  'BranchName',           // A - Branch name from VLOOKUP
-  'Branch',               // B - Branch number
-  'ApplNumb',             // C - Application/Loan number
-  'LEI',                  // D - Legal Entity Identifier
-  'ULI',                  // E - Universal Loan Identifier
-  'LastName',             // F - Borrower last name
-  'FirstName',            // G - Borrower first name
-  'Coa_LastName',         // H - Co-applicant last name
-  'Coa_FirstName',        // I - Co-applicant first name
-  'Lender',               // J - Loan officer
-  
-  // Columns 11-20
-  'AA_Processor',         // K - Loan processor
-  'LDP_PostCloser',       // L - Post closer
-  'Error_Made_By',        // M - Error tracking (blank initially)
-  'ApplDate',             // N - Application date
-  'LoanType',             // O - Loan type code
-  'Purpose',              // P - Loan purpose code
-  'ConstructionMethod',   // Q - Construction method
-  'OccupancyType',        // R - Occupancy type
-  'LoanAmount',           // S - Loan amount in dollars
-  'Preapproval',          // T - Preapproval status
-  
-  // Columns 21-30
-  'Action',               // U - Action taken code (1-8)
-  'ActionDate',           // V - Action date
-  'Address',              // W - Property street address
-  'City',                 // X - Property city
-  'State_abrv',           // Y - Property state (2-letter)
-  'Zip',                  // Z - Property ZIP code
-  'County_5',             // AA - County FIPS code (5 digits)
-  'Tract_11',             // AB - Census tract (11 digits)
-  'Ethnicity_1',          // AC - Applicant ethnicity 1
-  'Ethnicity_2',          // AD - Applicant ethnicity 2
-  
-  // Columns 31-40
-  'Ethnicity_3',          // AE - Applicant ethnicity 3
-  'Ethnicity_4',          // AF - Applicant ethnicity 4
-  'Ethnicity_5',          // AG - Applicant ethnicity 5
-  'EthnicityOther',       // AH - Applicant ethnicity other
-  'Coa_Ethnicity_1',      // AI - Co-applicant ethnicity 1
-  'Coa_Ethnicity_2',      // AJ - Co-applicant ethnicity 2
-  'Coa_Ethnicity_3',      // AK - Co-applicant ethnicity 3
-  'Coa_Ethnicity_4',      // AL - Co-applicant ethnicity 4
-  'Coa_Ethnicity_5',      // AM - Co-applicant ethnicity 5
-  'Coa_EthnicityOther',   // AN - Co-applicant ethnicity other
-  
-  // Columns 41-50
-  'Ethnicity_Determinant',      // AO - How ethnicity was collected
-  'Coa_Ethnicity_Determinant',  // AP - How co-app ethnicity collected
-  'Race_1',               // AQ - Applicant race 1
-  'Race_2',               // AR - Applicant race 2
-  'Race_3',               // AS - Applicant race 3
-  'Race_4',               // AT - Applicant race 4
-  'Race_5',               // AU - Applicant race 5
-  'Race1_Other',          // AV - Applicant race other (AI/AN)
-  'Race27_Other',         // AW - Applicant race other (Asian)
-  'Race44_Other',         // AX - Applicant race other (PI)
-  
-  // Columns 51-60
-  'CoaRace_1',            // AY - Co-applicant race 1
-  'CoaRace_2',            // AZ - Co-applicant race 2
-  'CoaRace_3',            // BA - Co-applicant race 3
-  'CoaRace_4',            // BB - Co-applicant race 4
-  'CoaRace_5',            // BC - Co-applicant race 5
-  'CoaRace1_Other',       // BD - Co-app race other (AI/AN)
-  'CoaRace27_Other',      // BE - Co-app race other (Asian)
-  'CoaRace44_Other',      // BF - Co-app race other (PI)
-  'Race_Determinant',     // BG - How race was collected
-  'CoaRace_Determinant',  // BH - How co-app race collected
-  
-  // Columns 61-70
-  'Sex',                  // BI - Applicant sex
-  'CoaSex',               // BJ - Co-applicant sex
-  'Sex_Determinant',      // BK - How sex was collected
-  'CoaSex_Determinant',   // BL - How co-app sex collected
-  'Age',                  // BM - Applicant age
-  'Coa_Age',              // BN - Co-applicant age (9999 if none)
-  'Income',               // BO - Income in thousands
-  'Purchaser',            // BP - Purchaser type
-  'Rate_Spread',          // BQ - Rate spread
-  'HOEPA_Status',         // BR - HOEPA status
-  
-  // Columns 71-80
-  'Lien_Status',          // BS - Lien status
-  'CreditScore',          // BT - Applicant credit score
-  'Coa_CreditScore',      // BU - Co-app credit score (9999 if none)
-  'CreditModel',          // BV - Credit score model
-  'CreditModelOther',     // BW - Credit model other
-  'Coa_CreditModel',      // BX - Co-app credit model
-  'Coa_CreditModelOther', // BY - Co-app credit model other
-  'Denial1',              // BZ - Denial reason 1
-  'Denial2',              // CA - Denial reason 2
-  'Denial3',              // CB - Denial reason 3
-  
-  // Columns 81-90
-  'Denial4',              // CC - Denial reason 4
-  'DenialOther',          // CD - Denial reason other
-  'TotalLoanCosts',       // CE - Total loan costs
-  'TotalPtsAndFees',      // CF - Total points and fees
-  'OrigFees',             // CG - Origination fees
-  'DiscountPts',          // CH - Discount points
-  'LenderCredts',         // CI - Lender credits
-  'InterestRate',         // CJ - Interest rate
-  'APR',                  // CK - Annual percentage rate
-  'Rate_Lock_Date',       // CL - Rate lock date
-  
-  // Columns 91-100
-  'PPPTerm',              // CM - Prepayment penalty term
-  'DTIRatio',             // CN - Debt-to-income ratio
-  'DSC',                  // CO - Debt service coverage (blank)
-  'CLTV',                 // CP - Combined LTV
-  'Loan_Term',            // CQ - Loan term in years
-  'Loan_Term_Months',     // CR - Loan term in months
-  'IntroRatePeriod',      // CS - Introductory rate period
-  'BalloonPMT',           // CT - Balloon payment
-  'IOPMT',                // CU - Interest-only payment
-  'NegAM',                // CV - Negative amortization
-  
-  // Columns 101-110
-  'NonAmortz',            // CW - Non-amortizing features
-  'PropertyValue',        // CX - Property value
-  'MHSecPropType',        // CY - Manufactured home secured prop type
-  'MHLandPropInt',        // CZ - Manufactured home land prop interest
-  'TotalUnits',           // DA - Total dwelling units
-  'MFAHU',                // DB - Multifamily affordable units
-  'APPMethod',            // DC - Application method
-  'PayableInst',          // DD - Payable to institution
-  'NMLSRID',              // DE - NMLS ID
-  'AUSystem1',            // DF - Automated underwriting system 1
-  
-  // Columns 111-120
-  'AUSystem2',            // DG - AUS 2
-  'AUSystem3',            // DH - AUS 3
-  'AUSystem4',            // DI - AUS 4
-  'AUSystem5',            // DJ - AUS 5
-  'AUSystemOther',        // DK - AUS other
-  'AUSResult1',           // DL - AUS result 1
-  'AUSResult2',           // DM - AUS result 2
-  'AUSResult3',           // DN - AUS result 3
-  'AUSResult4',           // DO - AUS result 4
-  'AUSResult5',           // DP - AUS result 5
-  
-  // Columns 121-128
-  'AUSResultOther',       // DQ - AUS result other
-  'REVMTG',               // DR - Reverse mortgage
-  'OpenLOC',              // DS - Open-end line of credit
-  'BUSCML',               // DT - Business or commercial purpose
-  'RateType',             // DU - Rate type (Fixed/Variable)
-  'Var_Term',             // DV - Variable rate term
-  'LoanProgram',          // DW - Loan program
-  'ProductType'           // DX - Product type
+  'BranchName', 'Branch', 'ApplNumb', 'LEI', 'ULI', 'LastName', 'FirstName',
+  'Coa_LastName', 'Coa_FirstName', 'Lender', 'AA_Processor', 'LDP_PostCloser',
+  'Error_Made_By', 'ApplDate', 'LoanType', 'Purpose', 'ConstructionMethod',
+  'OccupancyType', 'LoanAmount', 'Preapproval', 'Action', 'ActionDate',
+  'Address', 'City', 'State_abrv', 'Zip', 'County_5', 'Tract_11',
+  'Ethnicity_1', 'Ethnicity_2', 'Ethnicity_3', 'Ethnicity_4', 'Ethnicity_5',
+  'EthnicityOther', 'Coa_Ethnicity_1', 'Coa_Ethnicity_2', 'Coa_Ethnicity_3',
+  'Coa_Ethnicity_4', 'Coa_Ethnicity_5', 'Coa_EthnicityOther',
+  'Ethnicity_Determinant', 'Coa_Ethnicity_Determinant',
+  'Race_1', 'Race_2', 'Race_3', 'Race_4', 'Race_5',
+  'Race1_Other', 'Race27_Other', 'Race44_Other',
+  'CoaRace_1', 'CoaRace_2', 'CoaRace_3', 'CoaRace_4', 'CoaRace_5',
+  'CoaRace1_Other', 'CoaRace27_Other', 'CoaRace44_Other',
+  'Race_Determinant', 'CoaRace_Determinant',
+  'Sex', 'CoaSex', 'Sex_Determinant', 'CoaSex_Determinant',
+  'Age', 'Coa_Age', 'Income', 'Purchaser', 'Rate_Spread', 'HOEPA_Status',
+  'Lien_Status', 'CreditScore', 'Coa_CreditScore', 'CreditModel',
+  'CreditModelOther', 'Coa_CreditModel', 'Coa_CreditModelOther',
+  'Denial1', 'Denial2', 'Denial3', 'Denial4', 'DenialOther',
+  'TotalLoanCosts', 'TotalPtsAndFees', 'OrigFees', 'DiscountPts',
+  'LenderCredts', 'InterestRate', 'APR', 'Rate_Lock_Date',
+  'PPPTerm', 'DTIRatio', 'DSC', 'CLTV', 'Loan_Term', 'Loan_Term_Months',
+  'IntroRatePeriod', 'BalloonPMT', 'IOPMT', 'NegAM', 'NonAmortz',
+  'PropertyValue', 'MHSecPropType', 'MHLandPropInt', 'TotalUnits',
+  'MFAHU', 'APPMethod', 'PayableInst', 'NMLSRID',
+  'AUSystem1', 'AUSystem2', 'AUSystem3', 'AUSystem4', 'AUSystem5',
+  'AUSystemOther', 'AUSResult1', 'AUSResult2', 'AUSResult3', 'AUSResult4',
+  'AUSResult5', 'AUSResultOther',
+  'REVMTG', 'OpenLOC', 'BUSCML', 'RateType', 'Var_Term', 'LoanProgram', 'ProductType'
 ];
 
-// LaserPro field position mapping (tilde-delimited)
-const LASERPRO_FIELD_MAP: Record<number, string> = {
-  0: 'ApplNumb',
-  1: 'ApplDate',
-  2: 'LoanType',
-  3: 'Purpose',
-  4: 'Action',
-  5: 'ActionDate',
-  11: 'Preapproval',
-  14: 'BorrowerFullName',
-  15: 'LastName',
-  16: 'Address',
-  17: 'City',
-  18: 'State_abrv',
-  19: 'Zip',
-  20: 'County_5',
-  21: 'Tract_11',
-  22: 'LoanAmount',
-  23: 'Income',
+// COMPREHENSIVE Encompass field name mapping - covers ALL known Encompass export formats
+// Maps Encompass long names to our standard short names
+const ENCOMPASS_FIELD_MAP: Record<string, string> = {
+  // Core Identifiers
+  'Legal Entity Identifier (LEI)': 'LEI',
+  'Legal Entity Identifier': 'LEI',
+  'Universal Loan Identifier (ULI)': 'ULI',
+  'Universal Loan Identifier': 'ULI',
+  'Loan ID': 'ApplNumb',
+  'Loan Number': 'ApplNumb',
+  'Application Number': 'ApplNumb',
+
+  // Dates
+  'Application Date': 'ApplDate',
+  'Action Taken Date': 'ActionDate',
+  'Action Date': 'ActionDate',
+  'Rate Lock Date': 'Rate_Lock_Date',
+  'Lock Date': 'Rate_Lock_Date',
+
+  // Loan Details
+  'Loan Type': 'LoanType',
+  'Loan Purpose': 'Purpose',
+  'Loan Amount': 'LoanAmount',
+  'Loan Amount in Dollars': 'LoanAmount',
+  'Construction Method': 'ConstructionMethod',
+  'Occupancy Type': 'OccupancyType',
+  'Occupancy': 'OccupancyType',
+  'Preapproval': 'Preapproval',
+  'Pre-approval': 'Preapproval',
+  'Action Taken': 'Action',
+  'Action': 'Action',
+
+  // Property Info
+  'Street Address': 'Address',
+  'Property Street': 'Address',
+  'Property Address': 'Address',
+  'Property City': 'City',
+  'Property State': 'State_abrv',
+  'State': 'State_abrv',
+  'Property ZIP Code': 'Zip',
+  'ZIP Code': 'Zip',
+  'Zip Code': 'Zip',
+  'County': 'County_5',
+  'County Code': 'County_5',
+  'Census Tract': 'Tract_11',
+  'Tract': 'Tract_11',
+
+  // Borrower Demographics - Primary Applicant
+  'Applicant Ethnicity 1': 'Ethnicity_1',
+  'Applicant Ethnicity-1': 'Ethnicity_1',
+  'Ethnicity of Applicant or Borrower: 1': 'Ethnicity_1',
+  'Applicant Ethnicity 2': 'Ethnicity_2',
+  'Applicant Ethnicity 3': 'Ethnicity_3',
+  'Applicant Ethnicity 4': 'Ethnicity_4',
+  'Applicant Ethnicity 5': 'Ethnicity_5',
+  'Applicant Ethnicity: Free Form Text Field': 'EthnicityOther',
+  'Ethnicity of Applicant or Borrower Collected on the Basis of Visual Observation or Surname': 'Ethnicity_Determinant',
+  'Applicant Ethnicity Basis': 'Ethnicity_Determinant',
+
+  // Borrower Demographics - Co-Applicant Ethnicity
+  'Co-Applicant Ethnicity 1': 'Coa_Ethnicity_1',
+  'Co-Applicant Ethnicity-1': 'Coa_Ethnicity_1',
+  'Ethnicity of Co-Applicant or Co-Borrower: 1': 'Coa_Ethnicity_1',
+  'Co-Applicant Ethnicity 2': 'Coa_Ethnicity_2',
+  'Co-Applicant Ethnicity 3': 'Coa_Ethnicity_3',
+  'Co-Applicant Ethnicity 4': 'Coa_Ethnicity_4',
+  'Co-Applicant Ethnicity 5': 'Coa_Ethnicity_5',
+  'Co-Applicant Ethnicity: Free Form Text Field': 'Coa_EthnicityOther',
+  'Ethnicity of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname': 'Coa_Ethnicity_Determinant',
+  'Co-Applicant Ethnicity Basis': 'Coa_Ethnicity_Determinant',
+
+  // Borrower Demographics - Race Primary
+  'Applicant Race 1': 'Race_1',
+  'Applicant Race-1': 'Race_1',
+  'Race of Applicant or Borrower: 1': 'Race_1',
+  'Applicant Race 2': 'Race_2',
+  'Applicant Race 3': 'Race_3',
+  'Applicant Race 4': 'Race_4',
+  'Applicant Race 5': 'Race_5',
+  'Applicant Race: Free Form Text Field for American Indian or Alaska Native Enrolled or Principal Tribe': 'Race1_Other',
+  'Applicant Race: Free Form Text Field for Other Asian': 'Race27_Other',
+  'Applicant Race: Free Form Text Field for Other Pacific Islander': 'Race44_Other',
+  'Race of Applicant or Borrower Collected on the Basis of Visual Observation or Surname': 'Race_Determinant',
+  'Applicant Race Basis': 'Race_Determinant',
+
+  // Borrower Demographics - Race Co-Applicant
+  'Co-Applicant Race 1': 'CoaRace_1',
+  'Co-Applicant Race-1': 'CoaRace_1',
+  'Race of Co-Applicant or Co-Borrower: 1': 'CoaRace_1',
+  'Co-Applicant Race 2': 'CoaRace_2',
+  'Co-Applicant Race 3': 'CoaRace_3',
+  'Co-Applicant Race 4': 'CoaRace_4',
+  'Co-Applicant Race 5': 'CoaRace_5',
+  'Co-Applicant Race: Free Form Text Field for American Indian or Alaska Native': 'CoaRace1_Other',
+  'Co-Applicant Race: Free Form Text Field for Other Asian': 'CoaRace27_Other',
+  'Co-Applicant Race: Free Form Text Field for Other Pacific Islander': 'CoaRace44_Other',
+  'Race of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname': 'CoaRace_Determinant',
+  'Co-Applicant Race Basis': 'CoaRace_Determinant',
+
+  // Sex/Gender
+  'Sex of Applicant or Borrower': 'Sex',
+  'Applicant Sex': 'Sex',
+  'Sex of Co-Applicant or Co-Borrower': 'CoaSex',
+  'Co-Applicant Sex': 'CoaSex',
+  'Sex of Applicant or Borrower Collected on the Basis of Visual Observation or Surname': 'Sex_Determinant',
+  'Applicant Sex Basis': 'Sex_Determinant',
+  'Sex of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname': 'CoaSex_Determinant',
+  'Co-Applicant Sex Basis': 'CoaSex_Determinant',
+
+  // Age
+  'Age of Applicant or Borrower': 'Age',
+  'Applicant Age': 'Age',
+  'Age of Co-Applicant or Co-Borrower': 'Coa_Age',
+  'Co-Applicant Age': 'Coa_Age',
+
+  // Income and Financial
+  'Income': 'Income',
+  'Gross Annual Income': 'Income',
+  'Applicant Income': 'Income',
+  'Debt-to-Income Ratio': 'DTIRatio',
+  'DTI Ratio': 'DTIRatio',
+  'Combined Loan-to-Value Ratio': 'CLTV',
+  'CLTV': 'CLTV',
+  'Property Value': 'PropertyValue',
+
+  // Purchaser
+  'Type of Purchaser': 'Purchaser',
+  'Purchaser Type': 'Purchaser',
+
+  // Rate Info
+  'Rate Spread': 'Rate_Spread',
+  'Rate Spread for Reporting Purposes': 'Rate_Spread',
+  'Interest Rate': 'InterestRate',
+  'Note Rate': 'InterestRate',
+  'Annual Percentage Rate': 'APR',
+  'APR': 'APR',
+  'HOEPA Status': 'HOEPA_Status',
+  'Lien Status': 'Lien_Status',
+
+  // Credit Score
+  'Credit Score of Applicant or Borrower': 'CreditScore',
+  'Applicant Credit Score': 'CreditScore',
+  'Credit Score': 'CreditScore',
+  'Credit Score of Co-Applicant or Co-Borrower': 'Coa_CreditScore',
+  'Co-Applicant Credit Score': 'Coa_CreditScore',
+  'Name and Version of Credit Scoring Model': 'CreditModel',
+  'Credit Scoring Model': 'CreditModel',
+  'Name and Version of Credit Scoring Model: Conditional Free Form Text Field for Code 8': 'CreditModelOther',
+  'Co-Applicant Credit Scoring Model': 'Coa_CreditModel',
+  'Co-Applicant Name and Version of Credit Scoring Model: Conditional Free Form Text Field': 'Coa_CreditModelOther',
+
+  // Denial Reasons
+  'Denial Reason 1': 'Denial1',
+  'Reason for Denial: 1': 'Denial1',
+  'Denial Reason 2': 'Denial2',
+  'Denial Reason 3': 'Denial3',
+  'Denial Reason 4': 'Denial4',
+  'Denial Reason: Free Form Text Field': 'DenialOther',
+
+  // Loan Costs
+  'Total Loan Costs': 'TotalLoanCosts',
+  'Total Points and Fees': 'TotalPtsAndFees',
+  'Origination Charges': 'OrigFees',
+  'Origination Fees': 'OrigFees',
+  'Discount Points': 'DiscountPts',
+  'Lender Credits': 'LenderCredts',
+
+  // Loan Terms
+  'Loan Term': 'Loan_Term',
+  'Loan Term (Months)': 'Loan_Term_Months',
+  'Prepayment Penalty Term': 'PPPTerm',
+  'Introductory Rate Period': 'IntroRatePeriod',
+  'Balloon Payment': 'BalloonPMT',
+  'Interest-Only Payments': 'IOPMT',
+  'Negative Amortization': 'NegAM',
+  'Non-Amortizing Features': 'NonAmortz',
+
+  // Property Features
+  'Manufactured Home Secured Property Type': 'MHSecPropType',
+  'Manufactured Home Land Property Interest': 'MHLandPropInt',
+  'Total Units': 'TotalUnits',
+  'Multifamily Affordable Units': 'MFAHU',
+
+  // Application Details
+  'Application Channel': 'APPMethod',
+  'Submission of Application': 'APPMethod',
+  'Initially Payable to Your Institution': 'PayableInst',
+  'Payable to Institution': 'PayableInst',
+  'NMLS ID': 'NMLSRID',
+  'Originator NMLSR ID': 'NMLSRID',
+  'Loan Originator NMLSR ID': 'NMLSRID',
+
+  // AUS
+  'Automated Underwriting System 1': 'AUSystem1',
+  'AUS 1': 'AUSystem1',
+  'AUS: 1': 'AUSystem1',
+  'Automated Underwriting System 2': 'AUSystem2',
+  'Automated Underwriting System 3': 'AUSystem3',
+  'Automated Underwriting System 4': 'AUSystem4',
+  'Automated Underwriting System 5': 'AUSystem5',
+  'Automated Underwriting System: Free Form Text Field': 'AUSystemOther',
+  'AUS Result 1': 'AUSResult1',
+  'Automated Underwriting System Result: 1': 'AUSResult1',
+  'AUS Result 2': 'AUSResult2',
+  'AUS Result 3': 'AUSResult3',
+  'AUS Result 4': 'AUSResult4',
+  'AUS Result 5': 'AUSResult5',
+  'AUS Result: Free Form Text Field': 'AUSResultOther',
+
+  // Special Loan Types
+  'Reverse Mortgage': 'REVMTG',
+  'Open-End Line of Credit': 'OpenLOC',
+  'Business or Commercial Purpose': 'BUSCML',
+
+  // Additional Fields from Supplemental File
+  'Borrower First Name': 'FirstName',
+  'Borrower Last Name': 'LastName',
+  'Co-Borrower First Name': 'Coa_FirstName',
+  'Co-Borrower Last Name': 'Coa_LastName',
+  'Loan Officer': 'Lender',
+  'Loan Processor': 'AA_Processor',
+  'Post Closer': 'LDP_PostCloser',
+  'Loan Program': 'LoanProgram',
+  'Rate Type': 'RateType',
+  'Product Type': 'ProductType',
+  'Variable Rate Term': 'Var_Term',
+};
+
+/**
+ * Convert Encompass field names to standard names
+ */
+const normalizeFieldName = (fieldName: string): string => {
+  // First check if there's a direct mapping
+  if (ENCOMPASS_FIELD_MAP[fieldName]) {
+    return ENCOMPASS_FIELD_MAP[fieldName];
+  }
+
+  // Try case-insensitive match
+  const fieldLower = fieldName.toLowerCase().trim();
+  for (const [encompassName, standardName] of Object.entries(ENCOMPASS_FIELD_MAP)) {
+    if (encompassName.toLowerCase() === fieldLower) {
+      return standardName;
+    }
+  }
+
+  // Return the original field name if no mapping found
+  return fieldName;
 };
 
 /**
@@ -264,66 +300,127 @@ const LASERPRO_FIELD_MAP: Record<number, string> = {
  */
 export const excelDateToString = (value: any): string => {
   if (!value) return '';
-  
+
+  // Already a date string
   if (typeof value === 'string' && (value.includes('/') || value.includes('-'))) {
     return value;
   }
-  
+
+  // YYYYMMDD format (like 20251006)
+  const strValue = String(value);
+  if (/^\d{8}$/.test(strValue)) {
+    const year = strValue.substring(0, 4);
+    const month = parseInt(strValue.substring(4, 6));
+    const day = parseInt(strValue.substring(6, 8));
+    return `${month}/${day}/${year.slice(-2)}`;
+  }
+
+  // Excel serial number
   const serial = Number(value);
   if (isNaN(serial) || serial < 1000 || serial > 100000) {
-    return String(value || '');
+    return String(value ?? '');
   }
-  
+
   const date = new Date((serial - 25569) * 86400 * 1000);
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const year = String(date.getFullYear()).slice(-2);
-  
+
   return `${month}/${day}/${year}`;
 };
 
 /**
- * Detect if a cell value contains delimited data
+ * Parse Encompass Excel file - IMPROVED to handle various formats
  */
-export const detectDelimiterInValue = (value: any): string | null => {
-  if (!value || typeof value !== 'string') return null;
-  
-  const str = String(value);
-  const delimiters = [
-    { char: '~', name: 'tilde' },
-    { char: '|', name: 'pipe' },
-    { char: '\t', name: 'tab' }
-  ];
-  
-  for (const { char } of delimiters) {
-    const regex = char === '|' ? /\|/g : new RegExp(char, 'g');
-    const matches = str.match(regex);
-    if (matches && matches.length >= 10) {
-      return char;
-    }
-  }
-  return null;
-};
+export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
+  console.log('=== PARSING ENCOMPASS FILE ===');
+  console.log('Total rows:', worksheet.length);
+  console.log('Row 0 (first 5 cells):', worksheet[0]?.slice(0, 5));
+  console.log('Row 1 (first 5 cells):', worksheet[1]?.slice(0, 5));
+  console.log('Row 2 (first 5 cells):', worksheet[2]?.slice(0, 5));
 
-/**
- * Split delimited data that's stuck in a single cell
- */
-export const splitDelimitedRow = (
-  row: Record<string, any>,
-  targetColumns: string[]
-): Record<string, any> => {
-  for (const [key, value] of Object.entries(row)) {
-    const delimiter = detectDelimiterInValue(value);
-    if (delimiter) {
-      const values = String(value).split(delimiter);
-      const newRow: Record<string, any> = {};
-      targetColumns.forEach((col, index) => {
-        newRow[col] = values[index] !== undefined ? values[index].trim() : '';
-      });
-      return newRow;
+  // Find the real header row by looking for HMDA-like column names
+  const headerIndicators = [
+    'LEI', 'ULI', 'Loan', 'Applicant', 'Property', 'Legal Entity',
+    'Universal Loan', 'Application Date', 'Action', 'Census'
+  ];
+
+  const metadataIndicators = [
+    'Financial Institution', 'Calendar Year', 'Calendar Quarter',
+    'Contact Person', 'Colony Bank', 'Phone Number', 'Email'
+  ];
+
+  let headerRowIndex = 0;
+
+  // Find the header row
+  for (let i = 0; i < Math.min(10, worksheet.length); i++) {
+    const row = worksheet[i];
+    if (!row) continue;
+
+    const rowString = row.map((c: any) => String(c ?? '')).join(' ');
+
+    // Check if this is a metadata row to skip
+    const isMetadata = metadataIndicators.some(ind => rowString.includes(ind));
+    if (isMetadata) {
+      console.log(`Row ${i} is metadata, skipping`);
+      continue;
+    }
+
+    // Check if this looks like a header row
+    const headerMatches = headerIndicators.filter(ind => rowString.includes(ind));
+    if (headerMatches.length >= 2) {
+      headerRowIndex = i;
+      console.log(`Found header row at index ${i}, matches:`, headerMatches);
+      break;
     }
   }
-  return row;
+
+  console.log('Using header row index:', headerRowIndex);
+
+  // Get headers from the identified row
+  const rawHeaders = worksheet[headerRowIndex] || [];
+  console.log('Raw headers (first 10):', rawHeaders.slice(0, 10));
+
+  // Normalize header names
+  const headers = rawHeaders.map((h: any) => normalizeFieldName(String(h ?? '').trim()));
+  console.log('Normalized headers (first 10):', headers.slice(0, 10));
+
+  // Get data rows (everything after the header)
+  const dataRows = worksheet.slice(headerRowIndex + 1);
+  console.log('Data rows count:', dataRows.length);
+
+  // Map data rows to objects
+  const results = dataRows.map((row, idx) => {
+    const obj: SbslRow = {};
+
+    headers.forEach((header: string, colIndex: number) => {
+      if (header && row[colIndex] !== undefined && row[colIndex] !== null) {
+        const value = row[colIndex];
+        // Preserve zeros! Use nullish coalescing
+        obj[header] = value;
+      }
+    });
+
+    // Also keep the original Encompass names for debugging
+    rawHeaders.forEach((rawHeader: any, colIndex: number) => {
+      if (rawHeader && row[colIndex] !== undefined && row[colIndex] !== null) {
+        const headerStr = String(rawHeader).trim();
+        if (headerStr && !obj[headerStr]) {
+          obj[headerStr] = row[colIndex];
+        }
+      }
+    });
+
+    if (idx === 0) {
+      console.log('First data row keys:', Object.keys(obj).slice(0, 15));
+      console.log('First data row values:', Object.values(obj).slice(0, 15));
+    }
+
+    return obj;
+  }).filter(row => Object.keys(row).length > 0);
+
+  console.log('Parsed rows:', results.length);
+  return results;
 };
 
 /**
@@ -332,18 +429,40 @@ export const splitDelimitedRow = (
 export const parseLaserProFile = (content: string): SbslRow[] => {
   const lines = content.split('\n');
   const results: SbslRow[] = [];
-  
+
+  // LaserPro field positions
+  const LASERPRO_FIELD_MAP: Record<number, string> = {
+    0: 'ApplNumb',
+    1: 'ApplDate',
+    2: 'LoanType',
+    3: 'Purpose',
+    4: 'Action',
+    5: 'ActionDate',
+    11: 'Preapproval',
+    14: 'BorrowerFullName',
+    15: 'LastName',
+    16: 'Address',
+    17: 'City',
+    18: 'State_abrv',
+    19: 'Zip',
+    20: 'County_5',
+    21: 'Tract_11',
+    22: 'LoanAmount',
+    23: 'Income',
+  };
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    
+
+    // Skip metadata row (first row that contains pipe and "Colony Bank")
     if (i === 0 && ((line.includes('|') && line.includes('Colony Bank')) || line.startsWith('1|'))) {
       console.log('Skipping LaserPro metadata row');
       continue;
     }
-    
+
     const values = line.split('~');
-    
+
     const row: SbslRow = {};
     Object.entries(LASERPRO_FIELD_MAP).forEach(([position, fieldName]) => {
       const index = parseInt(position);
@@ -351,262 +470,240 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
         row[fieldName] = values[index];
       }
     });
-    
+
+    // Store all values with Field_ prefix for any unmapped fields
     values.forEach((val, idx) => {
-      if (!Object.values(LASERPRO_FIELD_MAP).some((_, i) => parseInt(Object.keys(LASERPRO_FIELD_MAP)[i]) === idx)) {
+      if (!row[`Field_${idx}`]) {
         row[`Field_${idx}`] = val;
       }
     });
-    
+
     results.push(row);
   }
-  
+
   return results;
 };
 
 /**
- * Parse Encompass Excel file
- */
-export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
-  const metadataIndicators = [
-    'Financial Institution Name',
-    'Calendar Year',
-    'Calendar Quarter',
-    'Contact Person',
-    'Colony Bank'
-  ];
-  
-  let dataStartRow = 0;
-  for (let i = 0; i < Math.min(5, worksheet.length); i++) {
-    const row = worksheet[i];
-    const firstCell = String(row?.[0] || '');
-    if (metadataIndicators.some(ind => firstCell.includes(ind))) {
-      dataStartRow = i + 1;
-    }
-  }
-  
-  let headerRow = dataStartRow;
-  for (let i = dataStartRow; i < Math.min(dataStartRow + 3, worksheet.length); i++) {
-    const row = worksheet[i];
-    if (row && row.some((cell: any) => 
-      String(cell).includes('Loan') || 
-      String(cell).includes('Applicant') ||
-      String(cell).includes('Property')
-    )) {
-      headerRow = i;
-      break;
-    }
-  }
-  
-  const headers = worksheet[headerRow] || [];
-  const dataRows = worksheet.slice(headerRow + 1);
-  
-  return dataRows.map(row => {
-    const obj: SbslRow = {};
-    headers.forEach((header: string, index: number) => {
-      if (header && row[index] !== undefined) {
-        obj[String(header).trim()] = row[index];
-      }
-    });
-    return obj;
-  }).filter(row => Object.keys(row).length > 0);
-};
-
-/**
- * Field mapping helper - finds value from various possible field names
+ * Find field value from various possible field names - COMPREHENSIVE version
  */
 export const findFieldValue = (row: Record<string, any>, targetField: string): any => {
+  // Direct match first
   if (row[targetField] !== undefined) return row[targetField];
-  
+
+  // Comprehensive variations map
   const variations: Record<string, string[]> = {
-    'BranchName': ['BranchName', 'Branch Name', 'BRANCHNAME', 'Branch_Name'],
-    'Branch': ['Branch', 'BranchNumb', 'BRANCHNUMB', 'Branch_Number'],
-    'ApplNumb': ['ApplNumb', 'Loan_Number', 'LoanNumber', 'Application_Number', 'ULI'],
     'LEI': ['LEI', 'Legal Entity Identifier (LEI)', 'Legal Entity Identifier'],
     'ULI': ['ULI', 'Universal Loan Identifier (ULI)', 'Universal Loan Identifier'],
-    'LastName': ['LastName', 'Last Name', 'Borrower_Last_Name', 'LASTNAME', 'Last_Name', 'Applicant Last Name'],
-    'FirstName': ['FirstName', 'First Name', 'Borrower_First_Name', 'FIRSTNAME', 'First_Name', 'Applicant First Name'],
-    'Coa_LastName': ['Coa_LastName', 'CLASTNAME', 'Co_Borrower_Last_Name', 'Co-Applicant Last Name'],
-    'Coa_FirstName': ['Coa_FirstName', 'CFIRSTNAME', 'Co_Borrower_First_Name', 'Co-Applicant First Name'],
-    'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan_Amount', 'LOANAMOUNTINDOLLARS'],
-    'Address': ['Address', 'Property_Street', 'PropertyStreet', 'ADDRESS', 'Property_Address', 'Street Address'],
-    'City': ['City', 'Property_City', 'PropertyCity', 'CITY'],
-    'State_abrv': ['State_abrv', 'State', 'Property_State', 'STATE_ABRV', 'State_Abrv'],
-    'Zip': ['Zip', 'Property_Zip', 'PropertyZip', 'ZipCode', 'ZIP', 'Zip_Code', 'ZIP Code'],
-    'County_5': ['County_5', 'County', 'County_Code', 'COUNTY_5', 'County Code'],
-    'Tract_11': ['Tract_11', 'Census_Tract', 'Tract', 'TRACT_11', 'Census Tract'],
-    'InterestRate': ['InterestRate', 'Interest_Rate', 'Interest Rate', 'INTERESTRATE'],
-    'Income': ['Income', 'Income_Thousands', 'INCOME', 'Gross Annual Income'],
-    'CreditScore': ['CreditScore', 'Credit_Score', 'CREDITSCORE', 'Credit Score'],
-    'Coa_CreditScore': ['Coa_CreditScore', 'COA_CREDITSCORE', 'Co_Credit_Score'],
-    'ApplDate': ['ApplDate', 'Application_Date', 'ApplicationDate', 'APPLDATE', 'Application Date'],
-    'ActionDate': ['ActionDate', 'Action_Date', 'ACTIONDATE', 'Action Date'],
-    'Action': ['Action', 'Action_Taken', 'ActionTaken', 'ACTION', 'Action Taken'],
-    'LoanType': ['LoanType', 'Loan_Type', 'LOANTYPE', 'Loan Type'],
-    'Purpose': ['Purpose', 'Loan_Purpose', 'PURPOSE', 'Loan Purpose'],
-    'Lender': ['Lender', 'Loan_Officer', 'LENDER', 'Originator'],
-    'AA_Processor': ['AA_Processor', 'AA_LOANPROCESSOR', 'Processor'],
-    'LDP_PostCloser': ['LDP_PostCloser', 'LDP_POSTCLOSER', 'Post_Closer'],
-    'APR': ['APR', 'Annual_Percentage_Rate', 'Annual Percentage Rate'],
-    'Rate_Lock_Date': ['Rate_Lock_Date', 'RateLockDate', 'Rate Lock Date', 'RATE_LOCK_DATE'],
-    'Ethnicity_1': ['Ethnicity_1', 'ETHNICITY_1', 'Applicant_Ethnicity', 'Applicant Ethnicity'],
-    'Race_1': ['Race_1', 'RACE_1', 'Applicant_Race_1', 'Applicant Race'],
-    'Sex': ['Sex', 'SEX', 'Applicant_Sex', 'Applicant Sex'],
-    'Age': ['Age', 'AGE', 'Applicant Age'],
-    'Coa_Age': ['Coa_Age', 'COA_AGE', 'Co-Applicant Age'],
-    'DTIRatio': ['DTIRatio', 'DTIRATIO', 'Debt_to_Income', 'DTI Ratio'],
-    'CLTV': ['CLTV', 'Combined LTV', 'Combined_LTV'],
-    'PropertyValue': ['PropertyValue', 'PROPERTYVALUE', 'Property Value', 'Property_Value'],
-    'Lien_Status': ['Lien_Status', 'LIEN_STATUS', 'Lien Status'],
-    'HOEPA_Status': ['HOEPA_Status', 'HOEPA_STATUS', 'HOEPA Status'],
-    'Rate_Spread': ['Rate_Spread', 'RATE_SPREAD', 'Rate Spread'],
-    'Purchaser': ['Purchaser', 'PURCHASER', 'Type of Purchaser'],
-    'Loan_Term': ['Loan_Term', 'LOAN_TERM', 'Loan Term'],
-    'TotalUnits': ['TotalUnits', 'TOTALUNITS', 'Total Units'],
-    'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLS ID'],
+    'ApplNumb': ['ApplNumb', 'Loan Number', 'Loan ID', 'Application Number', 'LoanNumber'],
+    'LastName': ['LastName', 'Last Name', 'Borrower Last Name', 'Applicant Last Name', 'LASTNAME'],
+    'FirstName': ['FirstName', 'First Name', 'Borrower First Name', 'Applicant First Name', 'FIRSTNAME'],
+    'Coa_LastName': ['Coa_LastName', 'Co-Borrower Last Name', 'Co-Applicant Last Name', 'CLASTNAME'],
+    'Coa_FirstName': ['Coa_FirstName', 'Co-Borrower First Name', 'Co-Applicant First Name', 'CFIRSTNAME'],
+    'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS'],
+    'Address': ['Address', 'Street Address', 'Property Address', 'Property Street', 'ADDRESS'],
+    'City': ['City', 'Property City', 'CITY'],
+    'State_abrv': ['State_abrv', 'State', 'Property State', 'STATE_ABRV', 'STATE'],
+    'Zip': ['Zip', 'ZIP Code', 'Property ZIP Code', 'ZipCode', 'ZIP'],
+    'County_5': ['County_5', 'County', 'County Code', 'COUNTY_5'],
+    'Tract_11': ['Tract_11', 'Census Tract', 'Tract', 'TRACT_11'],
+    'ApplDate': ['ApplDate', 'Application Date', 'ApplicationDate', 'APPLDATE'],
+    'ActionDate': ['ActionDate', 'Action Taken Date', 'Action Date', 'ACTIONDATE'],
+    'Action': ['Action', 'Action Taken', 'ACTION'],
+    'LoanType': ['LoanType', 'Loan Type', 'LOANTYPE'],
+    'Purpose': ['Purpose', 'Loan Purpose', 'PURPOSE'],
+    'Purchaser': ['Purchaser', 'Type of Purchaser', 'Purchaser Type', 'PURCHASER'],
+    'Income': ['Income', 'Gross Annual Income', 'Applicant Income', 'INCOME'],
+    'CreditScore': ['CreditScore', 'Credit Score', 'Applicant Credit Score', 'Credit Score of Applicant or Borrower', 'CREDITSCORE'],
+    'Coa_CreditScore': ['Coa_CreditScore', 'Co-Applicant Credit Score', 'Credit Score of Co-Applicant or Co-Borrower', 'COA_CREDITSCORE'],
+    'Age': ['Age', 'Applicant Age', 'Age of Applicant or Borrower', 'AGE'],
+    'Coa_Age': ['Coa_Age', 'Co-Applicant Age', 'Age of Co-Applicant or Co-Borrower', 'COA_AGE'],
+    'Sex': ['Sex', 'Applicant Sex', 'Sex of Applicant or Borrower', 'SEX'],
+    'CoaSex': ['CoaSex', 'Co-Applicant Sex', 'Sex of Co-Applicant or Co-Borrower', 'COASEX'],
+    'Ethnicity_1': ['Ethnicity_1', 'Applicant Ethnicity 1', 'Ethnicity of Applicant or Borrower: 1', 'ETHNICITY_1'],
+    'Race_1': ['Race_1', 'Applicant Race 1', 'Race of Applicant or Borrower: 1', 'RACE_1'],
+    'InterestRate': ['InterestRate', 'Interest Rate', 'Note Rate', 'INTERESTRATE'],
+    'APR': ['APR', 'Annual Percentage Rate'],
+    'Rate_Lock_Date': ['Rate_Lock_Date', 'Rate Lock Date', 'Lock Date', 'RATE_LOCK_DATE'],
+    'DTIRatio': ['DTIRatio', 'Debt-to-Income Ratio', 'DTI Ratio', 'DTIRATIO'],
+    'CLTV': ['CLTV', 'Combined Loan-to-Value Ratio', 'Combined LTV'],
+    'PropertyValue': ['PropertyValue', 'Property Value', 'PROPERTYVALUE'],
+    'Lender': ['Lender', 'Loan Officer', 'Originator', 'LENDER'],
+    'AA_Processor': ['AA_Processor', 'Loan Processor', 'Processor', 'AA_LOANPROCESSOR'],
+    'LDP_PostCloser': ['LDP_PostCloser', 'Post Closer', 'LDP_POSTCLOSER'],
+    'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLSR ID', 'Loan Originator NMLSR ID'],
+    'Lien_Status': ['Lien_Status', 'Lien Status', 'LIEN_STATUS'],
+    'HOEPA_Status': ['HOEPA_Status', 'HOEPA Status', 'HOEPA_STATUS'],
+    'Rate_Spread': ['Rate_Spread', 'Rate Spread', 'Rate Spread for Reporting Purposes', 'RATE_SPREAD'],
+    'BranchName': ['BranchName', 'Branch Name', 'BRANCHNAME'],
+    'Branch': ['Branch', 'BranchNumb', 'Branch Number', 'BRANCHNUMB'],
+    'LoanProgram': ['LoanProgram', 'Loan Program', 'LOANPROGRAM'],
+    'RateType': ['RateType', 'Rate Type', 'RATETYPE'],
+    'TotalUnits': ['TotalUnits', 'Total Units', 'TOTALUNITS'],
+    'ConstructionMethod': ['ConstructionMethod', 'Construction Method', 'CONSTRUCTIONMETHOD'],
+    'OccupancyType': ['OccupancyType', 'Occupancy Type', 'Occupancy', 'OCCUPANCYTYPE'],
+    'Preapproval': ['Preapproval', 'Pre-approval', 'PREAPPROVAL'],
   };
-  
+
   const possibleNames = variations[targetField] || [targetField];
+
   for (const name of possibleNames) {
     if (row[name] !== undefined) return row[name];
-    if (row[name.toUpperCase()] !== undefined) return row[name.toUpperCase()];
-    if (row[name.toLowerCase()] !== undefined) return row[name.toLowerCase()];
+    // Try case-insensitive
+    const lowerName = name.toLowerCase();
+    const matchingKey = Object.keys(row).find(k => k.toLowerCase() === lowerName);
+    if (matchingKey && row[matchingKey] !== undefined) return row[matchingKey];
   }
-  
-  return '';
-};
 
-/**
- * Merge supplemental data with primary data (VLOOKUP)
- */
-export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: SbslRow[]): SbslRow[] => {
-  if (!supplementalData || supplementalData.length === 0) {
-    return primaryData;
-  }
-  
-  const suppMap = new Map<string, SbslRow>();
-  supplementalData.forEach(row => {
-    const key = String(row.Loan_Number || row.ApplNumb || row.LoanNumber || '').trim();
-    if (key) {
-      suppMap.set(key, row);
-    }
-  });
-  
-  return primaryData.map(row => {
-    const key = String(row.ApplNumb || row.Loan_Number || row.LoanNumber || '').trim();
-    const supp = suppMap.get(key);
-    
-    if (supp) {
-      return {
-        ...row,
-        Lender: supp.Lender || row.Lender,
-        LDP_PostCloser: supp['Post Closer'] || supp.LDP_PostCloser || row.LDP_PostCloser,
-        APR: supp.APR || row.APR,
-        Rate_Lock_Date: supp['Rate Lock Date'] || supp.Rate_Lock_Date || row.Rate_Lock_Date,
-        LoanProgram: supp['Loan Program'] || supp.LoanProgram || row.LoanProgram,
-        RateType: supp['Rate Type'] || supp.RateType || row.RateType,
-      };
-    }
-    
-    return row;
-  });
+  return null;
 };
 
 /**
  * Transform data to CRA Wiz 128-column format
  */
 export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
-  return data.map(row => {
-    const processedRow = splitDelimitedRow(row, CRA_WIZ_128_COLUMNS);
-    
+  console.log('=== TRANSFORMING TO CRA WIZ FORMAT ===');
+  console.log('Input rows:', data.length);
+
+  return data.map((row, idx) => {
     const output: SbslRow = {};
+
     CRA_WIZ_128_COLUMNS.forEach(col => {
-      output[col] = findFieldValue(processedRow, col) || '';
+      const value = findFieldValue(row, col);
+      // IMPORTANT: Use nullish coalescing to preserve zeros
+      output[col] = value ?? '';
     });
-    
-    const branchNum = String(output['Branch'] || processedRow['Branch'] || processedRow['BranchNumb'] || '').trim();
+
+    // Branch name lookup
+    const branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
     if (!output['BranchName'] || String(output['BranchName']).trim() === '') {
       output['BranchName'] = BRANCH_LIST[branchNum] || '';
     }
-    
+
+    // Add required blank fields
     if (!output['Error_Made_By']) output['Error_Made_By'] = '';
     if (!output['DSC']) output['DSC'] = '';
-    
+
+    // Default co-applicant values if empty
     if (!output['Coa_Age'] || String(output['Coa_Age']) === '') output['Coa_Age'] = '9999';
     if (!output['Coa_CreditScore'] || String(output['Coa_CreditScore']) === '') output['Coa_CreditScore'] = '9999';
-    
+
+    // Convert dates
+    ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {
+      if (output[field]) {
+        output[field] = excelDateToString(output[field]);
+      }
+    });
+
+    if (idx === 0) {
+      console.log('First transformed row (first 10 keys):', Object.keys(output).slice(0, 10));
+      console.log('First transformed row (first 10 values):', Object.values(output).slice(0, 10));
+    }
+
     return output;
   });
 };
 
 /**
- * Validate HMDA data with errors AND warnings
+ * Merge supplemental data (Additional Fields file)
+ */
+export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: SbslRow[]): SbslRow[] => {
+  if (!supplementalData || supplementalData.length === 0) {
+    console.log('No supplemental data to merge');
+    return primaryData;
+  }
+
+  console.log('Merging supplemental data:', supplementalData.length, 'rows');
+
+  // Create lookup maps for supplemental data
+  // Try multiple keys: ULI, Loan Number, Address+City
+  const suppByULI = new Map<string, SbslRow>();
+  const suppByLoanNum = new Map<string, SbslRow>();
+  const suppByAddress = new Map<string, SbslRow>();
+
+  supplementalData.forEach(row => {
+    const uli = String(findFieldValue(row, 'ULI') || '').trim();
+    const loanNum = String(findFieldValue(row, 'ApplNumb') || row['Loan Number'] || '').trim();
+    const address = String(findFieldValue(row, 'Address') || row['Property Address'] || '').toLowerCase().trim();
+    const city = String(findFieldValue(row, 'City') || row['Property City'] || '').toLowerCase().trim();
+
+    if (uli) suppByULI.set(uli, row);
+    if (loanNum) suppByLoanNum.set(loanNum, row);
+    if (address && city) suppByAddress.set(`${address}|${city}`, row);
+  });
+
+  return primaryData.map(row => {
+    const uli = String(findFieldValue(row, 'ULI') || '').trim();
+    const loanNum = String(findFieldValue(row, 'ApplNumb') || '').trim();
+    const address = String(findFieldValue(row, 'Address') || '').toLowerCase().trim();
+    const city = String(findFieldValue(row, 'City') || '').toLowerCase().trim();
+
+    // Try to find matching supplemental data
+    const supp = suppByULI.get(uli) || suppByLoanNum.get(loanNum) || suppByAddress.get(`${address}|${city}`);
+
+    if (supp) {
+      return {
+        ...row,
+        FirstName: findFieldValue(supp, 'FirstName') || row.FirstName,
+        LastName: findFieldValue(supp, 'LastName') || row.LastName,
+        Coa_FirstName: findFieldValue(supp, 'Coa_FirstName') || row.Coa_FirstName,
+        Coa_LastName: findFieldValue(supp, 'Coa_LastName') || row.Coa_LastName,
+        Lender: findFieldValue(supp, 'Lender') || row.Lender,
+        AA_Processor: findFieldValue(supp, 'AA_Processor') || row.AA_Processor,
+        LDP_PostCloser: findFieldValue(supp, 'LDP_PostCloser') || row.LDP_PostCloser,
+        APR: findFieldValue(supp, 'APR') || row.APR,
+        Rate_Lock_Date: findFieldValue(supp, 'Rate_Lock_Date') || row.Rate_Lock_Date,
+        LoanProgram: findFieldValue(supp, 'LoanProgram') || row.LoanProgram,
+        RateType: findFieldValue(supp, 'RateType') || row.RateType,
+      };
+    }
+
+    return row;
+  });
+};
+
+/**
+ * Validate HMDA data
  */
 export const validateData = (data: SbslRow[]): ValidationResult[] => {
   return data.map(row => {
-    const applNumb = String(row.ApplNumb || row.Loan_Number || '-');
+    const applNumb = String(row.ApplNumb || row.ULI || '-');
     const errors: string[] = [];
     const warnings: string[] = [];
     const autoCorrected: Record<string, { from: any; to: any }> = {};
-    
-    const tract = row.Tract_11 || row.Census_Tract || row.TRACT_11;
-    if (tract && !/^\d{2,4}\.\d{2}$/.test(String(tract))) {
-      const corrected = formatCensusTract(tract);
-      if (corrected) {
-        autoCorrected['Census_Tract'] = { from: tract, to: corrected };
-      } else {
-        errors.push(`Census Tract format invalid: ${tract} (expected ##.## or ####.##)`);
+
+    // Census Tract validation - accept both formats
+    const tract = findFieldValue(row, 'Tract_11');
+    if (tract) {
+      const tractStr = String(tract).trim();
+      // Accept: 11 digits (FIPS), decimal format (####.##), NA, Exempt
+      const isValidFIPS = /^\d{11}$/.test(tractStr);
+      const isValidDecimal = /^\d{2,6}\.\d{2}$/.test(tractStr);
+      const isValidSpecial = ['NA', 'Exempt', ''].includes(tractStr);
+
+      if (!isValidFIPS && !isValidDecimal && !isValidSpecial) {
+        warnings.push(`Census Tract format unusual: ${tract}`);
       }
     }
-    
-    const rate = parseFloat(String(row.InterestRate || row.Interest_Rate || row.INTERESTRATE || 0));
-    if (!isNaN(rate) && rate > 0) {
-      if (rate < 0 || rate > 20) {
-        errors.push(`Interest Rate out of bounds: ${rate}% (must be 0-20%)`);
-      }
+
+    // Interest Rate validation
+    const rate = parseFloat(String(findFieldValue(row, 'InterestRate') || 0));
+    if (!isNaN(rate) && rate > 0 && (rate < 0 || rate > 20)) {
+      errors.push(`Interest Rate out of bounds: ${rate}% (must be 0-20%)`);
     }
-    
-    const income = parseInt(String(row.Income || row.INCOME || 0));
-    if (!isNaN(income) && income > 0) {
-      if (income < 1 || income > 9999) {
-        warnings.push(`Income value unusual: ${income} (expected 1-9999 thousands)`);
-      }
+
+    // Action code validation
+    const action = parseInt(String(findFieldValue(row, 'Action') || 0));
+    if (!isNaN(action) && action > 0 && ![1, 2, 3, 4, 5, 6, 7, 8].includes(action)) {
+      errors.push(`Invalid Action Taken Code: ${action} (must be 1-8)`);
     }
-    
-    const action = parseInt(String(row.Action || row.ACTION || row.Action_Taken || 0));
-    if (!isNaN(action) && action > 0) {
-      if (![1, 2, 3, 4, 5, 6, 7, 8].includes(action)) {
-        errors.push(`Invalid Action Taken Code: ${action} (must be 1-8)`);
-      }
-    }
-    
-    const state = row.State_abrv || row.State || row.STATE_ABRV || row.Property_State;
-    if (state && String(state).length !== 2) {
-      const corrected = String(state).trim().toUpperCase().substring(0, 2);
-      autoCorrected['State'] = { from: state, to: corrected };
-    }
-    
-    const county = row.County_5 || row.County || row.COUNTY_5;
-    if (county) {
-      const padded = String(county).padStart(5, '0');
-      if (padded !== String(county)) {
-        autoCorrected['County'] = { from: county, to: padded };
-      }
-    }
-    
-    const loanAmt = parseFloat(String(row.LoanAmount || row.Loan_Amount || row.LOANAMOUNTINDOLLARS || 0));
+
+    // Loan amount check
+    const loanAmt = parseFloat(String(findFieldValue(row, 'LoanAmount') || 0));
     if (loanAmt <= 0) {
       warnings.push('Loan Amount is zero or missing');
     }
-    
-    const dateFields = ['ApplDate', 'ActionDate', 'Rate_Lock_Date'];
-    dateFields.forEach(field => {
-      const value = row[field];
-      if (value && typeof value === 'number' && value > 40000 && value < 50000) {
-        autoCorrected[field] = { from: value, to: excelDateToString(value) };
-      }
-    });
-    
+
     return {
       applNumb,
       isValid: errors.length === 0,
@@ -618,89 +715,63 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
 };
 
 /**
- * Format census tract to ##.## or ####.## format
- */
-const formatCensusTract = (value: any): string | null => {
-  const str = String(value).replace(/[^\d.]/g, '');
-  
-  if (/^\d{2,4}\.\d{2}$/.test(str)) return str;
-  
-  const match = str.match(/^(\d{2,4})\.?(\d{2})$/);
-  if (match) {
-    return `${match[1]}.${match[2]}`;
-  }
-  
-  return null;
-};
-
-/**
  * Auto-correct common validation issues
  */
 export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
   return data.map(row => {
     const corrected = { ...row };
-    
-    const tract = row.Tract_11 || row.Census_Tract;
-    if (tract) {
-      const formatted = formatCensusTract(tract);
-      if (formatted) {
-        corrected.Tract_11 = formatted;
-        corrected.Census_Tract = formatted;
-      }
-    }
-    
-    const state = row.State_abrv || row.State || row.Property_State;
+
+    // State abbreviation
+    const state = findFieldValue(row, 'State_abrv');
     if (state && String(state).length !== 2) {
-      const abbr = String(state).trim().toUpperCase().substring(0, 2);
-      corrected.State_abrv = abbr;
-      corrected.State = abbr;
+      corrected.State_abrv = String(state).trim().toUpperCase().substring(0, 2);
     }
-    
-    const county = row.County_5 || row.County;
+
+    // County padding
+    const county = findFieldValue(row, 'County_5');
     if (county) {
       corrected.County_5 = String(county).padStart(5, '0');
     }
-    
+
+    // Date formatting
     ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {
-      if (row[field] && typeof row[field] === 'number') {
-        corrected[field] = excelDateToString(row[field]);
+      const value = corrected[field];
+      if (value) {
+        corrected[field] = excelDateToString(value);
       }
     });
-    
-    const rate = row.InterestRate || row.Interest_Rate;
-    if (rate) {
-      const numRate = parseFloat(String(rate).replace('%', ''));
-      if (!isNaN(numRate)) {
-        corrected.InterestRate = numRate.toFixed(3);
-      }
-    }
-    
+
     return corrected;
   });
 };
 
 /**
- * Export CRA Wiz 128-column format (Phase 1)
+ * Export CRA Wiz 128-column format
  */
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
+  console.log('=== EXPORT CRA WIZ FORMAT ===');
   console.log('exportCRAWizFormat called with', data.length, 'rows');
-  
+
   const transformedData = transformToCRAWizFormat(data);
-  console.log('Transformed data - First row keys:', transformedData.length > 0 ? Object.keys(transformedData[0]).slice(0, 5) : 'no data');
-  console.log('Using CRA_WIZ_128_COLUMNS header (first 5):', CRA_WIZ_128_COLUMNS.slice(0, 5));
-  
+  console.log('Transformed data count:', transformedData.length);
+
+  if (transformedData.length > 0) {
+    console.log('First row keys:', Object.keys(transformedData[0]).slice(0, 5));
+    console.log('First row values:', Object.values(transformedData[0]).slice(0, 5));
+  }
+
   const ws = utils.json_to_sheet(transformedData, {
     header: CRA_WIZ_128_COLUMNS
   });
-  
+
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'CRA Data');
-  
+
   const now = new Date();
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December'];
   const defaultFilename = `CRA_Wiz_Upload_${monthNames[now.getMonth()]}_${now.getFullYear()}.xlsx`;
-  
+
   console.log('Exporting file:', filename || defaultFilename);
   writeFile(wb, filename || defaultFilename);
 };
@@ -712,7 +783,9 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     const fileName = file.name.toLowerCase();
-    
+
+    console.log('Processing file:', file.name);
+
     reader.onload = (e) => {
       try {
         if (fileName.endsWith('.txt')) {
@@ -723,26 +796,37 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
           const workbook = read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          
+
+          // Get as 2D array for better control
           const rows = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-          
+          console.log('Sheet has', rows.length, 'rows');
+
+          // Check if this looks like an Encompass file
           const firstCell = String(rows[0]?.[0] || '');
-          if (firstCell.includes('Financial Institution') || 
-              firstCell.includes('Calendar') || 
-              firstCell.includes('Colony Bank')) {
+          const secondCell = String(rows[0]?.[1] || '');
+
+          if (firstCell.includes('Financial Institution') ||
+              firstCell.includes('Calendar') ||
+              firstCell.includes('Colony Bank') ||
+              secondCell.includes('LEI') ||
+              rows.some(row => String(row[0]).includes('Legal Entity'))) {
+            console.log('Detected Encompass format');
             resolve(parseEncompassFile(rows));
           } else {
+            // Standard Excel file
+            console.log('Detected standard Excel format');
             const jsonData = utils.sheet_to_json(worksheet) as SbslRow[];
             resolve(jsonData);
           }
         }
       } catch (error) {
+        console.error('File processing error:', error);
         reject(error);
       }
     };
-    
+
     reader.onerror = () => reject(new Error('Failed to read file'));
-    
+
     if (fileName.endsWith('.txt')) {
       reader.readAsText(file);
     } else {
@@ -751,35 +835,17 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
   });
 };
 
-/**
- * Fetch and parse CSV file from URL
- */
-export const fetchCsvFile = async (url: string): Promise<SbslRow[]> => {
-  try {
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    const data = new Uint8Array(arrayBuffer);
-    const workbook = read(data, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    return utils.sheet_to_json(worksheet) as SbslRow[];
-  } catch (error) {
-    console.error('Failed to fetch CSV:', error);
-    return [];
-  }
-};
-
-// Legacy functions for compatibility
+// Legacy compatibility exports
 export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], count: number } => {
   return { filtered: data, count: data.length };
 };
 
 export const generateSummaryStats = (data: SbslRow[]) => {
   const totalLoanAmount = data.reduce((sum, row) => {
-    const amount = parseFloat(String(row.LoanAmount || row.Loan_Amount || row['Loan Amount'] || 0));
+    const amount = parseFloat(String(findFieldValue(row, 'LoanAmount') || 0));
     return sum + (isNaN(amount) ? 0 : amount);
   }, 0);
-  
+
   return {
     totalRecords: data.length,
     totalLoanAmount,
