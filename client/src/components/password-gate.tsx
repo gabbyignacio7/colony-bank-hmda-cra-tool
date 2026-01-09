@@ -19,28 +19,23 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
     e.preventDefault();
 
     setIsValidating(true);
-    try {
-      const response = await fetch('/api/auth/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        onUnlock();
-        toast({ title: "Access Granted", description: "Welcome to Colony Bank ETL Tool" });
-      } else {
-        setError(true);
-        toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
-      }
-    } catch (err) {
+
+    // Simulate brief validation delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Client-side password validation for static deployment
+    // The password is "colony2024" - this is a simple access gate, not security-critical
+    const validPassword = "colony2024";
+
+    if (password === validPassword) {
+      onUnlock();
+      toast({ title: "Access Granted", description: "Welcome to Colony Bank ETL Tool" });
+    } else {
       setError(true);
-      toast({ title: "Authentication Error", description: "Unable to validate credentials.", variant: "destructive" });
-    } finally {
-      setIsValidating(false);
+      toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
     }
+
+    setIsValidating(false);
   };
 
   return (
