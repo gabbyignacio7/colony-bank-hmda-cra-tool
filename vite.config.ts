@@ -2,9 +2,17 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Conditionally import Replit plugins only when running on Replit
 const isReplit = process.env.REPL_ID !== undefined;
+
+// Get the base path from environment variable, allowing override
+const basePath = process.env.GITHUB_PAGES_BASE || (process.env.GITHUB_PAGES ? "/colony-bank-hmda-tool/" : "/");
 
 export default defineConfig({
   plugins: [
@@ -19,9 +27,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
   css: {
@@ -29,11 +37,11 @@ export default defineConfig({
       plugins: [],
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: path.resolve(__dirname, "client"),
   // GitHub Pages deployment - use repo name as base path
-  base: process.env.GITHUB_PAGES ? "/colony-bank-hmda-tool/" : "/",
+  base: basePath,
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
