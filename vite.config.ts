@@ -31,7 +31,7 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   // GitHub Pages deployment - use repo name as base path
-  base: process.env.GITHUB_PAGES ? "/colony-bank-hmda-cra-tool/" : "/",
+  base: process.env.GITHUB_PAGES ? "/colony-bank-hmda-tool/" : "/",
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
