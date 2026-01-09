@@ -6,6 +6,7 @@ export interface SbslRow {
 }
 
 export interface ValidationResult {
+  rowIdx: number;
   applNumb: string;
   isValid: boolean;
   errors: string[];
@@ -733,30 +734,32 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
  * Validate HMDA data
  */
 export const validateData = (data: SbslRow[]): ValidationResult[] => {
-  return data.map(row => {
+  return data.map((row, idx) => {
     const applNumb = String(row.ApplNumb || row.ULI || '-');
     const errors: string[] = [];
     const warnings: string[] = [];
     const autoCorrected: Record<string, { from: any; to: any }> = {};
 
-    // Census Tract validation - accept both formats
+    // Census Tract validation - accept ALL valid formats
+    // Valid: 11-digit FIPS (13081010202), decimal (1234.56), NA, Exempt, empty
     const tract = findFieldValue(row, 'Tract_11');
     if (tract) {
       const tractStr = String(tract).trim();
-      // Accept: 11 digits (FIPS), decimal format (####.##), NA, Exempt
+      // Accept: 11 digits (FIPS like 13081010202), decimal format, NA, Exempt
       const isValidFIPS = /^\d{11}$/.test(tractStr);
-      const isValidDecimal = /^\d{2,6}\.\d{2}$/.test(tractStr);
+      const isValidDecimal = /^\d{1,6}\.?\d{0,2}$/.test(tractStr);
       const isValidSpecial = ['NA', 'Exempt', ''].includes(tractStr);
 
       if (!isValidFIPS && !isValidDecimal && !isValidSpecial) {
+        // Only warn, don't error - many formats are valid
         warnings.push(`Census Tract format unusual: ${tract}`);
       }
     }
 
     // Interest Rate validation
     const rate = parseFloat(String(findFieldValue(row, 'InterestRate') || 0));
-    if (!isNaN(rate) && rate > 0 && (rate < 0 || rate > 20)) {
-      errors.push(`Interest Rate out of bounds: ${rate}% (must be 0-20%)`);
+    if (!isNaN(rate) && rate > 0 && (rate < 0 || rate > 25)) {
+      errors.push(`Interest Rate out of bounds: ${rate}% (must be 0-25%)`);
     }
 
     // Action code validation
@@ -765,13 +768,14 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
       errors.push(`Invalid Action Taken Code: ${action} (must be 1-8)`);
     }
 
-    // Loan amount check
+    // Loan amount check - only warn if zero/missing
     const loanAmt = parseFloat(String(findFieldValue(row, 'LoanAmount') || 0));
     if (loanAmt <= 0) {
       warnings.push('Loan Amount is zero or missing');
     }
 
     return {
+      rowIdx: idx + 1, // 1-indexed for user display
       applNumb,
       isValid: errors.length === 0,
       errors,
