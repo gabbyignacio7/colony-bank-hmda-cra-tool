@@ -72,7 +72,8 @@ import {
 import { TutorialVideo } from '@/components/tutorial-video';
 
 export default function Dashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Password gate temporarily disabled for testing - set to true to bypass
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('upload');
   const [logs, setLogs] = useState<string[]>([]);
