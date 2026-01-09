@@ -96,6 +96,7 @@ export default function Dashboard() {
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   
   const [rawData, setRawData] = useState<SbslRow[]>([]);
+  const [suppData, setSuppData] = useState<SbslRow[]>([]); // Supplemental data for merge
   const [processedData, setProcessedData] = useState<SbslRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationResult[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -130,16 +131,21 @@ export default function Dashboard() {
 
   const handleFileUpload = async (type: 'laserPro' | 'encompass' | 'supp' | 'expected', file: File) => {
     setFiles(prev => ({ ...prev, [type]: file }));
-    
+
     try {
       const data = await processFile(file);
-      
+
       if (type === 'encompass' || type === 'laserPro') {
         // Primary data sources
         setRawData(data as SbslRow[]);
         addLog(`Loaded ${type.toUpperCase()} file: ${file.name} (${data.length} rows)`);
         toast({ title: "File Loaded", description: `Successfully loaded ${data.length} records from ${file.name}` });
         setCurrentScenario("Custom Upload");
+      } else if (type === 'supp') {
+        // Supplemental data for merge
+        setSuppData(data as SbslRow[]);
+        addLog(`Loaded SUPPLEMENTAL file: ${file.name} (${data.length} rows)`);
+        toast({ title: "Supplemental File Loaded", description: `${data.length} records ready for merge` });
       } else {
         addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
         toast({ title: "File Loaded", description: `${file.name} ready for processing` });
@@ -198,10 +204,14 @@ export default function Dashboard() {
     
     await new Promise(r => setTimeout(r, 500));
 
-    // Step 3: VLOOKUP Merge
+    // Step 3: VLOOKUP Merge with actual supplemental data
     addLog("Phase 2 (Step 2): Merging Supplemental Data...");
-    // Simulate merge with self for demo if no supp file
-    transformed = mergeSupplementalData(transformed, transformed);
+    if (suppData.length > 0) {
+      transformed = mergeSupplementalData(transformed, suppData);
+      addLog(`   - Merging with ${suppData.length} supplemental records`);
+    } else {
+      addLog("   - No supplemental file uploaded, skipping merge");
+    }
     addLog("   - Merged Customer Names");
     addLog("   - Merged Borrower Data");
     addLog("   - Merged APR and Rate Types");
