@@ -613,7 +613,13 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
     return primaryData;
   }
 
-  console.log('Merging supplemental data:', supplementalData.length, 'rows');
+  console.log('=== MERGING SUPPLEMENTAL DATA ===');
+  console.log('Primary data rows:', primaryData.length);
+  console.log('Supplemental data rows:', supplementalData.length);
+
+  if (supplementalData.length > 0) {
+    console.log('Supplemental first row keys:', Object.keys(supplementalData[0]).slice(0, 15));
+  }
 
   // Create lookup maps for supplemental data
   // Try multiple keys: ULI, Loan Number, Address+City
@@ -621,45 +627,106 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
   const suppByLoanNum = new Map<string, SbslRow>();
   const suppByAddress = new Map<string, SbslRow>();
 
-  supplementalData.forEach(row => {
-    const uli = String(findFieldValue(row, 'ULI') || '').trim();
-    const loanNum = String(findFieldValue(row, 'ApplNumb') || row['Loan Number'] || '').trim();
-    const address = String(findFieldValue(row, 'Address') || row['Property Address'] || '').toLowerCase().trim();
-    const city = String(findFieldValue(row, 'City') || row['Property City'] || '').toLowerCase().trim();
+  supplementalData.forEach((row, idx) => {
+    // Try all possible ULI field names
+    const uli = String(
+      row['ULI'] || row['Universal Loan Identifier'] || row['Universal Loan Identifier (ULI)'] || ''
+    ).trim();
+
+    // Try all possible Loan Number field names
+    const loanNum = String(
+      row['ApplNumb'] || row['Loan Number'] || row['LoanNumber'] || row['Loan ID'] || row['Application Number'] || ''
+    ).trim();
+
+    // Try all possible Address field names
+    const address = String(
+      row['Address'] || row['Property Address'] || row['Street Address'] || row['Property Street'] || ''
+    ).toLowerCase().trim();
+
+    // Try all possible City field names
+    const city = String(
+      row['City'] || row['Property City'] || ''
+    ).toLowerCase().trim();
 
     if (uli) suppByULI.set(uli, row);
     if (loanNum) suppByLoanNum.set(loanNum, row);
     if (address && city) suppByAddress.set(`${address}|${city}`, row);
+
+    if (idx === 0) {
+      console.log('First supplemental row - ULI:', uli, 'LoanNum:', loanNum, 'Address:', address, 'City:', city);
+    }
   });
 
-  return primaryData.map(row => {
-    const uli = String(findFieldValue(row, 'ULI') || '').trim();
-    const loanNum = String(findFieldValue(row, 'ApplNumb') || '').trim();
-    const address = String(findFieldValue(row, 'Address') || '').toLowerCase().trim();
-    const city = String(findFieldValue(row, 'City') || '').toLowerCase().trim();
+  console.log('Lookup maps - ULI:', suppByULI.size, 'LoanNum:', suppByLoanNum.size, 'Address:', suppByAddress.size);
+
+  let matchCount = 0;
+  const result = primaryData.map((row, idx) => {
+    // Try all possible ULI field names from primary data
+    const uli = String(
+      row['ULI'] || row['Universal Loan Identifier'] || row['Universal Loan Identifier (ULI)'] || ''
+    ).trim();
+
+    // Try all possible Loan Number field names
+    const loanNum = String(
+      row['ApplNumb'] || row['Loan Number'] || row['LoanNumber'] || row['Loan ID'] || ''
+    ).trim();
+
+    // Try all possible Address field names
+    const address = String(
+      row['Address'] || row['Property Address'] || row['Street Address'] || ''
+    ).toLowerCase().trim();
+
+    // Try all possible City field names
+    const city = String(
+      row['City'] || row['Property City'] || ''
+    ).toLowerCase().trim();
 
     // Try to find matching supplemental data
     const supp = suppByULI.get(uli) || suppByLoanNum.get(loanNum) || suppByAddress.get(`${address}|${city}`);
 
+    if (idx === 0) {
+      console.log('First primary row - ULI:', uli, 'LoanNum:', loanNum, 'Address:', address);
+      console.log('Match found:', !!supp);
+    }
+
     if (supp) {
+      matchCount++;
+      // Get values from supplemental with all possible field name variations
+      const firstName = supp['FirstName'] || supp['First Name'] || supp['Borrower First Name'] || '';
+      const lastName = supp['LastName'] || supp['Last Name'] || supp['Borrower Last Name'] || '';
+      const coaFirstName = supp['Coa_FirstName'] || supp['Co-Borrower First Name'] || supp['Co-Applicant First Name'] || '';
+      const coaLastName = supp['Coa_LastName'] || supp['Co-Borrower Last Name'] || supp['Co-Applicant Last Name'] || '';
+      const lender = supp['Lender'] || supp['Loan Officer'] || supp['Originator'] || '';
+      const processor = supp['AA_Processor'] || supp['Processor'] || supp['Loan Processor'] || '';
+      const postCloser = supp['LDP_PostCloser'] || supp['Post Closer'] || '';
+      const apr = supp['APR'] || supp['Annual Percentage Rate'] || '';
+      const rateLockDate = supp['Rate_Lock_Date'] || supp['Rate Lock Date'] || supp['Lock Date'] || '';
+      const loanProgram = supp['LoanProgram'] || supp['Loan Program'] || '';
+      const rateType = supp['RateType'] || supp['Rate Type'] || '';
+      const branchName = supp['BranchName'] || supp['Branch Name'] || supp['Branch'] || '';
+
       return {
         ...row,
-        FirstName: findFieldValue(supp, 'FirstName') || row.FirstName,
-        LastName: findFieldValue(supp, 'LastName') || row.LastName,
-        Coa_FirstName: findFieldValue(supp, 'Coa_FirstName') || row.Coa_FirstName,
-        Coa_LastName: findFieldValue(supp, 'Coa_LastName') || row.Coa_LastName,
-        Lender: findFieldValue(supp, 'Lender') || row.Lender,
-        AA_Processor: findFieldValue(supp, 'AA_Processor') || row.AA_Processor,
-        LDP_PostCloser: findFieldValue(supp, 'LDP_PostCloser') || row.LDP_PostCloser,
-        APR: findFieldValue(supp, 'APR') || row.APR,
-        Rate_Lock_Date: findFieldValue(supp, 'Rate_Lock_Date') || row.Rate_Lock_Date,
-        LoanProgram: findFieldValue(supp, 'LoanProgram') || row.LoanProgram,
-        RateType: findFieldValue(supp, 'RateType') || row.RateType,
+        FirstName: firstName || row.FirstName,
+        LastName: lastName || row.LastName,
+        Coa_FirstName: coaFirstName || row.Coa_FirstName,
+        Coa_LastName: coaLastName || row.Coa_LastName,
+        Lender: lender || row.Lender,
+        AA_Processor: processor || row.AA_Processor,
+        LDP_PostCloser: postCloser || row.LDP_PostCloser,
+        APR: apr || row.APR,
+        Rate_Lock_Date: rateLockDate || row.Rate_Lock_Date,
+        LoanProgram: loanProgram || row.LoanProgram,
+        RateType: rateType || row.RateType,
+        BranchName: branchName || row.BranchName,
       };
     }
 
     return row;
   });
+
+  console.log('Merge complete - matched', matchCount, 'of', primaryData.length, 'rows');
+  return result;
 };
 
 /**
@@ -801,22 +868,63 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
           const rows = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
           console.log('Sheet has', rows.length, 'rows');
 
-          // Check if this looks like an Encompass file
+          // Check file type by examining headers and content
           const firstCell = String(rows[0]?.[0] || '');
           const secondCell = String(rows[0]?.[1] || '');
+          const firstRowStr = rows[0]?.map(c => String(c || '')).join(' ') || '';
+          const secondRowStr = rows[1]?.map(c => String(c || '')).join(' ') || '';
 
-          if (firstCell.includes('Financial Institution') ||
-              firstCell.includes('Calendar') ||
-              firstCell.includes('Colony Bank') ||
-              secondCell.includes('LEI') ||
-              rows.some(row => String(row[0]).includes('Legal Entity'))) {
-            console.log('Detected Encompass format');
+          // Check for Additional Fields file FIRST (has Loan Number column typically)
+          const hasAdditionalFieldsIndicators =
+            firstRowStr.includes('Loan Number') ||
+            firstRowStr.includes('Borrower First Name') ||
+            firstRowStr.includes('Borrower Last Name') ||
+            (firstRowStr.includes('APR') && !firstRowStr.includes('Legal Entity'));
+
+          // Check for Encompass HMDA export (has metadata rows or specific headers)
+          const hasEncompassIndicators =
+            firstCell.includes('Financial Institution') ||
+            firstCell.includes('Calendar') ||
+            firstCell.includes('Colony Bank') ||
+            secondCell.includes('LEI') ||
+            firstRowStr.includes('Legal Entity Identifier') ||
+            secondRowStr.includes('Legal Entity Identifier') ||
+            rows.slice(0, 5).some(row => String(row?.[0] || '').includes('Legal Entity'));
+
+          if (hasAdditionalFieldsIndicators && !hasEncompassIndicators) {
+            // Additional Fields / Supplemental file - parse as standard Excel
+            console.log('Detected Additional Fields format');
+            const jsonData = utils.sheet_to_json(worksheet) as SbslRow[];
+            // Normalize field names for supplemental data too
+            const normalizedData = jsonData.map(row => {
+              const normalized: SbslRow = {};
+              Object.entries(row).forEach(([key, value]) => {
+                const normalizedKey = normalizeFieldName(key);
+                normalized[normalizedKey] = value;
+                // Keep original key too for backup matching
+                if (normalizedKey !== key) {
+                  normalized[key] = value;
+                }
+              });
+              return normalized;
+            });
+            resolve(normalizedData);
+          } else if (hasEncompassIndicators) {
+            console.log('Detected Encompass HMDA export format');
             resolve(parseEncompassFile(rows));
           } else {
-            // Standard Excel file
+            // Standard Excel file - still normalize field names
             console.log('Detected standard Excel format');
             const jsonData = utils.sheet_to_json(worksheet) as SbslRow[];
-            resolve(jsonData);
+            const normalizedData = jsonData.map(row => {
+              const normalized: SbslRow = {};
+              Object.entries(row).forEach(([key, value]) => {
+                const normalizedKey = normalizeFieldName(key);
+                normalized[normalizedKey] = value;
+              });
+              return normalized;
+            });
+            resolve(normalizedData);
           }
         }
       } catch (error) {
