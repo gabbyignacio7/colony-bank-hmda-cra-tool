@@ -140,9 +140,11 @@ export const CRA_WIZ_128_COLUMNS: string[] = [
   'REVMTG',                // Col 120
   'OpenLOC',               // Col 121
   'BUSCML',                // Col 122
-  'EditStatus',            // Col 123
-  'EditCkComments',        // Col 124
-  'Comments',              // Col 125
+  'RateType',              // Col 123 - Added per client feedback
+  'Var_Term',              // Col 124 - Added per client feedback (Variable Rate Term)
+  'EditStatus',            // Col 125
+  'EditCkComments',        // Col 126
+  'Comments',              // Col 127
 ];
 
 // COMPREHENSIVE Encompass field name mapping - covers ALL known Encompass export formats
@@ -656,8 +658,11 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'Branch': ['Branch', 'BranchNumb', 'Branch Number', 'BRANCHNUMB'],
     'ErrorMadeBy': ['ErrorMadeBy', 'Error_Made_By', 'Error Made By'],
     'LoanProgram': ['LoanProgram', 'Loan Program', 'LOANPROGRAM'],
-    'RateType': ['RateType', 'Rate Type', 'RATETYPE'],
+    'RateType': ['RateType', 'Rate Type', 'RATETYPE', 'Rate_Type'],
+    'Var_Term': ['Var_Term', 'Variable Rate Term', 'VAR_TERM', 'VarTerm', 'Variable Term'],
     'TotalUnits': ['TotalUnits', 'Total Units', 'TOTALUNITS'],
+    'NonAmortz': ['NonAmortz', 'Non-Amortizing Features', 'NONAMORTZ', 'NonAmortizing'],
+    'CreditModel': ['CreditModel', 'Credit Scoring Model', 'Name and Version of Credit Scoring Model', 'CREDITMODEL'],
     'ConstructionMethod': ['ConstructionMethod', 'Construction Method', 'CONSTRUCTIONMETHOD'],
     'OccupancyType': ['OccupancyType', 'Occupancy Type', 'Occupancy', 'OCCUPANCYTYPE'],
     'Preapproval': ['Preapproval', 'Pre-approval', 'PREAPPROVAL'],
@@ -721,8 +726,13 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
 
     CRA_WIZ_128_COLUMNS.forEach(col => {
       const value = findFieldValue(row, col);
-      // IMPORTANT: Use nullish coalescing to preserve zeros
-      output[col] = value ?? '';
+      // IMPORTANT: Explicitly preserve numeric zeros (0, 0.0, "0")
+      // The issue was that zeros were being treated as "falsy" and dropped
+      if (value === 0 || value === '0' || value === 0.0) {
+        output[col] = value;
+      } else {
+        output[col] = value ?? '';
+      }
     });
     
     // Parse Borrower Name if FirstName/LastName are missing
@@ -773,9 +783,82 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['EditCkComments']) output['EditCkComments'] = '';
     if (!output['Comments']) output['Comments'] = '';
 
-    // Default co-applicant values if empty
+    // Default co-applicant values if empty (per HMDA spec, 9999 = N/A)
     if (!output['Coa_Age'] || String(output['Coa_Age']) === '') output['Coa_Age'] = '9999';
     if (!output['Coa_CreditScore'] || String(output['Coa_CreditScore']) === '') output['Coa_CreditScore'] = '9999';
+
+    // Fix fields identified in client feedback:
+
+    // DTIRatio: should be numeric value or "NA" (HMDA code for Exempt)
+    if (output['DTIRatio'] === '' || output['DTIRatio'] === null || output['DTIRatio'] === undefined) {
+      output['DTIRatio'] = 'NA';
+    }
+
+    // CreditModel: should not be blank - use "9" for "Not applicable" per HMDA spec
+    if (output['CreditModel'] === '' || output['CreditModel'] === null || output['CreditModel'] === undefined) {
+      // Try to get from source data
+      const creditModel = findFieldValue(row, 'CreditModel');
+      output['CreditModel'] = creditModel ?? '9';  // 9 = Not applicable
+    }
+
+    // NonAmortz: HMDA values are 1=Balloon, 2=Interest-only, 3=Negative amortization, 1111=N/A
+    // If has value, keep it; if blank, check other amortization fields
+    if (output['NonAmortz'] === '' || output['NonAmortz'] === null || output['NonAmortz'] === undefined) {
+      const balloon = findFieldValue(row, 'BalloonPMT');
+      const interestOnly = findFieldValue(row, 'IOPMT');
+      const negAm = findFieldValue(row, 'NegAM');
+
+      // If any non-amortizing feature is present, derive NonAmortz
+      if (balloon === '1' || balloon === 1) {
+        output['NonAmortz'] = '1';
+      } else if (interestOnly === '1' || interestOnly === 1) {
+        output['NonAmortz'] = '2';
+      } else if (negAm === '1' || negAm === 1) {
+        output['NonAmortz'] = '3';
+      } else {
+        output['NonAmortz'] = '1111';  // N/A - no non-amortizing features
+      }
+    }
+
+    // NMLSRID: should not be blank - get from Loan Officer/Lender lookup if available
+    if (output['NMLSRID'] === '' || output['NMLSRID'] === null || output['NMLSRID'] === undefined) {
+      const nmls = findFieldValue(row, 'NMLSRID');
+      if (nmls) {
+        output['NMLSRID'] = String(nmls).replace(/^NMLS?#?\s*/i, '').trim();
+      }
+      // Still blank? Will need manual lookup or data enrichment
+    }
+
+    // RateType: 1=Fixed, 2=Variable (if not set, default based on loan type)
+    if (output['RateType'] === '' || output['RateType'] === null || output['RateType'] === undefined) {
+      const rateType = findFieldValue(row, 'RateType');
+      if (rateType) {
+        output['RateType'] = rateType;
+      } else {
+        // Check if there's an intro rate period which would indicate variable
+        const introRate = output['IntroRatePeriod'];
+        if (introRate && introRate !== '' && introRate !== 'NA' && introRate !== 'Exempt') {
+          output['RateType'] = '2';  // Variable
+        }
+        // Otherwise leave blank - needs manual input
+      }
+    }
+
+    // Var_Term: Variable rate term in months (only applicable if RateType=2)
+    if (output['Var_Term'] === '' || output['Var_Term'] === null || output['Var_Term'] === undefined) {
+      const varTerm = findFieldValue(row, 'Var_Term');
+      if (varTerm) {
+        output['Var_Term'] = varTerm;
+      } else if (output['RateType'] === '1') {
+        output['Var_Term'] = 'NA';  // Fixed rate loans don't have variable term
+      }
+    }
+
+    // ConstructionMethod: HMDA values 1=Site-built, 2=Manufactured home
+    if (output['ConstructionMethod'] === '' || output['ConstructionMethod'] === null || output['ConstructionMethod'] === undefined) {
+      const constructMethod = findFieldValue(row, 'ConstructionMethod');
+      output['ConstructionMethod'] = constructMethod ?? '1';  // Default to site-built
+    }
 
     // Convert dates
     ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {
