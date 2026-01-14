@@ -860,6 +860,23 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       output['ConstructionMethod'] = constructMethod ?? '1';  // Default to site-built
     }
 
+    // Loan_Term (years) and Loan_Term_Months handling
+    // If Loan_Term is blank but Loan_Term_Months exists, calculate years
+    const loanTermMonths = output['Loan_Term_Months'] ?? findFieldValue(row, 'Loan_Term_Months');
+    const loanTermYears = output['Loan_Term'] ?? findFieldValue(row, 'Loan_Term');
+
+    if (loanTermMonths && !loanTermYears) {
+      const months = parseFloat(String(loanTermMonths));
+      if (!isNaN(months) && months > 0) {
+        output['Loan_Term'] = Math.round(months / 12);
+      }
+    }
+
+    // Ensure Loan_Term_Months is set
+    if (!output['Loan_Term_Months'] && loanTermMonths) {
+      output['Loan_Term_Months'] = loanTermMonths;
+    }
+
     // Convert dates
     ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {
       if (output[field]) {

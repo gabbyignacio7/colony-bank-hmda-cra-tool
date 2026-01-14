@@ -354,10 +354,9 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
         const value = row[col] || row[col.toLowerCase()] || '';
         output[col] = value || '9999';
       } else {
-        output[col] = row[col] || 
-                      row[col.toLowerCase()] || 
-                      row[col.replace(/_/g, '')] || 
-                      '';
+        // IMPORTANT: Use ?? to preserve zeros (0, "0") - || would drop them
+        const val = row[col] ?? row[col.toLowerCase()] ?? row[col.replace(/_/g, '')];
+        output[col] = val !== undefined && val !== null ? val : '';
       }
     });
     
