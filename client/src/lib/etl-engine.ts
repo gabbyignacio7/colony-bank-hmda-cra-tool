@@ -1,5 +1,6 @@
 import { read, utils, writeFile } from 'xlsx';
-import { BRANCH_LIST } from './cra-wiz-transform';
+import { BRANCH_LIST, getBranchFromLoanOfficer, getBranchName } from './cra-wiz-transform';
+import { ErrorTracker, logError, logWarning, logInfo, logDebug, trackETLStep } from './error-tracker';
 
 export interface SbslRow {
   [key: string]: any;
@@ -14,37 +15,134 @@ export interface ValidationResult {
   autoCorrected: Record<string, { from: any; to: any }>;
 }
 
-// Complete 128-Column CRA Wiz Format (Jonathan Hester's Exact Requirement)
+// Complete 126-Column CRA Wiz Format - Matches HMDA Template Updated.xlsx exactly
 export const CRA_WIZ_128_COLUMNS: string[] = [
-  'BranchName', 'Branch', 'ApplNumb', 'LEI', 'ULI', 'LastName', 'FirstName',
-  'Coa_LastName', 'Coa_FirstName', 'Lender', 'AA_Processor', 'LDP_PostCloser',
-  'Error_Made_By', 'ApplDate', 'LoanType', 'Purpose', 'ConstructionMethod',
-  'OccupancyType', 'LoanAmount', 'Preapproval', 'Action', 'ActionDate',
-  'Address', 'City', 'State_abrv', 'Zip', 'County_5', 'Tract_11',
-  'Ethnicity_1', 'Ethnicity_2', 'Ethnicity_3', 'Ethnicity_4', 'Ethnicity_5',
-  'EthnicityOther', 'Coa_Ethnicity_1', 'Coa_Ethnicity_2', 'Coa_Ethnicity_3',
-  'Coa_Ethnicity_4', 'Coa_Ethnicity_5', 'Coa_EthnicityOther',
-  'Ethnicity_Determinant', 'Coa_Ethnicity_Determinant',
-  'Race_1', 'Race_2', 'Race_3', 'Race_4', 'Race_5',
-  'Race1_Other', 'Race27_Other', 'Race44_Other',
-  'CoaRace_1', 'CoaRace_2', 'CoaRace_3', 'CoaRace_4', 'CoaRace_5',
-  'CoaRace1_Other', 'CoaRace27_Other', 'CoaRace44_Other',
-  'Race_Determinant', 'CoaRace_Determinant',
-  'Sex', 'CoaSex', 'Sex_Determinant', 'CoaSex_Determinant',
-  'Age', 'Coa_Age', 'Income', 'Purchaser', 'Rate_Spread', 'HOEPA_Status',
-  'Lien_Status', 'CreditScore', 'Coa_CreditScore', 'CreditModel',
-  'CreditModelOther', 'Coa_CreditModel', 'Coa_CreditModelOther',
-  'Denial1', 'Denial2', 'Denial3', 'Denial4', 'DenialOther',
-  'TotalLoanCosts', 'TotalPtsAndFees', 'OrigFees', 'DiscountPts',
-  'LenderCredts', 'InterestRate', 'APR', 'Rate_Lock_Date',
-  'PPPTerm', 'DTIRatio', 'DSC', 'CLTV', 'Loan_Term', 'Loan_Term_Months',
-  'IntroRatePeriod', 'BalloonPMT', 'IOPMT', 'NegAM', 'NonAmortz',
-  'PropertyValue', 'MHSecPropType', 'MHLandPropInt', 'TotalUnits',
-  'MFAHU', 'APPMethod', 'PayableInst', 'NMLSRID',
-  'AUSystem1', 'AUSystem2', 'AUSystem3', 'AUSystem4', 'AUSystem5',
-  'AUSystemOther', 'AUSResult1', 'AUSResult2', 'AUSResult3', 'AUSResult4',
-  'AUSResult5', 'AUSResultOther',
-  'REVMTG', 'OpenLOC', 'BUSCML', 'RateType', 'Var_Term', 'LoanProgram', 'ProductType'
+  'Branch_Name',           // Col 0 - Note: underscore format to match template
+  'Branch',                // Col 1
+  'LEI',                   // Col 2
+  'ULI',                   // Col 3
+  'LastName',              // Col 4
+  'FirstName',             // Col 5
+  'Coa_LastName',          // Col 6
+  'Coa_FirstName',         // Col 7
+  'Lender',                // Col 8
+  'AA_Processor',          // Col 9
+  'LDP_PostCloser',        // Col 10
+  'ErrorMadeBy',           // Col 11 - Note: no underscore to match template
+  'ApplDate',              // Col 12
+  'LoanType',              // Col 13
+  'Purpose',               // Col 14
+  'ConstructionMethod',    // Col 15
+  'OccupancyType',         // Col 16
+  'LoanAmountInDollars',   // Col 17 - Note: full name to match template
+  'Preapproval',           // Col 18
+  'Action',                // Col 19
+  'ActionDate',            // Col 20
+  'Address',               // Col 21
+  'City',                  // Col 22
+  'State_abrv',            // Col 23
+  'Zip',                   // Col 24
+  'County_5',              // Col 25
+  'Tract_11',              // Col 26
+  'Ethnicity_1',           // Col 27
+  'Ethnicity_2',           // Col 28
+  'Ethnicity_3',           // Col 29
+  'Ethnicity_4',           // Col 30
+  'Ethnicity_5',           // Col 31
+  'EthnicityOther',        // Col 32
+  'Coa_Ethnicity_1',       // Col 33
+  'Coa_Ethnicity_2',       // Col 34
+  'Coa_Ethnicity_3',       // Col 35
+  'Coa_Ethnicity_4',       // Col 36
+  'Coa_Ethnicity_5',       // Col 37
+  'Coa_EthnicityOther',    // Col 38
+  'Ethnicity_Determinant', // Col 39
+  'Coa_Ethnicity_Determinant', // Col 40
+  'Race_1',                // Col 41
+  'Race_2',                // Col 42
+  'Race_3',                // Col 43
+  'Race_4',                // Col 44
+  'Race_5',                // Col 45
+  'Race1_Other',           // Col 46
+  'Race27_Other',          // Col 47
+  'Race44_Other',          // Col 48
+  'CoaRace_1',             // Col 49
+  'CoaRace_2',             // Col 50
+  'CoaRace_3',             // Col 51
+  'CoaRace_4',             // Col 52
+  'CoaRace_5',             // Col 53
+  'CoaRace1_Other',        // Col 54
+  'CoaRace27_Other',       // Col 55
+  'CoaRace44_Other',       // Col 56
+  'Race_Determinant',      // Col 57
+  'CoaRace_Determinant',   // Col 58
+  'Sex',                   // Col 59
+  'CoaSex',                // Col 60
+  'Sex_Determinant',       // Col 61
+  'CoaSex_Determinant',    // Col 62
+  'Age',                   // Col 63
+  'Coa_Age',               // Col 64
+  'Income',                // Col 65
+  'Purchaser',             // Col 66
+  'Rate_Spread',           // Col 67
+  'HOEPA_Status',          // Col 68
+  'Lien_Status',           // Col 69
+  'CreditScore',           // Col 70
+  'Coa_CreditScore',       // Col 71
+  'CreditModel',           // Col 72
+  'CreditModelOther',      // Col 73
+  'Coa_CreditModel',       // Col 74
+  'Coa_CreditModelOther',  // Col 75
+  'Denial1',               // Col 76
+  'Denial2',               // Col 77
+  'Denial3',               // Col 78
+  'Denial4',               // Col 79
+  'DenialOther',           // Col 80
+  'TotalLoanCosts',        // Col 81
+  'TotalPtsAndFees',       // Col 82
+  'OrigFees',              // Col 83
+  'DiscountPts',           // Col 84
+  'LenderCredts',          // Col 85
+  'InterestRate',          // Col 86
+  'APR',                   // Col 87
+  'Rate_Lock_Date',        // Col 88
+  'PPPTerm',               // Col 89
+  'DTIRatio',              // Col 90
+  'DSC',                   // Col 91
+  'CLTV',                  // Col 92
+  'Loan_Term',             // Col 93
+  'Loan_Term_Months',      // Col 94
+  'IntroRatePeriod',       // Col 95
+  'BalloonPMT',            // Col 96
+  'IOPMT',                 // Col 97
+  'NegAM',                 // Col 98
+  'NonAmortz',             // Col 99
+  'PropertyValue',         // Col 100
+  'MHSecPropType',         // Col 101
+  'MHLandPropInt',         // Col 102
+  'TotalUnits',            // Col 103
+  'MFAHU',                 // Col 104
+  'APPMethod',             // Col 105
+  'PayableInst',           // Col 106
+  'NMLSRID',               // Col 107
+  'AUSystem1',             // Col 108
+  'AUSystem2',             // Col 109
+  'AUSystem3',             // Col 110
+  'AUSystem4',             // Col 111
+  'AUSystem5',             // Col 112
+  'AUSystemOther',         // Col 113
+  'AUSResult1',            // Col 114
+  'AUSResult2',            // Col 115
+  'AUSResult3',            // Col 116
+  'AUSResult4',            // Col 117
+  'AUSResult5',            // Col 118
+  'AUSResultOther',        // Col 119
+  'REVMTG',                // Col 120
+  'OpenLOC',               // Col 121
+  'BUSCML',                // Col 122
+  'EditStatus',            // Col 123
+  'EditCkComments',        // Col 124
+  'Comments',              // Col 125
 ];
 
 // COMPREHENSIVE Encompass field name mapping - covers ALL known Encompass export formats
@@ -273,6 +371,13 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Rate Type': 'RateType',
   'Product Type': 'ProductType',
   'Variable Rate Term': 'Var_Term',
+  
+  // Additional Fields file specific column names (from Encompass export)
+  'Subject Property Address': 'Address',
+  'Subject Property City': 'City',
+  'Subject Property State': 'State_abrv',
+  'Loan Team Member Name - Post Closer': 'LDP_PostCloser',
+  'Borrower Name': 'BorrowerFullName',  // Full name field, will need to split
 };
 
 /**
@@ -334,6 +439,9 @@ export const excelDateToString = (value: any): string => {
  * Parse Encompass Excel file - IMPROVED to handle various formats
  */
 export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
+  const startTime = Date.now();
+  logInfo('ETL:Parse', 'Starting Encompass file parsing', { totalRows: worksheet.length });
+  
   console.log('=== PARSING ENCOMPASS FILE ===');
   console.log('Total rows:', worksheet.length);
   console.log('Row 0 (first 5 cells):', worksheet[0]?.slice(0, 5));
@@ -421,6 +529,12 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
   }).filter(row => Object.keys(row).length > 0);
 
   console.log('Parsed rows:', results.length);
+  
+  const duration = Date.now() - startTime;
+  trackETLStep('ParseEncompass', worksheet.length, results.length, duration, [], [], 
+    results.length > 0 ? { firstRowKeys: Object.keys(results[0]).slice(0, 10) } : undefined
+  );
+  
   return results;
 };
 
@@ -501,9 +615,10 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'FirstName': ['FirstName', 'First Name', 'Borrower First Name', 'Applicant First Name', 'FIRSTNAME'],
     'Coa_LastName': ['Coa_LastName', 'Co-Borrower Last Name', 'Co-Applicant Last Name', 'CLASTNAME'],
     'Coa_FirstName': ['Coa_FirstName', 'Co-Borrower First Name', 'Co-Applicant First Name', 'CFIRSTNAME'],
-    'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS'],
-    'Address': ['Address', 'Street Address', 'Property Address', 'Property Street', 'ADDRESS'],
-    'City': ['City', 'Property City', 'CITY'],
+    'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS', 'LoanAmountInDollars'],
+    'LoanAmountInDollars': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS', 'LoanAmountInDollars'],
+    'Address': ['Address', 'Street Address', 'Property Address', 'Property Street', 'Subject Property Address', 'ADDRESS'],
+    'City': ['City', 'Property City', 'Subject Property City', 'CITY'],
     'State_abrv': ['State_abrv', 'State', 'Property State', 'STATE_ABRV', 'STATE'],
     'Zip': ['Zip', 'ZIP Code', 'Property ZIP Code', 'ZipCode', 'ZIP'],
     'County_5': ['County_5', 'County', 'County Code', 'COUNTY_5'],
@@ -536,8 +651,10 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'Lien_Status': ['Lien_Status', 'Lien Status', 'LIEN_STATUS'],
     'HOEPA_Status': ['HOEPA_Status', 'HOEPA Status', 'HOEPA_STATUS'],
     'Rate_Spread': ['Rate_Spread', 'Rate Spread', 'Rate Spread for Reporting Purposes', 'RATE_SPREAD'],
-    'BranchName': ['BranchName', 'Branch Name', 'BRANCHNAME'],
+    'BranchName': ['BranchName', 'Branch Name', 'BRANCHNAME', 'Branch_Name'],
+    'Branch_Name': ['BranchName', 'Branch Name', 'BRANCHNAME', 'Branch_Name'],
     'Branch': ['Branch', 'BranchNumb', 'Branch Number', 'BRANCHNUMB'],
+    'ErrorMadeBy': ['ErrorMadeBy', 'Error_Made_By', 'Error Made By'],
     'LoanProgram': ['LoanProgram', 'Loan Program', 'LOANPROGRAM'],
     'RateType': ['RateType', 'Rate Type', 'RATETYPE'],
     'TotalUnits': ['TotalUnits', 'Total Units', 'TOTALUNITS'],
@@ -560,13 +677,46 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
 };
 
 /**
+ * Parse "Borrower Name" field (like "McKettrick III, Robert L") into FirstName and LastName
+ */
+export const parseBorrowerName = (fullName: string): { firstName: string; lastName: string } => {
+  if (!fullName) return { firstName: '', lastName: '' };
+  
+  const parts = fullName.split(',').map(p => p.trim());
+  if (parts.length >= 2) {
+    // Format: "LastName, FirstName MiddleName" or "LastName Suffix, FirstName"
+    return {
+      lastName: parts[0],
+      firstName: parts[1].split(' ')[0] // Take first word after comma as first name
+    };
+  }
+  
+  // Fallback: split on space
+  const spaceParts = fullName.trim().split(' ');
+  if (spaceParts.length >= 2) {
+    return {
+      firstName: spaceParts[0],
+      lastName: spaceParts.slice(1).join(' ')
+    };
+  }
+  
+  return { firstName: fullName, lastName: '' };
+};
+
+/**
  * Transform data to CRA Wiz 128-column format
  */
 export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
+  const startTime = Date.now();
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  logInfo('ETL:Transform', 'Starting CRA Wiz transformation', { inputRows: data.length, targetColumns: CRA_WIZ_128_COLUMNS.length });
+  
   console.log('=== TRANSFORMING TO CRA WIZ FORMAT ===');
   console.log('Input rows:', data.length);
 
-  return data.map((row, idx) => {
+  const result = data.map((row, idx) => {
     const output: SbslRow = {};
 
     CRA_WIZ_128_COLUMNS.forEach(col => {
@@ -574,16 +724,54 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       // IMPORTANT: Use nullish coalescing to preserve zeros
       output[col] = value ?? '';
     });
+    
+    // Parse Borrower Name if FirstName/LastName are missing
+    if ((!output['FirstName'] || !output['LastName']) && row['BorrowerFullName']) {
+      const { firstName, lastName } = parseBorrowerName(String(row['BorrowerFullName']));
+      if (!output['FirstName']) output['FirstName'] = firstName;
+      if (!output['LastName']) output['LastName'] = lastName;
+    }
+    
+    // Also check for "Borrower Name" field directly
+    if ((!output['FirstName'] || !output['LastName']) && row['Borrower Name']) {
+      const { firstName, lastName } = parseBorrowerName(String(row['Borrower Name']));
+      if (!output['FirstName']) output['FirstName'] = firstName;
+      if (!output['LastName']) output['LastName'] = lastName;
+    }
 
-    // Branch name lookup
-    const branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
-    if (!output['BranchName'] || String(output['BranchName']).trim() === '') {
-      output['BranchName'] = BRANCH_LIST[branchNum] || '';
+    // Branch lookup - derive from Lender/Loan Officer if no direct branch value
+    let branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
+    
+    // If no branch number, try to derive from Lender/Loan Officer
+    if (!branchNum) {
+      const lender = output['Lender'] || findFieldValue(row, 'Lender') || '';
+      if (lender) {
+        branchNum = getBranchFromLoanOfficer(String(lender));
+        if (branchNum) {
+          output['Branch'] = branchNum;
+          logDebug('ETL:Transform', `Derived branch ${branchNum} from Lender: ${lender}`);
+        } else {
+          warnings.push(`Row ${idx}: Could not determine branch for Lender "${lender}"`);
+        }
+      }
+    }
+    
+    // Set Branch_Name from branch number
+    if (branchNum) {
+      const branchName = getBranchName(branchNum, output['Branch_Name']);
+      if (branchName) {
+        output['Branch_Name'] = branchName;
+      } else {
+        warnings.push(`Row ${idx}: Unknown branch number "${branchNum}"`);
+      }
     }
 
     // Add required blank fields
-    if (!output['Error_Made_By']) output['Error_Made_By'] = '';
+    if (!output['ErrorMadeBy']) output['ErrorMadeBy'] = '';
     if (!output['DSC']) output['DSC'] = '';
+    if (!output['EditStatus']) output['EditStatus'] = '';
+    if (!output['EditCkComments']) output['EditCkComments'] = '';
+    if (!output['Comments']) output['Comments'] = '';
 
     // Default co-applicant values if empty
     if (!output['Coa_Age'] || String(output['Coa_Age']) === '') output['Coa_Age'] = '9999';
@@ -599,21 +787,56 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (idx === 0) {
       console.log('First transformed row (first 10 keys):', Object.keys(output).slice(0, 10));
       console.log('First transformed row (first 10 values):', Object.values(output).slice(0, 10));
+      logDebug('ETL:Transform', 'First row sample', {
+        keys: Object.keys(output).slice(0, 15),
+        values: Object.values(output).slice(0, 15)
+      });
+    }
+    
+    // Track missing critical fields
+    if (!output['ULI'] && !output['LEI']) {
+      warnings.push(`Row ${idx}: Missing ULI and LEI`);
+    }
+    if (!output['LoanAmountInDollars'] || output['LoanAmountInDollars'] === '' || output['LoanAmountInDollars'] === 0) {
+      warnings.push(`Row ${idx}: Missing or zero LoanAmountInDollars`);
     }
 
     return output;
   });
+  
+  const duration = Date.now() - startTime;
+  trackETLStep('TransformCRAWiz', data.length, result.length, duration, errors, warnings,
+    result.length > 0 ? { 
+      outputColumns: Object.keys(result[0]).length,
+      expectedColumns: CRA_WIZ_128_COLUMNS.length,
+      sampleRow: Object.fromEntries(Object.entries(result[0]).slice(0, 10))
+    } : undefined
+  );
+  
+  if (warnings.length > 0) {
+    logWarning('ETL:Transform', `Completed with ${warnings.length} warnings`, { warningsSample: warnings.slice(0, 5) });
+  }
+  
+  return result;
 };
 
 /**
  * Merge supplemental data (Additional Fields file)
  */
 export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: SbslRow[]): SbslRow[] => {
+  const startTime = Date.now();
+  
   if (!supplementalData || supplementalData.length === 0) {
     console.log('No supplemental data to merge');
+    logWarning('ETL:Merge', 'No supplemental data provided for merge');
     return primaryData;
   }
 
+  logInfo('ETL:Merge', 'Starting supplemental data merge', { 
+    primaryRows: primaryData.length, 
+    supplementalRows: supplementalData.length 
+  });
+  
   console.log('=== MERGING SUPPLEMENTAL DATA ===');
   console.log('Primary data rows:', primaryData.length);
   console.log('Supplemental data rows:', supplementalData.length);
@@ -639,14 +862,15 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
       row['ApplNumb'] || row['Loan Number'] || row['LoanNumber'] || row['Loan ID'] || row['Application Number'] || ''
     ).trim();
 
-    // Try all possible Address field names
+    // Try all possible Address field names (including Subject Property Address from Additional Fields)
     const address = String(
-      row['Address'] || row['Property Address'] || row['Street Address'] || row['Property Street'] || ''
+      row['Address'] || row['Property Address'] || row['Street Address'] || row['Property Street'] || 
+      row['Subject Property Address'] || ''
     ).toLowerCase().trim();
 
-    // Try all possible City field names
+    // Try all possible City field names (including Subject Property City from Additional Fields)
     const city = String(
-      row['City'] || row['Property City'] || ''
+      row['City'] || row['Property City'] || row['Subject Property City'] || ''
     ).toLowerCase().trim();
 
     if (uli) suppByULI.set(uli, row);
@@ -672,14 +896,15 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
       row['ApplNumb'] || row['Loan Number'] || row['LoanNumber'] || row['Loan ID'] || ''
     ).trim();
 
-    // Try all possible Address field names
+    // Try all possible Address field names (including Subject Property Address)
     const address = String(
-      row['Address'] || row['Property Address'] || row['Street Address'] || ''
+      row['Address'] || row['Property Address'] || row['Street Address'] || 
+      row['Subject Property Address'] || ''
     ).toLowerCase().trim();
 
-    // Try all possible City field names
+    // Try all possible City field names (including Subject Property City)
     const city = String(
-      row['City'] || row['Property City'] || ''
+      row['City'] || row['Property City'] || row['Subject Property City'] || ''
     ).toLowerCase().trim();
 
     // Try to find matching supplemental data
@@ -699,12 +924,17 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
       const coaLastName = supp['Coa_LastName'] || supp['Co-Borrower Last Name'] || supp['Co-Applicant Last Name'] || '';
       const lender = supp['Lender'] || supp['Loan Officer'] || supp['Originator'] || '';
       const processor = supp['AA_Processor'] || supp['Processor'] || supp['Loan Processor'] || '';
-      const postCloser = supp['LDP_PostCloser'] || supp['Post Closer'] || '';
+      const postCloser = supp['LDP_PostCloser'] || supp['Post Closer'] || supp['Loan Team Member Name - Post Closer'] || '';
       const apr = supp['APR'] || supp['Annual Percentage Rate'] || '';
       const rateLockDate = supp['Rate_Lock_Date'] || supp['Rate Lock Date'] || supp['Lock Date'] || '';
       const loanProgram = supp['LoanProgram'] || supp['Loan Program'] || '';
       const rateType = supp['RateType'] || supp['Rate Type'] || '';
       const branchName = supp['BranchName'] || supp['Branch Name'] || supp['Branch'] || '';
+      
+      // Also get address fields from supplemental if primary is missing them
+      const suppAddress = supp['Address'] || supp['Subject Property Address'] || supp['Street Address'] || '';
+      const suppCity = supp['City'] || supp['Subject Property City'] || '';
+      const suppState = supp['State_abrv'] || supp['Subject Property State'] || '';
 
       return {
         ...row,
@@ -720,6 +950,11 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
         LoanProgram: loanProgram || row.LoanProgram,
         RateType: rateType || row.RateType,
         BranchName: branchName || row.BranchName,
+        // Fill in address from supplemental if primary is missing
+        Address: row.Address || suppAddress,
+        City: row.City || suppCity,
+        State_abrv: row.State_abrv || suppState,
+        _merged: true, // Flag to indicate this record was merged
       };
     }
 
@@ -727,6 +962,21 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
   });
 
   console.log('Merge complete - matched', matchCount, 'of', primaryData.length, 'rows');
+  
+  const duration = Date.now() - startTime;
+  const mergeWarnings: string[] = [];
+  if (matchCount === 0) {
+    mergeWarnings.push('No records matched - check if files have matching addresses');
+  } else if (matchCount < primaryData.length * 0.5) {
+    mergeWarnings.push(`Low match rate: only ${matchCount}/${primaryData.length} records matched`);
+  }
+  
+  trackETLStep('MergeSupplemental', primaryData.length, result.length, duration, [], mergeWarnings, {
+    matchCount,
+    matchRate: `${((matchCount / primaryData.length) * 100).toFixed(1)}%`,
+    lookupMaps: { byULI: suppByULI.size, byLoanNum: suppByLoanNum.size, byAddress: suppByAddress.size }
+  });
+  
   return result;
 };
 
@@ -820,6 +1070,8 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
  * Export CRA Wiz 128-column format
  */
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
+  logInfo('ETL:Export', 'Starting CRA Wiz export', { rowCount: data.length, targetColumns: CRA_WIZ_128_COLUMNS.length });
+  
   console.log('=== EXPORT CRA WIZ FORMAT ===');
   console.log('exportCRAWizFormat called with', data.length, 'rows');
 
@@ -851,6 +1103,13 @@ export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => 
  * Process uploaded file
  */
 export const processFile = async (file: File): Promise<SbslRow[]> => {
+  const startTime = Date.now();
+  logInfo('ETL:FileProcess', `Starting file processing: ${file.name}`, { 
+    fileName: file.name, 
+    fileSize: file.size,
+    fileType: file.type 
+  });
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     const fileName = file.name.toLowerCase();
@@ -933,11 +1192,15 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
         }
       } catch (error) {
         console.error('File processing error:', error);
+        logError('ETL:FileProcess', `Error processing file: ${file.name}`, { error: String(error) }, error as Error);
         reject(error);
       }
     };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => {
+      logError('ETL:FileProcess', `Failed to read file: ${file.name}`);
+      reject(new Error('Failed to read file'));
+    };
 
     if (fileName.endsWith('.txt')) {
       reader.readAsText(file);

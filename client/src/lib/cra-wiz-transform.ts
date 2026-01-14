@@ -55,6 +55,83 @@ export const BRANCH_LIST: Record<string, string> = {
   '416': 'Tallahassee'
 };
 
+// Loan Officer to Branch Mapping - Maps loan officer names to branch numbers
+// This is used to derive branch when no branch column exists in source data
+export const LOAN_OFFICER_BRANCH_MAP: Record<string, string> = {
+  // Valdosta Mortgage (402)
+  'Dana Williams': '402',
+  'Sara Ellen Whiddon': '402',
+  
+  // Columbus (408)
+  'Barry Raymond Butcher': '408',
+  'Barry  Raymond Butcher': '408', // Handle extra space variant
+  
+  // Athens (404)
+  'Billy Leopold': '404',
+  'Alan Coleman': '404',
+  
+  // LaGrange (405)
+  'Susan Blanche Whatley': '405',
+  'Alex Paul Whatley': '405',
+  
+  // Tallahassee (416)
+  'Tiffany H Mazo': '416',
+  
+  // Savannah (401)
+  'Lucia Smith Barnes': '401',
+  'Amber Davies': '401',
+  
+  // Macon (403)
+  'Patrick Williams': '403',
+  'Kelly Kremer': '403',
+  
+  // Warner Robins (406)
+  'Kyle Harrison': '406',
+  'Landon Lanier': '406',
+  
+  // Albany (407)
+  'Jeffery Conzett': '407',
+  'Bob Goodman': '407',
+  
+  // Augusta (410)
+  'Jennifer Gross': '410',
+  'Davis Clark': '410',
+  
+  // Statesboro (409)
+  'Tim S. Hazelman': '409',
+  'Tim S Hazelman': '409', // Handle variant without period
+  'Lisa T. Brantley': '409',
+  'Lisa T Brantley': '409', // Handle variant without period
+  
+  // Pooler (412)
+  'Adrienne Granger': '412',
+  
+  // Milledgeville (414)
+  'Kristen Laine Phillips': '414',
+  'Lisa Canup': '414',
+};
+
+/**
+ * Get branch number from loan officer name
+ */
+export const getBranchFromLoanOfficer = (loanOfficer: string): string => {
+  if (!loanOfficer) return '';
+  
+  // Direct lookup
+  const branch = LOAN_OFFICER_BRANCH_MAP[loanOfficer];
+  if (branch) return branch;
+  
+  // Try normalized lookup (trim spaces, lowercase compare)
+  const normalized = loanOfficer.trim();
+  for (const [name, branchNum] of Object.entries(LOAN_OFFICER_BRANCH_MAP)) {
+    if (name.toLowerCase().trim() === normalized.toLowerCase()) {
+      return branchNum;
+    }
+  }
+  
+  return '';
+};
+
 // Work Item 125-Column Format (Phase 3 / Step 6 Output)
 export const OUTPUT_COLUMNS: string[] = [
   'BRANCHNAME',           // From input OR VLOOKUP

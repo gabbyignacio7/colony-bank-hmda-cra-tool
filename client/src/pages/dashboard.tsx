@@ -30,12 +30,14 @@ import {
   Printer,
   Share2,
   Copy,
-  Check
+  Check,
+  Bug,
+  RefreshCw,
+  XCircle
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { 
   processFile, 
-  fetchCsvFile,
   MOCK_SBSL_DATA, 
   filterByCurrentMonth, 
   validateData, 
@@ -46,9 +48,18 @@ import {
   exportCRAWizFormat,
   transformToCRAWizFormat,
   CRA_WIZ_128_COLUMNS,
+  parseBorrowerName,
   type SbslRow,
   type ValidationResult
 } from '@/lib/etl-engine';
+import { 
+  ErrorTracker, 
+  getErrorLogs, 
+  getETLTraces, 
+  clearAllLogs,
+  type ErrorLog,
+  type ETLTraceLog
+} from '@/lib/error-tracker';
 import { compareDataframes, type DiffResult } from '@/lib/diff-engine';
 import { 
   parseCRAWizFile, 
@@ -125,10 +136,38 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [progressStep, setProgressStep] = useState('');
   const [copied, setCopied] = useState(false);
+  
+  // Debug Panel State
+  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
+  const [etlTraces, setETLTraces] = useState<ETLTraceLog[]>([]);
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
+  
+  const refreshDebugLogs = () => {
+    setErrorLogs(getErrorLogs());
+    setETLTraces(getETLTraces());
+  };
+  
+  const handleClearLogs = () => {
+    clearAllLogs();
+    setErrorLogs([]);
+    setETLTraces([]);
+    toast({ title: "Logs Cleared", description: "All debug logs have been cleared" });
+  };
+  
+  const handleDownloadLogs = () => {
+    ErrorTracker.download();
+    toast({ title: "Logs Downloaded", description: "Debug logs saved to file" });
+  };
+  
+  // Load debug logs on mount and when switching to debug tab
+  useEffect(() => {
+    if (activeTab === 'debug') {
+      refreshDebugLogs();
+    }
+  }, [activeTab]);
 
   const handleFileUpload = async (type: 'laserPro' | 'encompass' | 'supp' | 'expected', file: File) => {
     setFiles(prev => ({ ...prev, [type]: file }));
@@ -185,6 +224,27 @@ export default function Dashboard() {
       });
     }
     
+    // Validate primary data has key HMDA fields
+    if (rawData.length > 0) {
+      const firstRow = rawData[0];
+      const hasULI = !!(firstRow?.ULI || firstRow?.['Universal Loan Identifier'] || firstRow?.['Universal Loan Identifier (ULI)']);
+      const hasLoanAmount = !!(firstRow?.LoanAmount || firstRow?.['Loan Amount']);
+      const hasAddress = !!(firstRow?.Address || firstRow?.['Street Address']);
+      
+      if (!hasULI && !hasLoanAmount) {
+        addLog("⚠️ WARNING: Primary data appears to be missing ULI and Loan Amount fields.");
+        addLog("   This may indicate files were uploaded in the wrong slots.");
+        addLog("   Input B should be: Encompass HMDA Export (with ULI, Loan Amount, Census data)");
+        addLog("   Input C should be: Additional Fields (with Names, Loan Officer, APR)");
+        toast({ 
+          title: "⚠️ Check File Slots", 
+          description: "Primary data missing ULI/Loan Amount. Make sure files are in correct slots.", 
+          variant: "destructive",
+          duration: 10000
+        });
+      }
+    }
+    
     await new Promise(r => setTimeout(r, 500));
     
     // Step 1: Filter
@@ -208,14 +268,18 @@ export default function Dashboard() {
     // Step 3: VLOOKUP Merge with actual supplemental data
     addLog("Phase 2 (Step 2): Merging Supplemental Data...");
     if (suppData.length > 0) {
+      const beforeMergeCount = transformed.filter(r => r._merged).length;
       transformed = mergeSupplementalData(transformed, suppData);
-      addLog(`   - Merging with ${suppData.length} supplemental records`);
+      const afterMergeCount = transformed.filter(r => r._merged).length;
+      addLog(`   - Merging ${transformed.length} primary records with ${suppData.length} supplemental records`);
+      addLog(`   - Successfully matched: ${afterMergeCount} records`);
+      if (afterMergeCount === 0) {
+        addLog("   ⚠️ WARNING: No records matched. Check that files contain matching addresses.");
+      }
     } else {
       addLog("   - No supplemental file uploaded, skipping merge");
     }
-    addLog("   - Merged Customer Names");
-    addLog("   - Merged Borrower Data");
-    addLog("   - Merged APR and Rate Types");
+    addLog("   - Merged Customer Names, Borrower Data, APR and Rate Types");
 
     await new Promise(r => setTimeout(r, 500));
 
@@ -560,6 +624,19 @@ export default function Dashboard() {
               <Video className="w-4 h-4" />
               <span className="font-medium text-sm">Learning Center</span>
             </button>
+            
+            <button 
+              onClick={() => { setActiveTab('debug'); refreshDebugLogs(); }}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors", activeTab === 'debug' ? "bg-white/10 text-white" : "text-blue-200 hover:bg-white/5")}
+            >
+              <Bug className="w-4 h-4" />
+              <span className="font-medium text-sm">Error Tracking</span>
+              {errorLogs.filter(l => l.level === 'error').length > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                  {errorLogs.filter(l => l.level === 'error').length}
+                </span>
+              )}
+            </button>
           </div>
         </nav>
         
@@ -582,6 +659,7 @@ export default function Dashboard() {
             {activeTab === 'phase3' && 'Phase 3: CRA Wiz Post-Processing'}
             {activeTab === 'docs' && 'Phase 5: Document Intelligence'}
             {activeTab === 'tutorial' && 'Learning Center'}
+            {activeTab === 'debug' && 'Error Tracking & Debug'}
           </h2>
           <div className="flex items-center gap-4">
             <div className="text-sm text-slate-500">
@@ -613,12 +691,15 @@ export default function Dashboard() {
 
                 <Card>
                   <CardHeader>
-                     <CardTitle className="text-base">Input B: Encompass</CardTitle>
-                     <CardDescription>Consumer Loans Primary (Excel)</CardDescription>
+                     <CardTitle className="text-base">Input B: Encompass HMDA Export</CardTitle>
+                     <CardDescription className="text-xs">
+                       Primary HMDA data with ULI, Address, Loan Amount
+                       <span className="block text-blue-600 mt-1">File: "October Encompass HMDA Export.xlsx"</span>
+                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FileUpload 
-                      label="Encompass HUDDA" 
+                      label="Encompass HMDA Export" 
                       onFileSelect={(f) => handleFileUpload('encompass', f)}
                       file={files.encompass}
                     />
@@ -627,12 +708,15 @@ export default function Dashboard() {
 
                 <Card>
                   <CardHeader>
-                     <CardTitle className="text-base">Input C: Supplemental</CardTitle>
-                     <CardDescription>Encompass Additional Data (Excel)</CardDescription>
+                     <CardTitle className="text-base">Input C: Additional Fields</CardTitle>
+                     <CardDescription className="text-xs">
+                       Names, Loan Officer, APR, Lock Date
+                       <span className="block text-blue-600 mt-1">File: "October HMDA Additional Fields.xlsx"</span>
+                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <FileUpload 
-                      label="Supplemental Export" 
+                      label="Additional Fields Export" 
                       onFileSelect={(f) => handleFileUpload('supp', f)}
                       file={files.supp}
                     />
@@ -755,7 +839,7 @@ export default function Dashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Data Review</CardTitle>
-                  <CardDescription>Review processed records. Validated against CRA Wiz rules.</CardDescription>
+                  <CardDescription>Review processed records. Shows merged data from Encompass + Additional Fields.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="rounded-md border overflow-hidden">
@@ -763,28 +847,66 @@ export default function Dashboard() {
                       <table className="w-full text-sm text-left">
                         <thead className="bg-slate-100 text-slate-600 font-medium border-b">
                           <tr>
-                            <th className="px-4 py-3">Appl Numb</th>
-                            <th className="px-4 py-3">Branch</th>
-                            <th className="px-4 py-3">Term (Yrs)</th>
+                            <th className="px-4 py-3">ULI/Loan#</th>
+                            <th className="px-4 py-3">Address</th>
+                            <th className="px-4 py-3">City</th>
+                            <th className="px-4 py-3">Last Name</th>
+                            <th className="px-4 py-3">First Name</th>
+                            <th className="px-4 py-3">Lender</th>
+                            <th className="px-4 py-3">Loan Amt</th>
                             <th className="px-4 py-3">APR</th>
+                            <th className="px-4 py-3">Merged</th>
                             <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Issues</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {processedData.map((row, i) => {
-                            const loanId = row.Loan_Number || row.ApplNumb || '-';
-                            const error = validationErrors.find(e => e.applNumb === loanId);
-                            const termYears = row['Loan Term Years'] || (row.Loan_Term_Months ? row.Loan_Term_Months / 12 : '-');
-                            const apr = row['APR'] || row.Interest_Rate || '-';
-                            const branch = row['Branch Name'] || row['Branch'] || row.Property_City || '-';
+                          {processedData.slice(0, 50).map((row, i) => {
+                            // Extract fields using multiple possible field names
+                            const uli = row.ULI || row['Universal Loan Identifier'] || row.ApplNumb || row['Loan Number'] || '-';
+                            const address = row.Address || row['Street Address'] || row['Property Address'] || row['Subject Property Address'] || '-';
+                            const city = row.City || row['Property City'] || row['Subject Property City'] || '-';
+                            
+                            // Handle name fields - including parsing Borrower Name if needed
+                            let lastName = row.LastName || row['Last Name'] || row['Borrower Last Name'] || '';
+                            let firstName = row.FirstName || row['First Name'] || row['Borrower First Name'] || '';
+                            
+                            // If names are empty but we have Borrower Name, parse it
+                            if ((!lastName || !firstName) && (row['Borrower Name'] || row['BorrowerFullName'])) {
+                              const parsed = parseBorrowerName(String(row['Borrower Name'] || row['BorrowerFullName'] || ''));
+                              if (!lastName) lastName = parsed.lastName;
+                              if (!firstName) firstName = parsed.firstName;
+                            }
+                            
+                            const lender = row.Lender || row['Loan Officer'] || '-';
+                            const loanAmt = parseFloat(String(row.LoanAmount || row['Loan Amount'] || row['Loan Amount in Dollars'] || 0));
+                            const apr = row.APR || row['Annual Percentage Rate'] || row.InterestRate || '-';
+                            
+                            // Check if record was merged (flag set by mergeSupplementalData)
+                            const isMerged = row._merged === true;
+                            
+                            const error = validationErrors.find(e => e.applNumb === String(uli) || e.rowIdx === i + 1);
                             
                             return (
                               <tr key={i} className={cn("hover:bg-slate-50 transition-colors", error ? "bg-red-50/50 hover:bg-red-50" : "")}>
-                                <td className="px-4 py-3 font-medium">{loanId}</td>
-                                <td className="px-4 py-3">{branch}</td>
-                                <td className="px-4 py-3">{termYears}</td>
+                                <td className="px-4 py-3 font-medium truncate max-w-[100px]">{uli}</td>
+                                <td className="px-4 py-3 truncate max-w-[150px]">{address || '-'}</td>
+                                <td className="px-4 py-3">{city || '-'}</td>
+                                <td className="px-4 py-3">{lastName || '-'}</td>
+                                <td className="px-4 py-3">{firstName || '-'}</td>
+                                <td className="px-4 py-3">{lender}</td>
+                                <td className="px-4 py-3">${loanAmt.toLocaleString()}</td>
                                 <td className="px-4 py-3">{apr}{typeof apr === 'number' ? '%' : ''}</td>
+                                <td className="px-4 py-3">
+                                  {isMerged ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                      Yes
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                                      No
+                                    </span>
+                                  )}
+                                </td>
                                 <td className="px-4 py-3">
                                   {error ? (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
@@ -796,15 +918,17 @@ export default function Dashboard() {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-red-600 text-xs">
-                                  {error?.errors.join(", ")}
-                                </td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
                     </div>
+                    {processedData.length > 50 && (
+                      <div className="px-4 py-3 text-sm text-slate-500 bg-slate-50 border-t">
+                        Showing first 50 of {processedData.length} records
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1100,6 +1224,195 @@ export default function Dashboard() {
 
             <TabsContent value="tutorial" className="mt-0">
               <TutorialVideo />
+            </TabsContent>
+
+            {/* DEBUG TAB */}
+            <TabsContent value="debug" className="space-y-6 mt-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">Local Error Tracking</h3>
+                  <p className="text-sm text-muted-foreground">Track ETL errors and debug issues locally</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={refreshDebugLogs}>
+                    <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleDownloadLogs}>
+                    <Download className="w-4 h-4 mr-2" /> Export Logs
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleClearLogs} className="text-red-600 hover:text-red-700">
+                    <Trash2 className="w-4 h-4 mr-2" /> Clear All
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-slate-900">{errorLogs.length}</div>
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Logs</div>
+                  </CardContent>
+                </Card>
+                <Card className={errorLogs.filter(l => l.level === 'error').length > 0 ? "bg-red-50 border-red-200" : ""}>
+                  <CardContent className="pt-6">
+                    <div className={cn("text-2xl font-bold", errorLogs.filter(l => l.level === 'error').length > 0 ? "text-red-600" : "text-slate-900")}>
+                      {errorLogs.filter(l => l.level === 'error').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Errors</div>
+                  </CardContent>
+                </Card>
+                <Card className={errorLogs.filter(l => l.level === 'warning').length > 0 ? "bg-yellow-50 border-yellow-200" : ""}>
+                  <CardContent className="pt-6">
+                    <div className={cn("text-2xl font-bold", errorLogs.filter(l => l.level === 'warning').length > 0 ? "text-yellow-600" : "text-slate-900")}>
+                      {errorLogs.filter(l => l.level === 'warning').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Warnings</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-blue-600">{etlTraces.length}</div>
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">ETL Steps</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ETL Traces */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-600" />
+                    ETL Pipeline Traces
+                  </CardTitle>
+                  <CardDescription>Track each step of the ETL process</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {etlTraces.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No ETL traces recorded yet. Run the automation to see traces.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                      {etlTraces.slice().reverse().map((trace, i) => (
+                        <div key={trace.id} className={cn(
+                          "p-3 rounded-lg border text-sm",
+                          trace.errors.length > 0 ? "bg-red-50 border-red-200" :
+                          trace.warnings.length > 0 ? "bg-yellow-50 border-yellow-200" : "bg-slate-50"
+                        )}>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="font-medium">{trace.step}</span>
+                              <span className="text-muted-foreground ml-2">
+                                {trace.inputCount} → {trace.outputCount} rows
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {trace.duration}ms • {new Date(trace.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {trace.errors.length > 0 && (
+                            <div className="mt-2 text-xs text-red-600">
+                              {trace.errors.slice(0, 3).map((err, j) => (
+                                <div key={j}>• {err}</div>
+                              ))}
+                              {trace.errors.length > 3 && <div>...and {trace.errors.length - 3} more</div>}
+                            </div>
+                          )}
+                          {trace.warnings.length > 0 && (
+                            <div className="mt-2 text-xs text-yellow-700">
+                              {trace.warnings.slice(0, 3).map((warn, j) => (
+                                <div key={j}>• {warn}</div>
+                              ))}
+                              {trace.warnings.length > 3 && <div>...and {trace.warnings.length - 3} more</div>}
+                            </div>
+                          )}
+                          {trace.sampleData && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                View Details
+                              </summary>
+                              <pre className="mt-1 text-xs bg-white p-2 rounded overflow-x-auto">
+                                {JSON.stringify(trace.sampleData, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Error Logs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    Error & Warning Logs
+                  </CardTitle>
+                  <CardDescription>Recent errors and warnings from the application</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {errorLogs.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No errors or warnings logged yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {errorLogs.slice().reverse().map((log, i) => (
+                        <div key={log.id} className={cn(
+                          "p-3 rounded-lg border text-sm",
+                          log.level === 'error' ? "bg-red-50 border-red-200" :
+                          log.level === 'warning' ? "bg-yellow-50 border-yellow-200" :
+                          log.level === 'info' ? "bg-blue-50 border-blue-200" : "bg-slate-50"
+                        )}>
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2">
+                              {log.level === 'error' && <XCircle className="w-4 h-4 text-red-500" />}
+                              {log.level === 'warning' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+                              {log.level === 'info' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
+                              {log.level === 'debug' && <Bug className="w-4 h-4 text-slate-500" />}
+                              <span className={cn(
+                                "text-xs font-medium px-2 py-0.5 rounded",
+                                log.level === 'error' ? "bg-red-100 text-red-700" :
+                                log.level === 'warning' ? "bg-yellow-100 text-yellow-700" :
+                                log.level === 'info' ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
+                              )}>
+                                {log.category}
+                              </span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(log.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="mt-1 font-medium">{log.message}</div>
+                          {log.details && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                                View Details
+                              </summary>
+                              <pre className="mt-1 text-xs bg-white p-2 rounded overflow-x-auto">
+                                {JSON.stringify(log.details, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                          {log.stack && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-red-600 cursor-pointer hover:text-red-700">
+                                View Stack Trace
+                              </summary>
+                              <pre className="mt-1 text-xs bg-white p-2 rounded overflow-x-auto text-red-600">
+                                {log.stack}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
           </Tabs>
