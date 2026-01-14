@@ -1210,6 +1210,274 @@ export const processFile = async (file: File): Promise<SbslRow[]> => {
   });
 };
 
+// ============================================
+// OUTPUT COMPARISON / VALIDATION FEATURE
+// ============================================
+
+export interface ColumnStats {
+  matches: number;
+  total: number;
+  mismatches: string[];
+}
+
+export interface RowComparison {
+  key: string;
+  generated: SbslRow;
+  expected: SbslRow | null;
+  differences: Record<string, { generated: any; expected: any }>;
+  isMatch: boolean;
+  isNewRecord: boolean;
+}
+
+export interface ComparisonResult {
+  totalRecords: number;
+  matchedRecords: number;
+  partialMatches: number;
+  newRecords: number;
+  matchPercentage: number;
+  columnStats: Record<string, ColumnStats>;
+  rowComparisons: RowComparison[];
+  worstColumns: Array<{ column: string; matchRate: number; mismatches: number }>;
+}
+
+/**
+ * Compare generated output against desired/expected output
+ * Returns detailed comparison with green/red scoring for each cell
+ */
+export const compareOutputs = (
+  generated: SbslRow[],
+  desired: SbslRow[],
+  keyFields: string[] = ['ULI', 'Address', 'City']
+): ComparisonResult => {
+  const startTime = Date.now();
+  logInfo('ETL:Compare', 'Starting output comparison', {
+    generatedRows: generated.length,
+    desiredRows: desired.length
+  });
+
+  // Build lookup from desired output using multiple key strategies
+  const desiredByULI = new Map<string, SbslRow>();
+  const desiredByAddress = new Map<string, SbslRow>();
+  const desiredByLoanNum = new Map<string, SbslRow>();
+
+  desired.forEach(row => {
+    const uli = String(row.ULI || row['Universal Loan Identifier'] || '').trim().toUpperCase();
+    const address = String(row.Address || row['Street Address'] || '').trim().toLowerCase();
+    const city = String(row.City || row['Property City'] || '').trim().toLowerCase();
+    const loanNum = String(row.ApplNumb || row['Loan Number'] || row.LoanNumber || '').trim();
+
+    if (uli) desiredByULI.set(uli, row);
+    if (address && city) desiredByAddress.set(`${address}|${city}`, row);
+    if (loanNum) desiredByLoanNum.set(loanNum, row);
+  });
+
+  const rowComparisons: RowComparison[] = [];
+  const columnStats: Record<string, ColumnStats> = {};
+  let matchedRecords = 0;
+  let partialMatches = 0;
+  let newRecords = 0;
+
+  // Compare each generated row against desired output
+  generated.forEach((genRow, idx) => {
+    const uli = String(genRow.ULI || genRow['Universal Loan Identifier'] || '').trim().toUpperCase();
+    const address = String(genRow.Address || genRow['Street Address'] || '').trim().toLowerCase();
+    const city = String(genRow.City || genRow['Property City'] || '').trim().toLowerCase();
+    const loanNum = String(genRow.ApplNumb || genRow['Loan Number'] || genRow.LoanNumber || '').trim();
+
+    // Try to find matching expected row using multiple keys
+    const expRow = desiredByULI.get(uli) ||
+                   desiredByAddress.get(`${address}|${city}`) ||
+                   desiredByLoanNum.get(loanNum);
+
+    const key = uli || `${address}|${city}` || loanNum || `row-${idx}`;
+    const differences: Record<string, { generated: any; expected: any }> = {};
+
+    if (expRow) {
+      // Compare each column
+      const allColumns = new Set([...Object.keys(genRow), ...Object.keys(expRow)]);
+
+      allColumns.forEach(col => {
+        // Skip internal/metadata columns
+        if (col.startsWith('_') || col === 'BorrowerFullName') return;
+
+        const genVal = normalizeValue(genRow[col]);
+        const expVal = normalizeValue(expRow[col]);
+
+        if (!columnStats[col]) {
+          columnStats[col] = { matches: 0, total: 0, mismatches: [] };
+        }
+        columnStats[col].total++;
+
+        if (genVal === expVal) {
+          columnStats[col].matches++;
+        } else {
+          columnStats[col].mismatches.push(key);
+          differences[col] = { generated: genRow[col], expected: expRow[col] };
+        }
+      });
+    }
+
+    const isMatch = Object.keys(differences).length === 0;
+    const isNewRecord = !expRow;
+
+    if (isMatch && expRow) {
+      matchedRecords++;
+    } else if (expRow && Object.keys(differences).length <= 5) {
+      partialMatches++;
+    }
+    if (isNewRecord) {
+      newRecords++;
+    }
+
+    rowComparisons.push({
+      key,
+      generated: genRow,
+      expected: expRow ?? null,
+      differences,
+      isMatch: isMatch && !isNewRecord,
+      isNewRecord
+    });
+  });
+
+  // Calculate worst columns (lowest match rate)
+  const worstColumns = Object.entries(columnStats)
+    .filter(([_, stats]) => stats.total > 0)
+    .map(([column, stats]) => ({
+      column,
+      matchRate: stats.total > 0 ? (stats.matches / stats.total) * 100 : 100,
+      mismatches: stats.total - stats.matches
+    }))
+    .filter(c => c.mismatches > 0)
+    .sort((a, b) => a.matchRate - b.matchRate)
+    .slice(0, 20);
+
+  const result: ComparisonResult = {
+    totalRecords: generated.length,
+    matchedRecords,
+    partialMatches,
+    newRecords,
+    matchPercentage: generated.length > 0 ? (matchedRecords / generated.length) * 100 : 0,
+    columnStats,
+    rowComparisons,
+    worstColumns
+  };
+
+  const duration = Date.now() - startTime;
+  logInfo('ETL:Compare', 'Comparison complete', {
+    duration,
+    matchedRecords,
+    partialMatches,
+    newRecords,
+    totalColumns: Object.keys(columnStats).length,
+    worstColumnsCount: worstColumns.length
+  });
+
+  return result;
+};
+
+/**
+ * Normalize values for comparison (handle different formats)
+ */
+const normalizeValue = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '';
+
+  const strVal = String(value).trim();
+
+  // Normalize numbers (remove trailing zeros after decimal)
+  if (/^\d+\.?\d*$/.test(strVal)) {
+    const num = parseFloat(strVal);
+    if (!isNaN(num)) {
+      // For whole numbers, return as integer string
+      if (Number.isInteger(num)) return String(Math.round(num));
+      // For decimals, limit to 4 decimal places and remove trailing zeros
+      return parseFloat(num.toFixed(4)).toString();
+    }
+  }
+
+  // Normalize dates (convert to consistent format)
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(strVal)) {
+    const parts = strVal.split('/');
+    const month = parseInt(parts[0]);
+    const day = parseInt(parts[1]);
+    const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+    return `${month}/${day}/${year.slice(-2)}`;
+  }
+
+  return strVal.toUpperCase();
+};
+
+/**
+ * Export comparison report as Excel with multiple sheets
+ */
+export const exportComparisonReport = (
+  generated: SbslRow[],
+  desired: SbslRow[],
+  comparison: ComparisonResult,
+  filename?: string
+): void => {
+  logInfo('ETL:Export', 'Exporting comparison report');
+
+  // Sheet 1: Generated Output
+  const generatedWs = utils.json_to_sheet(generated);
+
+  // Sheet 2: Desired Output
+  const desiredWs = utils.json_to_sheet(desired);
+
+  // Sheet 3: Diff Report
+  const diffData = comparison.rowComparisons.map(row => {
+    const diffRecord: Record<string, any> = {
+      'Match Key': row.key,
+      'Status': row.isNewRecord ? 'NEW RECORD' : row.isMatch ? 'MATCH' : 'MISMATCH',
+      'Differences Count': Object.keys(row.differences).length,
+      'Mismatched Columns': Object.keys(row.differences).join(', ')
+    };
+
+    // Add first few differences
+    Object.entries(row.differences).slice(0, 5).forEach(([col, diff], i) => {
+      diffRecord[`Diff ${i + 1} Column`] = col;
+      diffRecord[`Diff ${i + 1} Generated`] = diff.generated;
+      diffRecord[`Diff ${i + 1} Expected`] = diff.expected;
+    });
+
+    return diffRecord;
+  });
+  const diffWs = utils.json_to_sheet(diffData);
+
+  // Sheet 4: Column Stats
+  const columnStatsData = comparison.worstColumns.map(col => ({
+    'Column': col.column,
+    'Match Rate': `${col.matchRate.toFixed(1)}%`,
+    'Mismatches': col.mismatches,
+    'Status': col.matchRate === 100 ? 'PASS' : col.matchRate >= 90 ? 'WARN' : 'FAIL'
+  }));
+  const statsWs = utils.json_to_sheet(columnStatsData);
+
+  // Sheet 5: Summary
+  const summaryData = [{
+    'Total Generated Records': comparison.totalRecords,
+    'Exact Matches': comparison.matchedRecords,
+    'Partial Matches (<=5 diffs)': comparison.partialMatches,
+    'New Records (no match found)': comparison.newRecords,
+    'Overall Match Rate': `${comparison.matchPercentage.toFixed(1)}%`,
+    'Columns Compared': Object.keys(comparison.columnStats).length,
+    'Columns with Issues': comparison.worstColumns.length,
+    'Generated Date': new Date().toISOString()
+  }];
+  const summaryWs = utils.json_to_sheet(summaryData);
+
+  const wb = utils.book_new();
+  utils.book_append_sheet(wb, generatedWs, 'Generated Output');
+  utils.book_append_sheet(wb, desiredWs, 'Desired Output');
+  utils.book_append_sheet(wb, diffWs, 'Diff Report');
+  utils.book_append_sheet(wb, statsWs, 'Column Stats');
+  utils.book_append_sheet(wb, summaryWs, 'Summary');
+
+  const now = new Date();
+  const defaultFilename = `Comparison_Report_${now.toISOString().slice(0, 10)}.xlsx`;
+
+  writeFile(wb, filename || defaultFilename);
+};
+
 // Legacy compatibility exports
 export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], count: number } => {
   return { filtered: data, count: data.length };

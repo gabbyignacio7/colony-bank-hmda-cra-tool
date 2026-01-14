@@ -36,11 +36,11 @@ import {
   XCircle
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { 
-  processFile, 
-  MOCK_SBSL_DATA, 
-  filterByCurrentMonth, 
-  validateData, 
+import {
+  processFile,
+  MOCK_SBSL_DATA,
+  filterByCurrentMonth,
+  validateData,
   generateSummaryStats,
   transformEncompassData,
   cleanAndFormatData,
@@ -49,8 +49,11 @@ import {
   transformToCRAWizFormat,
   CRA_WIZ_128_COLUMNS,
   parseBorrowerName,
+  compareOutputs,
+  exportComparisonReport,
   type SbslRow,
-  type ValidationResult
+  type ValidationResult,
+  type ComparisonResult
 } from '@/lib/etl-engine';
 import { 
   ErrorTracker, 
@@ -116,6 +119,10 @@ export default function Dashboard() {
   
   // Diff State
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+
+  // Output Comparison State
+  const [desiredOutputData, setDesiredOutputData] = useState<SbslRow[]>([]);
+  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   
   // Stress Test State
   const [stressResults, setStressResults] = useState<any[]>([]);
@@ -186,6 +193,11 @@ export default function Dashboard() {
         setSuppData(data as SbslRow[]);
         addLog(`Loaded SUPPLEMENTAL file: ${file.name} (${data.length} rows)`);
         toast({ title: "Supplemental File Loaded", description: `${data.length} records ready for merge` });
+      } else if (type === 'expected') {
+        // Desired/expected output for comparison
+        setDesiredOutputData(data as SbslRow[]);
+        addLog(`Loaded DESIRED OUTPUT file: ${file.name} (${data.length} rows)`);
+        toast({ title: "Desired Output Loaded", description: `${data.length} records ready for comparison` });
       } else {
         addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
         toast({ title: "File Loaded", description: `${file.name} ready for processing` });
@@ -384,6 +396,58 @@ export default function Dashboard() {
         title: "Export Failed", 
         description: "Error creating CRA file", 
         variant: "destructive" 
+      });
+    }
+  };
+
+  // Run comparison against desired output
+  const runOutputComparison = () => {
+    if (processedData.length === 0) {
+      toast({ title: "No Data", description: "Run automation first to generate data", variant: "destructive" });
+      return;
+    }
+    if (desiredOutputData.length === 0) {
+      toast({ title: "No Desired Output", description: "Upload a desired output file (Input D) first", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const transformedData = transformToCRAWizFormat(processedData);
+      const result = compareOutputs(transformedData, desiredOutputData);
+      setComparisonResult(result);
+
+      toast({
+        title: "Comparison Complete",
+        description: `${result.matchPercentage.toFixed(1)}% match rate (${result.matchedRecords}/${result.totalRecords} exact matches)`
+      });
+    } catch (error) {
+      toast({
+        title: "Comparison Failed",
+        description: "Error comparing outputs",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Download comparison report Excel
+  const downloadComparisonReportFile = () => {
+    if (!comparisonResult) {
+      toast({ title: "No Comparison", description: "Run comparison first", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const transformedData = transformToCRAWizFormat(processedData);
+      exportComparisonReport(transformedData, desiredOutputData, comparisonResult);
+      toast({
+        title: "Report Downloaded",
+        description: "Comparison report with all sheets exported"
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Error creating comparison report",
+        variant: "destructive"
       });
     }
   };
@@ -674,16 +738,16 @@ export default function Dashboard() {
             
             {/* UPLOAD TAB */}
             <TabsContent value="upload" className="space-y-6 mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Input A: LaserPro</CardTitle>
                     <CardDescription>Commercial HUDDA Loans (Text)</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <FileUpload 
-                      label="LaserPro Export" 
-                      onFileSelect={(f) => handleFileUpload('laserPro', f)} 
+                    <FileUpload
+                      label="LaserPro Export"
+                      onFileSelect={(f) => handleFileUpload('laserPro', f)}
                       file={files.laserPro}
                     />
                   </CardContent>
@@ -698,8 +762,8 @@ export default function Dashboard() {
                      </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <FileUpload 
-                      label="Encompass HMDA Export" 
+                    <FileUpload
+                      label="Encompass HMDA Export"
                       onFileSelect={(f) => handleFileUpload('encompass', f)}
                       file={files.encompass}
                     />
@@ -715,18 +779,43 @@ export default function Dashboard() {
                      </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <FileUpload 
-                      label="Additional Fields Export" 
+                    <FileUpload
+                      label="Additional Fields Export"
                       onFileSelect={(f) => handleFileUpload('supp', f)}
                       file={files.supp}
                     />
                   </CardContent>
                 </Card>
+
+                <Card className="border-purple-200 bg-purple-50/30">
+                  <CardHeader>
+                     <CardTitle className="text-base flex items-center gap-2">
+                       <FileDiff className="w-4 h-4 text-purple-600" />
+                       Input D: Desired Output
+                     </CardTitle>
+                     <CardDescription className="text-xs">
+                       Optional: Upload expected output for comparison/validation
+                       <span className="block text-purple-600 mt-1">Compare generated vs desired output</span>
+                     </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FileUpload
+                      label="Desired Output (Optional)"
+                      onFileSelect={(f) => handleFileUpload('expected', f)}
+                      file={files.expected}
+                    />
+                    {desiredOutputData.length > 0 && (
+                      <div className="mt-2 text-xs text-purple-700 bg-purple-100 p-2 rounded">
+                        {desiredOutputData.length} records loaded for comparison
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button 
-                  onClick={() => setActiveTab('process')} 
+                <Button
+                  onClick={() => setActiveTab('process')}
                   className="bg-[#003366] hover:bg-[#002244]"
                 >
                   Continue to Phase 2 <ArrowRight className="ml-2 w-4 h-4" />
@@ -932,6 +1021,162 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* OUTPUT VALIDATION / COMPARISON SECTION */}
+              {desiredOutputData.length > 0 && processedData.length > 0 && (
+                <Card className="border-purple-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileDiff className="w-5 h-5 text-purple-600" />
+                      Output Validation
+                    </CardTitle>
+                    <CardDescription>
+                      Compare generated output vs desired output ({desiredOutputData.length} expected records)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-3 mb-4">
+                      <Button
+                        onClick={runOutputComparison}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Play className="mr-2 h-4 w-4" />
+                        Run Comparison
+                      </Button>
+                      {comparisonResult && (
+                        <Button
+                          variant="outline"
+                          onClick={downloadComparisonReportFile}
+                          className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Export Comparison Report
+                        </Button>
+                      )}
+                    </div>
+
+                    {comparisonResult && (
+                      <div className="space-y-4">
+                        {/* Summary Stats */}
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className={cn(
+                            "p-4 rounded-lg border",
+                            comparisonResult.matchPercentage >= 90 ? "bg-green-50 border-green-200" :
+                            comparisonResult.matchPercentage >= 70 ? "bg-yellow-50 border-yellow-200" :
+                            "bg-red-50 border-red-200"
+                          )}>
+                            <div className={cn(
+                              "text-2xl font-bold",
+                              comparisonResult.matchPercentage >= 90 ? "text-green-600" :
+                              comparisonResult.matchPercentage >= 70 ? "text-yellow-600" :
+                              "text-red-600"
+                            )}>
+                              {comparisonResult.matchPercentage.toFixed(1)}%
+                            </div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Match Rate</div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                            <div className="text-2xl font-bold text-green-600">{comparisonResult.matchedRecords}</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Exact Matches</div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                            <div className="text-2xl font-bold text-yellow-600">{comparisonResult.partialMatches}</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">Partial Matches</div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                            <div className="text-2xl font-bold text-slate-600">{comparisonResult.newRecords}</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">New Records</div>
+                          </div>
+                        </div>
+
+                        {/* Column Accuracy - Show worst columns */}
+                        {comparisonResult.worstColumns.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="font-medium text-sm mb-2">Column Accuracy (showing mismatches)</h4>
+                            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                              {comparisonResult.worstColumns.map((col) => (
+                                <div key={col.column} className="flex items-center gap-2 text-sm p-2 rounded bg-slate-50">
+                                  <span className={cn(
+                                    "w-5 h-5 flex items-center justify-center rounded-full text-xs",
+                                    col.matchRate === 100 ? "bg-green-100 text-green-700" :
+                                    col.matchRate >= 90 ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-red-100 text-red-700"
+                                  )}>
+                                    {col.matchRate === 100 ? <CheckCircle2 className="w-3 h-3" /> :
+                                     col.matchRate >= 90 ? <AlertTriangle className="w-3 h-3" /> :
+                                     <XCircle className="w-3 h-3" />}
+                                  </span>
+                                  <span className="font-mono text-xs flex-1">{col.column}</span>
+                                  <span className={cn(
+                                    "text-xs font-medium px-2 py-0.5 rounded",
+                                    col.matchRate >= 90 ? "bg-green-100 text-green-700" :
+                                    col.matchRate >= 70 ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-red-100 text-red-700"
+                                  )}>
+                                    {col.matchRate.toFixed(0)}%
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({col.mismatches} mismatches)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Row-level comparison preview */}
+                        <div className="mt-4">
+                          <h4 className="font-medium text-sm mb-2">Row Comparison (first 10 with differences)</h4>
+                          <div className="rounded-md border overflow-hidden">
+                            <div className="overflow-x-auto max-h-[300px]">
+                              <table className="w-full text-sm">
+                                <thead className="bg-slate-100 sticky top-0">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left">Key</th>
+                                    <th className="px-3 py-2 text-left">Status</th>
+                                    <th className="px-3 py-2 text-left">Differences</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {comparisonResult.rowComparisons
+                                    .filter(r => !r.isMatch || r.isNewRecord)
+                                    .slice(0, 10)
+                                    .map((row, i) => (
+                                      <tr key={i} className={cn(
+                                        row.isNewRecord ? "bg-slate-50" :
+                                        Object.keys(row.differences).length <= 3 ? "bg-yellow-50" :
+                                        "bg-red-50"
+                                      )}>
+                                        <td className="px-3 py-2 font-mono text-xs truncate max-w-[150px]">{row.key}</td>
+                                        <td className="px-3 py-2">
+                                          {row.isNewRecord ? (
+                                            <span className="px-2 py-0.5 rounded-full text-xs bg-slate-200 text-slate-700">New</span>
+                                          ) : Object.keys(row.differences).length <= 3 ? (
+                                            <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-200 text-yellow-800">
+                                              {Object.keys(row.differences).length} diff
+                                            </span>
+                                          ) : (
+                                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-200 text-red-800">
+                                              {Object.keys(row.differences).length} diffs
+                                            </span>
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-2 text-xs text-muted-foreground truncate max-w-[300px]">
+                                          {row.isNewRecord ? 'No matching expected record' :
+                                            Object.keys(row.differences).slice(0, 5).join(', ')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* PHASE 3: CRA WIZ POST-PROCESSING TAB */}
