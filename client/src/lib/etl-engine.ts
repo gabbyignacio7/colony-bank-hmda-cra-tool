@@ -211,9 +211,13 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Co-Applicant Ethnicity-1': 'Coa_Ethnicity_1',
   'Ethnicity of Co-Applicant or Co-Borrower: 1': 'Coa_Ethnicity_1',
   'Co-Applicant Ethnicity 2': 'Coa_Ethnicity_2',
+  'Ethnicity of Co-Applicant or Co-Borrower: 2': 'Coa_Ethnicity_2',
   'Co-Applicant Ethnicity 3': 'Coa_Ethnicity_3',
+  'Ethnicity of Co-Applicant or Co-Borrower: 3': 'Coa_Ethnicity_3',
   'Co-Applicant Ethnicity 4': 'Coa_Ethnicity_4',
+  'Ethnicity of Co-Applicant or Co-Borrower: 4': 'Coa_Ethnicity_4',
   'Co-Applicant Ethnicity 5': 'Coa_Ethnicity_5',
+  'Ethnicity of Co-Applicant or Co-Borrower: 5': 'Coa_Ethnicity_5',
   'Co-Applicant Ethnicity: Free Form Text Field': 'Coa_EthnicityOther',
   'Ethnicity of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname': 'Coa_Ethnicity_Determinant',
   'Co-Applicant Ethnicity Basis': 'Coa_Ethnicity_Determinant',
@@ -237,9 +241,13 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Co-Applicant Race-1': 'CoaRace_1',
   'Race of Co-Applicant or Co-Borrower: 1': 'CoaRace_1',
   'Co-Applicant Race 2': 'CoaRace_2',
+  'Race of Co-Applicant or Co-Borrower: 2': 'CoaRace_2',
   'Co-Applicant Race 3': 'CoaRace_3',
+  'Race of Co-Applicant or Co-Borrower: 3': 'CoaRace_3',
   'Co-Applicant Race 4': 'CoaRace_4',
+  'Race of Co-Applicant or Co-Borrower: 4': 'CoaRace_4',
   'Co-Applicant Race 5': 'CoaRace_5',
+  'Race of Co-Applicant or Co-Borrower: 5': 'CoaRace_5',
   'Co-Applicant Race: Free Form Text Field for American Indian or Alaska Native': 'CoaRace1_Other',
   'Co-Applicant Race: Free Form Text Field for Other Asian': 'CoaRace27_Other',
   'Co-Applicant Race: Free Form Text Field for Other Pacific Islander': 'CoaRace44_Other',
@@ -296,6 +304,8 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Credit Scoring Model': 'CreditModel',
   'Name and Version of Credit Scoring Model: Conditional Free Form Text Field for Code 8': 'CreditModelOther',
   'Co-Applicant Credit Scoring Model': 'Coa_CreditModel',
+  'Credit Score Type of Co-Applicant or Co-Borrower': 'Coa_CreditModel',
+  'Name and Version of Credit Scoring Model of Co-Applicant or Co-Borrower': 'Coa_CreditModel',
   'Co-Applicant Name and Version of Credit Scoring Model: Conditional Free Form Text Field': 'Coa_CreditModelOther',
 
   // Denial Reasons
@@ -335,7 +345,14 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Submission of Application': 'APPMethod',
   'Initially Payable to Your Institution': 'PayableInst',
   'Payable to Institution': 'PayableInst',
+    // NMLSRID - Mortgage Loan Originator identifier (comprehensive variations)
   'NMLS ID': 'NMLSRID',
+  'Mortgage Loan Originator NMLSR Identifier': 'NMLSRID',
+  'NMLSR Identifier': 'NMLSRID',
+  'Mortgage Loan Originator NMLS ID': 'NMLSRID',
+  'MLO NMLS ID': 'NMLSRID',
+  'Originator NMLS': 'NMLSRID',
+  'MLO NMLSR ID': 'NMLSRID',
   'Originator NMLSR ID': 'NMLSRID',
   'Loan Originator NMLSR ID': 'NMLSRID',
 
@@ -365,7 +382,11 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Borrower First Name': 'FirstName',
   'Borrower Last Name': 'LastName',
   'Co-Borrower First Name': 'Coa_FirstName',
+  'CoBorrower First Name': 'Coa_FirstName',
+  'Co-Applicant First Name': 'Coa_FirstName',
   'Co-Borrower Last Name': 'Coa_LastName',
+  'CoBorrower Last Name': 'Coa_LastName',
+  'Co-Applicant Last Name': 'Coa_LastName',
   'Loan Officer': 'Lender',
   'Loan Processor': 'AA_Processor',
   'Post Closer': 'LDP_PostCloser',
@@ -615,8 +636,8 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'ApplNumb': ['ApplNumb', 'Loan Number', 'Loan ID', 'Application Number', 'LoanNumber'],
     'LastName': ['LastName', 'Last Name', 'Borrower Last Name', 'Applicant Last Name', 'LASTNAME'],
     'FirstName': ['FirstName', 'First Name', 'Borrower First Name', 'Applicant First Name', 'FIRSTNAME'],
-    'Coa_LastName': ['Coa_LastName', 'Co-Borrower Last Name', 'Co-Applicant Last Name', 'CLASTNAME'],
-    'Coa_FirstName': ['Coa_FirstName', 'Co-Borrower First Name', 'Co-Applicant First Name', 'CFIRSTNAME'],
+    'Coa_LastName': ['Coa_LastName', 'Co-Borrower Last Name', 'Co-Applicant Last Name', 'CoBorrower Last Name', 'CLASTNAME', 'CoLastName'],
+    'Coa_FirstName': ['Coa_FirstName', 'Co-Borrower First Name', 'Co-Applicant First Name', 'CoBorrower First Name', 'CFIRSTNAME', 'CoFirstName'],
     'LoanAmount': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS', 'LoanAmountInDollars'],
     'LoanAmountInDollars': ['LoanAmount', 'Loan Amount', 'Loan Amount in Dollars', 'LOANAMOUNTINDOLLARS', 'LoanAmountInDollars'],
     'Address': ['Address', 'Street Address', 'Property Address', 'Property Street', 'Subject Property Address', 'ADDRESS'],
@@ -649,7 +670,7 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'Lender': ['Lender', 'Loan Officer', 'Originator', 'LENDER'],
     'AA_Processor': ['AA_Processor', 'Loan Processor', 'Processor', 'AA_LOANPROCESSOR'],
     'LDP_PostCloser': ['LDP_PostCloser', 'Post Closer', 'LDP_POSTCLOSER'],
-    'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLSR ID', 'Loan Originator NMLSR ID'],
+    'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLSR ID', 'Loan Originator NMLSR ID', 'Mortgage Loan Originator NMLSR Identifier', 'NMLSR Identifier', 'MLO NMLS ID', 'Mortgage Loan Originator NMLS ID'],
     'Lien_Status': ['Lien_Status', 'Lien Status', 'LIEN_STATUS'],
     'HOEPA_Status': ['HOEPA_Status', 'HOEPA Status', 'HOEPA_STATUS'],
     'Rate_Spread': ['Rate_Spread', 'Rate Spread', 'Rate Spread for Reporting Purposes', 'RATE_SPREAD'],
@@ -666,6 +687,22 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'ConstructionMethod': ['ConstructionMethod', 'Construction Method', 'CONSTRUCTIONMETHOD'],
     'OccupancyType': ['OccupancyType', 'Occupancy Type', 'Occupancy', 'OCCUPANCYTYPE'],
     'Preapproval': ['Preapproval', 'Pre-approval', 'PREAPPROVAL'],
+    // Co-applicant ethnicity variations
+    'Coa_Ethnicity_1': ['Coa_Ethnicity_1', 'Co-Applicant Ethnicity 1', 'Ethnicity of Co-Applicant or Co-Borrower: 1', 'COA_ETHNICITY_1'],
+    'Coa_Ethnicity_2': ['Coa_Ethnicity_2', 'Co-Applicant Ethnicity 2', 'Ethnicity of Co-Applicant or Co-Borrower: 2', 'COA_ETHNICITY_2'],
+    'Coa_Ethnicity_3': ['Coa_Ethnicity_3', 'Co-Applicant Ethnicity 3', 'Ethnicity of Co-Applicant or Co-Borrower: 3', 'COA_ETHNICITY_3'],
+    'Coa_Ethnicity_4': ['Coa_Ethnicity_4', 'Co-Applicant Ethnicity 4', 'Ethnicity of Co-Applicant or Co-Borrower: 4', 'COA_ETHNICITY_4'],
+    'Coa_Ethnicity_5': ['Coa_Ethnicity_5', 'Co-Applicant Ethnicity 5', 'Ethnicity of Co-Applicant or Co-Borrower: 5', 'COA_ETHNICITY_5'],
+    'Coa_Ethnicity_Determinant': ['Coa_Ethnicity_Determinant', 'Ethnicity of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname', 'Co-Applicant Ethnicity Basis'],
+    // Co-applicant race variations
+    'CoaRace_1': ['CoaRace_1', 'Co-Applicant Race 1', 'Race of Co-Applicant or Co-Borrower: 1', 'COARACE_1'],
+    'CoaRace_2': ['CoaRace_2', 'Co-Applicant Race 2', 'Race of Co-Applicant or Co-Borrower: 2', 'COARACE_2'],
+    'CoaRace_3': ['CoaRace_3', 'Co-Applicant Race 3', 'Race of Co-Applicant or Co-Borrower: 3', 'COARACE_3'],
+    'CoaRace_4': ['CoaRace_4', 'Co-Applicant Race 4', 'Race of Co-Applicant or Co-Borrower: 4', 'COARACE_4'],
+    'CoaRace_5': ['CoaRace_5', 'Co-Applicant Race 5', 'Race of Co-Applicant or Co-Borrower: 5', 'COARACE_5'],
+    'CoaRace_Determinant': ['CoaRace_Determinant', 'Race of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname', 'Co-Applicant Race Basis'],
+    'CoaSex_Determinant': ['CoaSex_Determinant', 'Sex of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname', 'Co-Applicant Sex Basis'],
+    'Coa_CreditModel': ['Coa_CreditModel', 'Co-Applicant Credit Scoring Model', 'Credit Score Type of Co-Applicant or Co-Borrower', 'Name and Version of Credit Scoring Model of Co-Applicant or Co-Borrower'],
   };
 
   const possibleNames = variations[targetField] || [targetField];
@@ -1030,6 +1067,7 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
       const loanProgram = supp['LoanProgram'] || supp['Loan Program'] || '';
       const rateType = supp['RateType'] || supp['Rate Type'] || '';
       const branchName = supp['BranchName'] || supp['Branch Name'] || supp['Branch'] || '';
+// Co-applicant demographics from supplemental      const coaAge = supp['Coa_Age'] || supp['Co-Applicant Age'] || supp['Age of Co-Applicant or Co-Borrower'] || '';      const coaCreditScore = supp['Coa_CreditScore'] || supp['Co-Applicant Credit Score'] || supp['Credit Score of Co-Applicant or Co-Borrower'] || '';      const coaSex = supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower'] || '';      const coaEthnicity1 = supp['Coa_Ethnicity_1'] || supp['Co-Applicant Ethnicity 1'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 1'] || '';      const coaRace1 = supp['CoaRace_1'] || supp['Co-Applicant Race 1'] || supp['Race of Co-Applicant or Co-Borrower: 1'] || '';
       
       // Also get address fields from supplemental if primary is missing them
       const suppAddress = supp['Address'] || supp['Subject Property Address'] || supp['Street Address'] || '';
@@ -1041,7 +1079,7 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
         FirstName: firstName || row.FirstName,
         LastName: lastName || row.LastName,
         Coa_FirstName: coaFirstName || row.Coa_FirstName,
-        Coa_LastName: coaLastName || row.Coa_LastName,
+        Coa_LastName: coaLastName || row.Coa_LastName,        Coa_Age: coaAge || row.Coa_Age,        Coa_CreditScore: coaCreditScore || row.Coa_CreditScore,        CoaSex: coaSex || row.CoaSex,        Coa_Ethnicity_1: coaEthnicity1 || row.Coa_Ethnicity_1,        CoaRace_1: coaRace1 || row.CoaRace_1,
         Lender: lender || row.Lender,
         AA_Processor: processor || row.AA_Processor,
         LDP_PostCloser: postCloser || row.LDP_PostCloser,
