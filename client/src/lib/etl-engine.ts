@@ -1067,8 +1067,27 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
       const loanProgram = supp['LoanProgram'] || supp['Loan Program'] || '';
       const rateType = supp['RateType'] || supp['Rate Type'] || '';
       const branchName = supp['BranchName'] || supp['Branch Name'] || supp['Branch'] || '';
-// Co-applicant demographics from supplemental      const coaAge = supp['Coa_Age'] || supp['Co-Applicant Age'] || supp['Age of Co-Applicant or Co-Borrower'] || '';      const coaCreditScore = supp['Coa_CreditScore'] || supp['Co-Applicant Credit Score'] || supp['Credit Score of Co-Applicant or Co-Borrower'] || '';      const coaSex = supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower'] || '';      const coaEthnicity1 = supp['Coa_Ethnicity_1'] || supp['Co-Applicant Ethnicity 1'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 1'] || '';      const coaRace1 = supp['CoaRace_1'] || supp['Co-Applicant Race 1'] || supp['Race of Co-Applicant or Co-Borrower: 1'] || '';
-      
+
+      // Co-applicant demographics from supplemental
+      const coaAge = supp['Coa_Age'] || supp['Co-Applicant Age'] || supp['Age of Co-Applicant or Co-Borrower'] || supp['Co-Borrower Age'] || '';
+      const coaCreditScore = supp['Coa_CreditScore'] || supp['Co-Applicant Credit Score'] || supp['Credit Score of Co-Applicant or Co-Borrower'] || supp['Co-Borrower Credit Score'] || '';
+      const coaSex = supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower'] || '';
+      const coaCreditModel = supp['Coa_CreditModel'] || supp['Co-Applicant Credit Scoring Model'] || supp['Credit Score Type of Co-Applicant or Co-Borrower'] || '';
+
+      // Co-applicant ethnicity
+      const coaEthnicity1 = supp['Coa_Ethnicity_1'] || supp['Co-Applicant Ethnicity 1'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 1'] || '';
+      const coaEthnicity2 = supp['Coa_Ethnicity_2'] || supp['Co-Applicant Ethnicity 2'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 2'] || '';
+      const coaEthnicity3 = supp['Coa_Ethnicity_3'] || supp['Co-Applicant Ethnicity 3'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 3'] || '';
+      const coaEthnicity4 = supp['Coa_Ethnicity_4'] || supp['Co-Applicant Ethnicity 4'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 4'] || '';
+      const coaEthnicity5 = supp['Coa_Ethnicity_5'] || supp['Co-Applicant Ethnicity 5'] || supp['Ethnicity of Co-Applicant or Co-Borrower: 5'] || '';
+
+      // Co-applicant race
+      const coaRace1 = supp['CoaRace_1'] || supp['Co-Applicant Race 1'] || supp['Race of Co-Applicant or Co-Borrower: 1'] || '';
+      const coaRace2 = supp['CoaRace_2'] || supp['Co-Applicant Race 2'] || supp['Race of Co-Applicant or Co-Borrower: 2'] || '';
+      const coaRace3 = supp['CoaRace_3'] || supp['Co-Applicant Race 3'] || supp['Race of Co-Applicant or Co-Borrower: 3'] || '';
+      const coaRace4 = supp['CoaRace_4'] || supp['Co-Applicant Race 4'] || supp['Race of Co-Applicant or Co-Borrower: 4'] || '';
+      const coaRace5 = supp['CoaRace_5'] || supp['Co-Applicant Race 5'] || supp['Race of Co-Applicant or Co-Borrower: 5'] || '';
+
       // Also get address fields from supplemental if primary is missing them
       const suppAddress = supp['Address'] || supp['Subject Property Address'] || supp['Street Address'] || '';
       const suppCity = supp['City'] || supp['Subject Property City'] || '';
@@ -1079,7 +1098,21 @@ export const mergeSupplementalData = (primaryData: SbslRow[], supplementalData: 
         FirstName: firstName || row.FirstName,
         LastName: lastName || row.LastName,
         Coa_FirstName: coaFirstName || row.Coa_FirstName,
-        Coa_LastName: coaLastName || row.Coa_LastName,        Coa_Age: coaAge || row.Coa_Age,        Coa_CreditScore: coaCreditScore || row.Coa_CreditScore,        CoaSex: coaSex || row.CoaSex,        Coa_Ethnicity_1: coaEthnicity1 || row.Coa_Ethnicity_1,        CoaRace_1: coaRace1 || row.CoaRace_1,
+        Coa_LastName: coaLastName || row.Coa_LastName,
+        Coa_Age: coaAge || row.Coa_Age,
+        Coa_CreditScore: coaCreditScore || row.Coa_CreditScore,
+        CoaSex: coaSex || row.CoaSex,
+        Coa_CreditModel: coaCreditModel || row.Coa_CreditModel,
+        Coa_Ethnicity_1: coaEthnicity1 || row.Coa_Ethnicity_1,
+        Coa_Ethnicity_2: coaEthnicity2 || row.Coa_Ethnicity_2,
+        Coa_Ethnicity_3: coaEthnicity3 || row.Coa_Ethnicity_3,
+        Coa_Ethnicity_4: coaEthnicity4 || row.Coa_Ethnicity_4,
+        Coa_Ethnicity_5: coaEthnicity5 || row.Coa_Ethnicity_5,
+        CoaRace_1: coaRace1 || row.CoaRace_1,
+        CoaRace_2: coaRace2 || row.CoaRace_2,
+        CoaRace_3: coaRace3 || row.CoaRace_3,
+        CoaRace_4: coaRace4 || row.CoaRace_4,
+        CoaRace_5: coaRace5 || row.CoaRace_5,
         Lender: lender || row.Lender,
         AA_Processor: processor || row.AA_Processor,
         LDP_PostCloser: postCloser || row.LDP_PostCloser,
