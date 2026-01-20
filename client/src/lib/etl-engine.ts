@@ -337,7 +337,12 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Loan Term': 'Loan_Term',
   'Loan Term (Months)': 'Loan_Term_Months',
   'Prepayment Penalty Term': 'PPPTerm',
+  // IntroRatePeriod variations - Fix 7 & 8 (RateType, Var_Term derivation)
   'Introductory Rate Period': 'IntroRatePeriod',
+  'Intro Rate Period': 'IntroRatePeriod',
+  'IntroRatePeriod': 'IntroRatePeriod',
+  'Initial Rate Period': 'IntroRatePeriod',
+  'ARM Initial Rate Period': 'IntroRatePeriod',
   'Balloon Payment': 'BalloonPMT',
   'Interest-Only Payments': 'IOPMT',
   'Negative Amortization': 'NegAM',
@@ -729,6 +734,8 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     // Loan Term variations - Fix 3 & 4 (Columns CP, CQ)
     'Loan_Term': ['Loan_Term', 'Loan Term', 'LoanTerm', 'Term', 'Term in Years', 'LOAN_TERM'],
     'Loan_Term_Months': ['Loan_Term_Months', 'Loan Term Months', 'LoanTermMonths', 'Loan Term (Months)', 'Term in Months', 'Term Months', 'LOAN_TERM_MONTHS'],
+    // IntroRatePeriod variations - Fix 7 & 8 (RateType, Var_Term)
+    'IntroRatePeriod': ['IntroRatePeriod', 'Intro Rate Period', 'Introductory Rate Period', 'Initial Rate Period', 'ARM Initial Rate Period', 'INTRORATEPERIOD'],
   };
 
   const possibleNames = variations[targetField] || [targetField];
@@ -977,6 +984,72 @@ export const formatCensusTract = (tract: any): string => {
 };
 
 /**
+ * Derive RateType from IntroRatePeriod
+ * Fix 7: RateType - Fixed (1) vs Variable (2) based on IntroRatePeriod
+ * Client Logic: IntroRatePeriod = N/A → Fixed (1), IntroRatePeriod = number → Variable (2)
+ */
+export const deriveRateType = (introRatePeriod: string | number | null | undefined): string => {
+  // If IntroRatePeriod is N/A, blank, null, or non-numeric → Fixed Rate (1)
+  if (introRatePeriod === null ||
+      introRatePeriod === undefined ||
+      introRatePeriod === '' ||
+      introRatePeriod === 'N/A' ||
+      introRatePeriod === 'NA' ||
+      introRatePeriod === 'n/a' ||
+      introRatePeriod === 'na' ||
+      introRatePeriod === 'Exempt' ||
+      introRatePeriod === 'exempt' ||
+      introRatePeriod === '1111' ||
+      introRatePeriod === 1111) {
+    return '1'; // Fixed Rate
+  }
+
+  const numValue = Number(introRatePeriod);
+
+  // If it's a valid positive number → Variable Rate (2)
+  if (!isNaN(numValue) && numValue > 0) {
+    return '2'; // Variable Rate
+  }
+
+  // Default to Fixed Rate
+  return '1';
+};
+
+/**
+ * Derive Var_Term from IntroRatePeriod - convert to years with CEILING (round UP)
+ * Fix 8: Var_Term - IntroRatePeriod in months converted to years
+ * Client Logic: 1 month → 1 year, 13 months → 2 years, N/A → blank
+ * CRITICAL: Use Math.ceil (round UP) per client specification
+ */
+export const deriveVarTerm = (introRatePeriod: string | number | null | undefined): string => {
+  // If IntroRatePeriod is N/A, blank, null, or non-numeric → blank (Fixed Rate loans)
+  if (introRatePeriod === null ||
+      introRatePeriod === undefined ||
+      introRatePeriod === '' ||
+      introRatePeriod === 'N/A' ||
+      introRatePeriod === 'NA' ||
+      introRatePeriod === 'n/a' ||
+      introRatePeriod === 'na' ||
+      introRatePeriod === 'Exempt' ||
+      introRatePeriod === 'exempt' ||
+      introRatePeriod === '1111' ||
+      introRatePeriod === 1111) {
+    return ''; // Blank for Fixed Rate loans
+  }
+
+  const months = Number(introRatePeriod);
+
+  // If it's a valid positive number → convert to years with CEILING (round UP)
+  // Examples: 1 month → 1 year, 12 months → 1 year, 13 months → 2 years, 60 months → 5 years
+  if (!isNaN(months) && months > 0) {
+    return String(Math.ceil(months / 12));
+  }
+
+  // Default to blank
+  return '';
+};
+
+/**
  * Transform data to CRA Wiz 128-column format
  */
 export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
@@ -1097,29 +1170,33 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       // Still blank? Will need manual lookup or data enrichment
     }
 
-    // RateType: 1=Fixed, 2=Variable (if not set, default based on loan type)
-    if (output['RateType'] === '' || output['RateType'] === null || output['RateType'] === undefined) {
-      const rateType = findFieldValue(row, 'RateType');
-      if (rateType) {
-        output['RateType'] = rateType;
-      } else {
-        // Check if there's an intro rate period which would indicate variable
-        const introRate = output['IntroRatePeriod'];
-        if (introRate && introRate !== '' && introRate !== 'NA' && introRate !== 'Exempt') {
-          output['RateType'] = '2';  // Variable
-        }
-        // Otherwise leave blank - needs manual input
-      }
-    }
+    // FIX 7 & 8: RateType and Var_Term derivation from IntroRatePeriod
+    // Get IntroRatePeriod from all possible source fields
+    const introRatePeriod = findFieldValue(row, 'IntroRatePeriod') ||
+                            row['Intro Rate Period'] ||
+                            row['Introductory Rate Period'] ||
+                            row['Initial Rate Period'] ||
+                            row['ARM Initial Rate Period'] ||
+                            output['IntroRatePeriod'];
 
-    // Var_Term: Variable rate term in months (only applicable if RateType=2)
-    if (output['Var_Term'] === '' || output['Var_Term'] === null || output['Var_Term'] === undefined) {
-      const varTerm = findFieldValue(row, 'Var_Term');
-      if (varTerm) {
-        output['Var_Term'] = varTerm;
-      } else if (output['RateType'] === '1') {
-        output['Var_Term'] = 'NA';  // Fixed rate loans don't have variable term
-      }
+    // FIX 7: RateType - Derive from IntroRatePeriod
+    // N/A or blank → Fixed (1), number → Variable (2)
+    output['RateType'] = deriveRateType(introRatePeriod);
+
+    // FIX 8: Var_Term - Convert IntroRatePeriod months to years with CEILING (round UP)
+    // N/A or blank → blank, number → years (ceiling)
+    output['Var_Term'] = deriveVarTerm(introRatePeriod);
+
+    // Debug log for IntroRatePeriod, RateType, and Var_Term
+    if (idx === 0) {
+      console.log('IntroRatePeriod/RateType/Var_Term source values:', {
+        introRatePeriod,
+        'Intro Rate Period field': row['Intro Rate Period'],
+        'Introductory Rate Period field': row['Introductory Rate Period'],
+        'IntroRatePeriod field': row['IntroRatePeriod'],
+        derivedRateType: output['RateType'],
+        derivedVarTerm: output['Var_Term']
+      });
     }
 
     // ConstructionMethod: HMDA values 1=Site-built, 2=Manufactured home
