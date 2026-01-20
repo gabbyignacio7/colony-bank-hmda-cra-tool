@@ -193,6 +193,12 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'County Code': 'County_5',
   'Census Tract': 'Tract_11',
   'Tract': 'Tract_11',
+  'CensusTract': 'Tract_11',
+  'Census_Tract': 'Tract_11',
+  'FFIEC Census Tract': 'Tract_11',
+  'Tract Number': 'Tract_11',
+  'Census Tract Number': 'Tract_11',
+  'TRACT': 'Tract_11',
 
   // Borrower Demographics - Primary Applicant
   'Applicant Ethnicity 1': 'Ethnicity_1',
@@ -359,17 +365,27 @@ const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   'Originator NMLSR ID': 'NMLSRID',
   'Loan Originator NMLSR ID': 'NMLSRID',
 
-  // AUS
+  // AUS - Fix 6 (Column DE): Enhanced AUSystem mappings
   'Automated Underwriting System 1': 'AUSystem1',
   'AUS 1': 'AUSystem1',
   'AUS: 1': 'AUSystem1',
+  'AUS System 1': 'AUSystem1',
+  'AUSystem1': 'AUSystem1',
+  'AUS Name': 'AUSystem1',
+  'AUS Type': 'AUSystem1',
+  'AUS': 'AUSystem1',
   'Automated Underwriting System 2': 'AUSystem2',
   'Automated Underwriting System 3': 'AUSystem3',
   'Automated Underwriting System 4': 'AUSystem4',
   'Automated Underwriting System 5': 'AUSystem5',
   'Automated Underwriting System: Free Form Text Field': 'AUSystemOther',
+  // AUS Results - Fix 2 (Column DK): Enhanced AUSResult mappings
   'AUS Result 1': 'AUSResult1',
+  'AUSResult1': 'AUSResult1',
   'Automated Underwriting System Result: 1': 'AUSResult1',
+  'AUS Recommendation': 'AUSResult1',
+  'AUS Result': 'AUSResult1',
+  'AUS Decision': 'AUSResult1',
   'AUS Result 2': 'AUSResult2',
   'AUS Result 3': 'AUSResult3',
   'AUS Result 4': 'AUSResult4',
@@ -648,7 +664,7 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'State_abrv': ['State_abrv', 'State', 'Property State', 'STATE_ABRV', 'STATE'],
     'Zip': ['Zip', 'ZIP Code', 'Property ZIP Code', 'ZipCode', 'ZIP'],
     'County_5': ['County_5', 'County', 'County Code', 'COUNTY_5'],
-    'Tract_11': ['Tract_11', 'Census Tract', 'Tract', 'TRACT_11'],
+    'Tract_11': ['Tract_11', 'Census Tract', 'Tract', 'TRACT_11', 'CensusTract', 'Census_Tract', 'FFIEC Census Tract', 'Tract Number', 'Census Tract Number', 'TRACT'],
     'ApplDate': ['ApplDate', 'Application Date', 'ApplicationDate', 'APPLDATE'],
     'ActionDate': ['ActionDate', 'Action Taken Date', 'Action Date', 'ACTIONDATE'],
     'Action': ['Action', 'Action Taken', 'ACTION'],
@@ -706,6 +722,13 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
     'CoaRace_Determinant': ['CoaRace_Determinant', 'Race of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname', 'Co-Applicant Race Basis'],
     'CoaSex_Determinant': ['CoaSex_Determinant', 'Sex of Co-Applicant or Co-Borrower Collected on the Basis of Visual Observation or Surname', 'Co-Applicant Sex Basis'],
     'Coa_CreditModel': ['Coa_CreditModel', 'Co-Applicant Credit Scoring Model', 'Credit Score Type of Co-Applicant or Co-Borrower', 'Name and Version of Credit Scoring Model of Co-Applicant or Co-Borrower'],
+    // AUS System variations - Fix 6 (Column DE)
+    'AUSystem1': ['AUSystem1', 'AUS System 1', 'Automated Underwriting System 1', 'AUS 1', 'AUS: 1', 'AUS Name', 'AUS Type', 'AUS', 'AUSYSTEM1'],
+    // AUS Result variations - Fix 2 (Column DK)
+    'AUSResult1': ['AUSResult1', 'AUS Result 1', 'AUS Result', 'Automated Underwriting System Result: 1', 'AUS Recommendation', 'AUS Decision', 'AUSRESULT1'],
+    // Loan Term variations - Fix 3 & 4 (Columns CP, CQ)
+    'Loan_Term': ['Loan_Term', 'Loan Term', 'LoanTerm', 'Term', 'Term in Years', 'LOAN_TERM'],
+    'Loan_Term_Months': ['Loan_Term_Months', 'Loan Term Months', 'LoanTermMonths', 'Loan Term (Months)', 'Term in Months', 'Term Months', 'LOAN_TERM_MONTHS'],
   };
 
   const possibleNames = variations[targetField] || [targetField];
@@ -746,6 +769,211 @@ export const parseBorrowerName = (fullName: string): { firstName: string; lastNa
   }
   
   return { firstName: fullName, lastName: '' };
+};
+
+/**
+ * Map AUS Result text/values to HMDA numeric codes (1-17)
+ * Fix 2: Column DK - AUSResult1 showing "1111" placeholder
+ * HMDA Spec codes: 1=Approve/Eligible through 17=Exempt
+ */
+export const mapAUSResult = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '' || value === '1111' || value === 1111) {
+    return '17'; // Default to Exempt if unknown/placeholder
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid numeric code (1-17), return it
+  if (/^[1-9]$|^1[0-7]$/.test(val)) return val;
+
+  // Map text values to HMDA codes
+  const ausResultMap: Record<string, string> = {
+    'approve/eligible': '1',
+    'approve eligible': '1',
+    'approved/eligible': '1',
+    'approved eligible': '1',
+    'approve/ineligible': '2',
+    'approved/ineligible': '2',
+    'refer/eligible': '3',
+    'refer eligible': '3',
+    'refer/ineligible': '4',
+    'refer ineligible': '4',
+    'refer with caution': '5',
+    'out of scope': '6',
+    'error': '7',
+    'accept': '8',
+    'caution': '9',
+    'ineligible': '10',
+    'incomplete': '11',
+    'invalid': '12',
+    'not applicable': '16',
+    'n/a': '16',
+    'na': '16',
+    'unable to determine': '14',
+    'other': '15',
+    'exempt': '17',
+  };
+
+  return ausResultMap[val] || '17'; // Default to Exempt
+};
+
+/**
+ * Map AUS System text/values to HMDA numeric codes (1-6)
+ * Fix 6: Column DE - AUSystem1 not showing valid numeric codes
+ * HMDA Spec codes: 1=DU, 2=LP, 3=TOTAL, 4=GUS, 5=Other, 6=Not Applicable
+ */
+export const mapAUSystem = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined || value === '' || value === '1111' || value === 1111) {
+    return '6'; // Default to Not Applicable if unknown
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid numeric code (1-6), return it
+  if (/^[1-6]$/.test(val)) return val;
+
+  // Map text values to HMDA codes
+  const ausSystemMap: Record<string, string> = {
+    'desktop underwriter': '1',
+    'du': '1',
+    'fannie mae': '1',
+    'fnma': '1',
+    'loan prospector': '2',
+    'lp': '2',
+    'loan product advisor': '2',
+    'lpa': '2',
+    'freddie mac': '2',
+    'fhlmc': '2',
+    'total': '3',
+    'total scorecard': '3',
+    'fha total': '3',
+    'fha total mortgage scorecard': '3',
+    'gus': '4',
+    'guaranteed underwriting system': '4',
+    'usda': '4',
+    'rural development': '4',
+    'other': '5',
+    'not applicable': '6',
+    'n/a': '6',
+    'na': '6',
+    'none': '6',
+    'exempt': '6',
+  };
+
+  return ausSystemMap[val] || '6'; // Default to Not Applicable
+};
+
+/**
+ * Map Non-Amortizing Features text/values to HMDA codes
+ * Fix 5: Column CV - NonAmortz showing "1111" placeholder
+ * HMDA Spec codes: 1=Balloon, 2=Interest-Only, 3=Negative Amortization, 1111=None/N/A
+ * Per client feedback: 1111s should likely be 2 (Interest-Only)
+ */
+export const mapNonAmortz = (value: string | number | null | undefined, balloonPmt?: any, ioPmt?: any, negAm?: any): string => {
+  // Check individual feature flags first
+  if (balloonPmt === '1' || balloonPmt === 1 || String(balloonPmt).toLowerCase() === 'yes') {
+    return '1'; // Balloon Payment
+  }
+  if (ioPmt === '1' || ioPmt === 1 || String(ioPmt).toLowerCase() === 'yes') {
+    return '2'; // Interest-Only Payments
+  }
+  if (negAm === '1' || negAm === 1 || String(negAm).toLowerCase() === 'yes') {
+    return '3'; // Negative Amortization
+  }
+
+  if (value === null || value === undefined || value === '' || value === '1111' || value === 1111) {
+    // Per client feedback: 1111s should be 2 (Interest-Only) based on October Encompass data
+    return '2';
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid code (1, 2, 3, or 1111), return it
+  if (/^[123]$/.test(val)) return val;
+  if (val === '1111') return '2'; // Per client feedback
+
+  // Map text values
+  const nonAmortzMap: Record<string, string> = {
+    'balloon': '1',
+    'balloon payment': '1',
+    'interest only': '2',
+    'interest-only': '2',
+    'io': '2',
+    'negative amortization': '3',
+    'neg am': '3',
+    'negative am': '3',
+    'none': '1111',
+    'no': '1111',
+    'n/a': '1111',
+    'na': '1111',
+    'not applicable': '1111',
+  };
+
+  return nonAmortzMap[val] || '2'; // Default to Interest-Only per client feedback
+};
+
+/**
+ * Convert Loan Term to years with floor rounding
+ * Fix 3: Column CP - Loan Term should be in years (1.5 rounds to 1)
+ * HMDA Spec: Loan Term in whole years, use floor for partial years
+ */
+export const convertLoanTermToYears = (months: any): string => {
+  if (months === null || months === undefined || months === '') return '';
+
+  const numMonths = Number(months);
+  if (isNaN(numMonths) || numMonths <= 0) return '';
+
+  // If value looks like it's already in years (small number), return as-is
+  if (numMonths <= 50) {
+    return String(Math.floor(numMonths));
+  }
+
+  // Convert months to years with floor (18 months = 1 year, not 1.5 or 2)
+  return String(Math.floor(numMonths / 12));
+};
+
+/**
+ * Get Loan Term in Months (preserve raw monthly value)
+ * Fix 4: Column CQ - Monthly values should be here
+ */
+export const getLoanTermMonths = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '';
+
+  const numValue = Number(value);
+  if (isNaN(numValue) || numValue <= 0) return '';
+
+  // If value is clearly in years (small number < 50), convert to months
+  if (numValue <= 50) {
+    return String(Math.round(numValue * 12));
+  }
+
+  // Otherwise return as-is (already in months)
+  return String(Math.round(numValue));
+};
+
+/**
+ * Format Census Tract with leading zeros (11 digits)
+ * Fix 1: Column AA - Tract blanks, preserve leading zeros
+ */
+export const formatCensusTract = (tract: any): string => {
+  if (tract === null || tract === undefined || tract === '') return '';
+
+  const tractStr = String(tract).trim();
+
+  // If it's a special value (NA, Exempt), return as-is
+  if (['NA', 'Exempt', 'na', 'exempt'].includes(tractStr)) {
+    return tractStr.toUpperCase();
+  }
+
+  // Remove any decimal points and leading zeros, then pad to 11 digits
+  const cleanTract = tractStr.replace(/\./g, '').replace(/^0+/, '');
+
+  // If numeric, pad with leading zeros to 11 digits
+  if (/^\d+$/.test(cleanTract)) {
+    return cleanTract.padStart(11, '0');
+  }
+
+  return tractStr;
 };
 
 /**
@@ -841,23 +1069,23 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       output['CreditModel'] = creditModel ?? '9';  // 9 = Not applicable
     }
 
-    // NonAmortz: HMDA values are 1=Balloon, 2=Interest-only, 3=Negative amortization, 1111=N/A
-    // If has value, keep it; if blank, check other amortization fields
-    if (output['NonAmortz'] === '' || output['NonAmortz'] === null || output['NonAmortz'] === undefined) {
-      const balloon = findFieldValue(row, 'BalloonPMT');
-      const interestOnly = findFieldValue(row, 'IOPMT');
-      const negAm = findFieldValue(row, 'NegAM');
+    // FIX 5 (Column CV): NonAmortz - Map to valid HMDA codes
+    // Per client feedback: 1111s should be 2 (Interest-Only) based on October Encompass data
+    const rawNonAmortz = output['NonAmortz'] ?? findFieldValue(row, 'NonAmortz');
+    const balloon = findFieldValue(row, 'BalloonPMT');
+    const interestOnly = findFieldValue(row, 'IOPMT');
+    const negAm = findFieldValue(row, 'NegAM');
+    output['NonAmortz'] = mapNonAmortz(rawNonAmortz, balloon, interestOnly, negAm);
 
-      // If any non-amortizing feature is present, derive NonAmortz
-      if (balloon === '1' || balloon === 1) {
-        output['NonAmortz'] = '1';
-      } else if (interestOnly === '1' || interestOnly === 1) {
-        output['NonAmortz'] = '2';
-      } else if (negAm === '1' || negAm === 1) {
-        output['NonAmortz'] = '3';
-      } else {
-        output['NonAmortz'] = '1111';  // N/A - no non-amortizing features
-      }
+    // Debug log for NonAmortz source values
+    if (idx === 0) {
+      console.log('NonAmortz source values:', {
+        rawNonAmortz,
+        balloon,
+        interestOnly,
+        negAm,
+        mapped: output['NonAmortz']
+      });
     }
 
     // NMLSRID: should not be blank - get from Loan Officer/Lender lookup if available
@@ -900,21 +1128,81 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       output['ConstructionMethod'] = constructMethod ?? '1';  // Default to site-built
     }
 
-    // Loan_Term (years) and Loan_Term_Months handling
-    // If Loan_Term is blank but Loan_Term_Months exists, calculate years
-    const loanTermMonths = output['Loan_Term_Months'] ?? findFieldValue(row, 'Loan_Term_Months');
-    const loanTermYears = output['Loan_Term'] ?? findFieldValue(row, 'Loan_Term');
+    // FIX 3 & 4 (Columns CP & CQ): Loan_Term (years) and Loan_Term_Months handling
+    // Fix 3: Loan_Term should be in YEARS with FLOOR (18 months = 1 year, not 1.5 or 2)
+    // Fix 4: Loan_Term_Months should preserve raw monthly values (360, 180, etc.)
 
-    if (loanTermMonths && !loanTermYears) {
-      const months = parseFloat(String(loanTermMonths));
-      if (!isNaN(months) && months > 0) {
-        output['Loan_Term'] = Math.round(months / 12);
-      }
+    // Get raw term value - could be in months (360) or years (30)
+    const rawLoanTerm = findFieldValue(row, 'Loan_Term') || findFieldValue(row, 'Loan_Term_Months') ||
+                        findFieldValue(row, 'LoanTerm') || findFieldValue(row, 'Term');
+    const rawLoanTermMonths = findFieldValue(row, 'Loan_Term_Months') || findFieldValue(row, 'LoanTermMonths') ||
+                              findFieldValue(row, 'Term in Months') || rawLoanTerm;
+
+    // Debug log for Loan Term source values
+    if (idx === 0) {
+      console.log('LoanTerm source values:', {
+        rawLoanTerm,
+        rawLoanTermMonths,
+        'Loan Term field': row['Loan Term'],
+        'Loan_Term field': row['Loan_Term'],
+        'Loan Term (Months) field': row['Loan Term (Months)']
+      });
     }
 
-    // Ensure Loan_Term_Months is set
-    if (!output['Loan_Term_Months'] && loanTermMonths) {
-      output['Loan_Term_Months'] = loanTermMonths;
+    // Set Loan_Term in YEARS with floor rounding
+    if (rawLoanTerm) {
+      output['Loan_Term'] = convertLoanTermToYears(rawLoanTerm);
+    }
+
+    // Set Loan_Term_Months (preserve raw monthly value or convert years to months)
+    if (rawLoanTermMonths) {
+      output['Loan_Term_Months'] = getLoanTermMonths(rawLoanTermMonths);
+    } else if (rawLoanTerm) {
+      // If we only have years, convert to months
+      output['Loan_Term_Months'] = getLoanTermMonths(rawLoanTerm);
+    }
+
+    // FIX 1 (Column AA): Census Tract - Format with leading zeros (11 digits)
+    const rawTract = output['Tract_11'] ?? findFieldValue(row, 'Tract_11');
+    if (rawTract) {
+      output['Tract_11'] = formatCensusTract(rawTract);
+    }
+    // Debug log for Census Tract source values
+    if (idx === 0) {
+      console.log('Tract source values:', {
+        rawTract,
+        'Census Tract field': row['Census Tract'],
+        'Tract field': row['Tract'],
+        'CensusTract field': row['CensusTract'],
+        mapped: output['Tract_11']
+      });
+    }
+
+    // FIX 6 (Column DE): AUSystem1 - Map to valid HMDA codes (1-6)
+    const rawAUSystem1 = output['AUSystem1'] ?? findFieldValue(row, 'AUSystem1');
+    output['AUSystem1'] = mapAUSystem(rawAUSystem1);
+    // Debug log for AUSystem1 source values
+    if (idx === 0) {
+      console.log('AUSystem1 source values:', {
+        rawAUSystem1,
+        'AUS 1 field': row['AUS 1'],
+        'AUS System 1 field': row['AUS System 1'],
+        'Automated Underwriting System 1 field': row['Automated Underwriting System 1'],
+        mapped: output['AUSystem1']
+      });
+    }
+
+    // FIX 2 (Column DK): AUSResult1 - Map to valid HMDA codes (1-17)
+    const rawAUSResult1 = output['AUSResult1'] ?? findFieldValue(row, 'AUSResult1');
+    output['AUSResult1'] = mapAUSResult(rawAUSResult1);
+    // Debug log for AUSResult1 source values
+    if (idx === 0) {
+      console.log('AUSResult1 source values:', {
+        rawAUSResult1,
+        'AUS Result 1 field': row['AUS Result 1'],
+        'Automated Underwriting System Result: 1 field': row['Automated Underwriting System Result: 1'],
+        mapped: output['AUSResult1']
+      });
     }
 
     // Convert dates
