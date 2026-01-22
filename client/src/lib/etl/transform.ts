@@ -137,7 +137,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
     // Debug log for CreditModel
     if (idx === 0) {
-      console.log('CreditModel source values:', {
+      console.info('CreditModel source values:', {
         outputCreditModel: output['CreditModel'],
         rawCreditModel,
         'Credit Score Type Used': row['Credit Score Type Used'],
@@ -154,7 +154,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
     // Debug log for Coa_CreditModel
     if (idx === 0) {
-      console.log('Coa_CreditModel source values:', {
+      console.info('Coa_CreditModel source values:', {
         outputCoaCreditModel: output['Coa_CreditModel'],
         rawCoaCreditModel,
         'Co-Applicant Credit Scoring Model': row['Co-Applicant Credit Scoring Model']

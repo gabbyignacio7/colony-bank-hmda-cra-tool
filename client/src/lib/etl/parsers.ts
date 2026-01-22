@@ -116,9 +116,9 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
  * Format: HMDA LAR field positions
  */
 export const parseLaserProFile = (content: string): SbslRow[] => {
-  console.log('=== PARSING LASERPRO FILE ===');
+  console.info('=== PARSING LASERPRO FILE ===');
   const lines = content.split('\n');
-  console.log('Total lines in LaserPro file:', lines.length);
+  console.info('Total lines in LaserPro file:', lines.length);
   const results: SbslRow[] = [];
 
   // Auto-detect delimiter
@@ -166,11 +166,11 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
     results.push(row);
   }
 
-  console.log(`LaserPro records parsed: ${results.length}`);
-  console.log(`Parsed ${results.length} LaserPro/Compliance Reporter records (delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}")`);
+  console.info(`LaserPro records parsed: ${results.length}`);
+  console.info(`Parsed ${results.length} LaserPro/Compliance Reporter records (delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}")`);
   if (results.length > 0) {
-    console.log('First LaserPro record keys:', Object.keys(results[0]).slice(0, 15));
-    console.log('First LaserPro record ApplNumb:', results[0].ApplNumb);
+    console.info('First LaserPro record keys:', Object.keys(results[0]).slice(0, 15));
+    console.info('First LaserPro record ApplNumb:', results[0].ApplNumb);
   }
   return results;
 };
