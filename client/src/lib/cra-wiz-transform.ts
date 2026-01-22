@@ -351,8 +351,9 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
         const rawValue = row[col] || row[col.toLowerCase()] || '';
         output[col] = excelDateToString(rawValue);
       } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
-        const value = row[col] || row[col.toLowerCase()] || '';
-        output[col] = value || '9999';
+        // Use ?? to preserve valid zero values, only default to 9999 if truly missing
+        const value = row[col] ?? row[col.toLowerCase()] ?? '';
+        output[col] = (value !== '' && value !== null && value !== undefined) ? value : '9999';
       } else {
         // IMPORTANT: Use ?? to preserve zeros (0, "0") - || would drop them
         const val = row[col] ?? row[col.toLowerCase()] ?? row[col.replace(/_/g, '')];
@@ -395,8 +396,9 @@ export const transformCRAWizExport = (
       } else if (DATE_COLUMNS.includes(col)) {
         outputRow[col] = excelDateToString(row[col]);
       } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
-        const value = row[col] || '';
-        outputRow[col] = value || '9999';
+        // Use ?? to preserve valid zero values, only default to 9999 if truly missing
+        const value = row[col] ?? '';
+        outputRow[col] = (value !== '' && value !== null && value !== undefined) ? value : '9999';
       } else {
         outputRow[col] = row[col] !== undefined ? row[col] : '';
       }

@@ -33,7 +33,7 @@ const TRACE_KEY = 'hmda_etl_traces';
  * Generate unique ID
  */
 const generateId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
 /**
@@ -69,7 +69,21 @@ const saveErrorLogs = (logs: ErrorLog[]): void => {
     const trimmed = logs.slice(-MAX_LOGS);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   } catch (e) {
-    console.error('Failed to save error logs:', e);
+    // Handle QuotaExceededError by clearing old logs and retrying
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22)) {
+      console.warn('localStorage quota exceeded, clearing old logs');
+      try {
+        // Keep only the most recent 100 logs
+        const reduced = logs.slice(-100);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(reduced));
+      } catch {
+        // If still failing, clear all and save just current
+        localStorage.removeItem(STORAGE_KEY);
+        console.error('Failed to save error logs even after clearing');
+      }
+    } else {
+      console.error('Failed to save error logs:', e);
+    }
   }
 };
 
@@ -81,7 +95,19 @@ const saveETLTraces = (traces: ETLTraceLog[]): void => {
     const trimmed = traces.slice(-100);
     localStorage.setItem(TRACE_KEY, JSON.stringify(trimmed));
   } catch (e) {
-    console.error('Failed to save ETL traces:', e);
+    // Handle QuotaExceededError by clearing old traces and retrying
+    if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.code === 22)) {
+      console.warn('localStorage quota exceeded, clearing old traces');
+      try {
+        const reduced = traces.slice(-20);
+        localStorage.setItem(TRACE_KEY, JSON.stringify(reduced));
+      } catch {
+        localStorage.removeItem(TRACE_KEY);
+        console.error('Failed to save ETL traces even after clearing');
+      }
+    } else {
+      console.error('Failed to save ETL traces:', e);
+    }
   }
 };
 

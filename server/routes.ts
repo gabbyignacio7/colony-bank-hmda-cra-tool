@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAuditLogSchema } from "@shared/schema";
 
-const VALID_PASSWORD = "ColonyBank2024!";
+const VALID_PASSWORD = "colony2024";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/validate", async (req, res) => {

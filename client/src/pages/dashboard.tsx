@@ -86,8 +86,8 @@ import {
 import { TutorialVideo } from '@/components/tutorial-video';
 
 export default function Dashboard() {
-  // Password gate temporarily disabled for testing - set to true to bypass
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  // Password gate - set to false for production authentication
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('upload');
   const [logs, setLogs] = useState<string[]>([]);
@@ -148,8 +148,13 @@ export default function Dashboard() {
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
   const [etlTraces, setETLTraces] = useState<ETLTraceLog[]>([]);
 
+  const MAX_LOGS = 200; // Prevent memory leak from unbounded logs
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    setLogs(prev => {
+      const newLogs = [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`];
+      // Keep only the most recent logs to prevent memory leak
+      return newLogs.slice(-MAX_LOGS);
+    });
   };
   
   const refreshDebugLogs = () => {

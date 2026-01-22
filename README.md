@@ -1,124 +1,146 @@
-# Colony Bank HMDA/CRA ETL Automation Tool
+# Colony Bank HMDA/CRA Tool
 
-A web-based ETL automation tool for HMDA (Home Mortgage Disclosure Act) and CRA (Community Reinvestment Act) compliance reporting. Transforms monthly loan data processing from a 100+ hour manual process to under 30 minutes with automated validation.
+[![CI](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml)
+[![Deploy](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml)
+
+A professional ETL (Extract, Transform, Load) tool for processing HMDA (Home Mortgage Disclosure Act) data and generating CRA (Community Reinvestment Act) Wiz-compatible exports.
+
+## 🔗 Live Demo
+
+**[https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/](https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/)**
 
 ## Features
 
-- **Multi-Source Data Import**: Processes LaserPro, Encompass, and Supplemental exports (.xlsx, .xls, .csv)
-- **Automated ETL Pipeline**: Filters, transforms, merges, and validates loan records
-- **CRA Wiz Export**: Generates compliant 128-column output ready for regulatory submission
-- **Real-Time Validation**: 14+ automated validation rules catch errors before submission
-- **Client-Side Processing**: Sensitive loan data never leaves the browser
-- **Mail Merge Export**: Excel output formatted for Word templates
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, TypeScript, Tailwind CSS 4 |
-| UI Components | shadcn/ui (Radix primitives) |
-| State Management | TanStack React Query |
-| Routing | Wouter |
-| Backend | Node.js, Express |
-| Build | Vite 7, esbuild |
-| Database | PostgreSQL + Drizzle ORM (optional) |
-
-## Prerequisites
-
-- Node.js v18 or higher
-- npm v9 or higher
+- **Multi-Source Data Processing**: Import data from Encompass, LaserPro/Compliance Reporter, and supplemental files
+- **Auto-Detection**: Automatically detects file formats and delimiters (pipe, tilde, tab, semicolon)
+- **Smart Merging**: Merges data from multiple sources using ULI, Loan Number, or Address matching
+- **Duplicate Detection**: Identifies and handles duplicate records across sources
+- **CRA Wiz Export**: Generates properly formatted 128-column CRA Wiz compatible Excel files
+- **Field Mapping**: Comprehensive field mapping for HMDA LAR format compliance
+- **Validation**: Built-in data validation and auto-correction
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js 20.x or later
+- npm 10.x or later
+
+### Installation
+
 ```bash
 # Clone the repository
-git clone git@github.com:deepseeai/colony-bank-hmda-tool.git
-cd colony-bank-hmda-tool
+git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
+cd colony-bank-hmda-cra-tool
 
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Copy environment file
+cp .env.example .env
 ```
 
-Open http://localhost:5000
+### Development
 
-**Password:** `ColonyBank2024!`
+```bash
+# Start development server
+npm run dev
+
+# Run tests
+npm test
+
+# Run linting
+npm run lint
+
+# Format code
+npm run format
+```
+
+### Build
+
+```bash
+# Build for production
+npm run build
+
+# Build client only (for GitHub Pages)
+npm run build:client
+```
 
 ## Project Structure
 
 ```
 colony-bank-hmda-tool/
-├── attached_assets/            # Development assets & test data
-│   ├── *.xlsx, *.csv           # Sample exports and expected outputs
-│   ├── *.mp4                   # Tutorial video
-│   └── *.zip                   # Bundled assets
-├── client/                     # Frontend application
+├── .github/              # GitHub Actions workflows and templates
+│   ├── workflows/
+│   │   ├── ci.yml        # Continuous Integration
+│   │   └── deploy.yml    # GitHub Pages deployment
+│   └── ISSUE_TEMPLATE/
+├── client/               # Frontend application
 │   ├── src/
-│   │   ├── components/         # React components
-│   │   │   └── ui/             # shadcn/ui components
-│   │   ├── lib/                # Core business logic
-│   │   │   ├── etl-engine.ts   # ETL processing engine
-│   │   │   ├── cra-wiz-transform.ts  # CRA Wiz format conversion
-│   │   │   └── verification.ts # Validation rules
-│   │   ├── pages/              # Page components
-│   │   └── hooks/              # Custom React hooks
-│   └── public/
-│       ├── test_data/          # Sample test files
-│       └── assets/             # Static assets (learning center)
-├── server/                     # Express backend
-│   ├── index.ts                # Server entry point
-│   ├── routes.ts               # API routes
-│   └── storage.ts              # Data storage layer
-├── shared/                     # Shared types and schemas
-│   └── schema.ts               # Database schema (Drizzle)
+│   │   ├── components/   # React components
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── lib/          # Core libraries
+│   │   │   └── etl/      # ETL processing modules
+│   │   ├── pages/        # Page components
+│   │   └── __tests__/    # Unit tests
+│   └── public/           # Static assets
+├── server/               # Backend server
+├── shared/               # Shared types and schemas
+├── docs/                 # Documentation
 └── package.json
 ```
 
-## Available Scripts
+## ETL Pipeline
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server with hot reload |
+The tool processes data through a modular ETL pipeline:
+
+1. **Parse** - Read and parse input files (Encompass XLSX, LaserPro TXT)
+2. **Normalize** - Map field names to standard HMDA format
+3. **Merge** - Combine data from multiple sources
+4. **Deduplicate** - Remove duplicate records
+5. **Transform** - Convert to CRA Wiz 128-column format
+6. **Validate** - Check data integrity and auto-correct issues
+7. **Export** - Generate formatted Excel output
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
 | `npm run build` | Build for production |
-| `npm run start` | Run production build |
-| `npm run check` | TypeScript type checking |
-| `npm run db:push` | Push database schema changes |
+| `npm run build:client` | Build client only |
+| `npm test` | Run tests in watch mode |
+| `npm run test:ci` | Run tests once (CI) |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Fix ESLint issues |
+| `npm run format` | Format code with Prettier |
+| `npm run format:check` | Check code formatting |
+| `npm run typecheck` | TypeScript type checking |
 
-## Test Files
+## Contributing
 
-Sample files for testing are in `client/public/test_data/`:
+Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
-| File | Purpose |
-|------|---------|
-| `01_LaserPro_Export.xlsx` | Input A - Core loan origination data |
-| `02_Encompass_Export.xlsx` | Input B - Borrower details and property info |
-| `03_Supplemental_Export.xlsx` | Input C - Demographics data |
-| `08_Sample_Loan_Text.txt` | Document Intelligence test file |
+## Documentation
 
-## Workflow
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Contributing Guide](docs/CONTRIBUTING.md)
+- [User Manual](client/public/USER_MANUAL.md)
 
-1. **Data Sources** - Upload LaserPro, Encompass, and Supplemental exports
-2. **ETL Processing** - Automated filtering, transformation, and merging
-3. **Review & Scrub** - Review validation errors and correct issues
-4. **Export** - Download CRA Wiz-ready file and mail merge data
+## Tech Stack
 
-## Key Design Decisions
-
-- **Client-Side Processing**: File parsing runs in the browser to keep sensitive loan data local
-- **Password Protection**: Server-validated authentication before tool access
-- **Audit Trail**: Processing sessions logged with timestamps and validation results
-- **Multi-Phase Workflow**: Guided process ensures data quality at each step
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development` |
-| `DATABASE_URL` | PostgreSQL connection string | - |
-| `GITHUB_PAGES_BASE` | Base path for GitHub Pages | `/` |
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **Build**: Vite
+- **Server**: Express.js
+- **Testing**: Vitest, Testing Library
+- **Linting**: ESLint, Prettier
+- **CI/CD**: GitHub Actions
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Built with ❤️ by [DeepSee](https://deepsee.ai) for Colony Bank

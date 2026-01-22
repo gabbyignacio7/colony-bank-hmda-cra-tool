@@ -1,0 +1,419 @@
+/**
+ * ETL Utility Functions - Helper functions for data transformation and mapping
+ */
+
+import type { SbslRow } from './types';
+import { FIELD_VARIATIONS } from './field-maps';
+
+/**
+ * Convert Excel serial date to M/D/YY format
+ */
+export const excelDateToString = (value: any): string => {
+  if (!value) return '';
+
+  // Already a date string
+  if (typeof value === 'string' && (value.includes('/') || value.includes('-'))) {
+    return value;
+  }
+
+  // YYYYMMDD format (like 20251006)
+  const strValue = String(value);
+  if (/^\d{8}$/.test(strValue)) {
+    const year = strValue.substring(0, 4);
+    const month = parseInt(strValue.substring(4, 6));
+    const day = parseInt(strValue.substring(6, 8));
+    return `${month}/${day}/${year.slice(-2)}`;
+  }
+
+  // Excel serial number
+  const serial = Number(value);
+  if (isNaN(serial) || serial < 1000 || serial > 100000) {
+    return String(value ?? '');
+  }
+
+  const date = new Date((serial - 25569) * 86400 * 1000);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = String(date.getFullYear()).slice(-2);
+
+  return `${month}/${day}/${year}`;
+};
+
+/**
+ * Find field value from various possible field names - COMPREHENSIVE version
+ */
+export const findFieldValue = (row: Record<string, any>, targetField: string): any => {
+  // Direct match first
+  if (row[targetField] !== undefined) return row[targetField];
+
+  // Check variations from the map
+  const variations = FIELD_VARIATIONS[targetField];
+  if (variations) {
+    for (const name of variations) {
+      if (row[name] !== undefined) return row[name];
+      // Try case-insensitive
+      const lowerName = name.toLowerCase();
+      const matchingKey = Object.keys(row).find(k => k.toLowerCase() === lowerName);
+      if (matchingKey && row[matchingKey] !== undefined) return row[matchingKey];
+    }
+  }
+
+  // Try direct case-insensitive match
+  const targetLower = targetField.toLowerCase();
+  const directMatch = Object.keys(row).find(k => k.toLowerCase() === targetLower);
+  if (directMatch && row[directMatch] !== undefined) return row[directMatch];
+
+  return null;
+};
+
+/**
+ * Parse "Borrower Name" field (like "McKettrick III, Robert L") into FirstName and LastName
+ */
+export const parseBorrowerName = (fullName: string): { firstName: string; lastName: string } => {
+  if (!fullName) return { firstName: '', lastName: '' };
+  
+  const parts = fullName.split(',').map(p => p.trim());
+  if (parts.length >= 2) {
+    // Format: "LastName, FirstName MiddleName" or "LastName Suffix, FirstName"
+    return {
+      lastName: parts[0],
+      firstName: parts[1].split(' ')[0] // Take first word after comma as first name
+    };
+  }
+  
+  // Fallback: split on space
+  const spaceParts = fullName.trim().split(' ');
+  if (spaceParts.length >= 2) {
+    return {
+      firstName: spaceParts[0],
+      lastName: spaceParts.slice(1).join(' ')
+    };
+  }
+  
+  return { firstName: fullName, lastName: '' };
+};
+
+/**
+ * Map AUS Result text/values to HMDA numeric codes (1-17)
+ * HMDA Spec codes: 1=Approve/Eligible through 17=Exempt
+ */
+export const mapAUSResult = (value: string | number | null | undefined): string => {
+  // If no value, return empty string - do NOT default to '17'
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  
+  // Handle placeholder values
+  if (value === '1111' || value === 1111) {
+    return '';
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid numeric code (1-17), return it as-is
+  if (/^[1-9]$|^1[0-7]$/.test(val)) return val;
+
+  // Map text values to HMDA codes
+  const ausResultMap: Record<string, string> = {
+    'approve/eligible': '1',
+    'approve eligible': '1',
+    'approved/eligible': '1',
+    'approved eligible': '1',
+    'approve/ineligible': '2',
+    'approved/ineligible': '2',
+    'refer/eligible': '3',
+    'refer eligible': '3',
+    'refer/ineligible': '4',
+    'refer ineligible': '4',
+    'refer with caution': '5',
+    'out of scope': '6',
+    'error': '7',
+    'accept': '8',
+    'caution': '9',
+    'ineligible': '10',
+    'incomplete': '11',
+    'invalid': '12',
+    'not applicable': '16',
+    'n/a': '16',
+    'na': '16',
+    'unable to determine': '14',
+    'other': '15',
+    'exempt': '17',
+  };
+
+  return ausResultMap[val] || String(value).trim();
+};
+
+/**
+ * Map AUS System text/values to HMDA numeric codes (1-6)
+ * HMDA Spec codes: 1=DU, 2=LP, 3=TOTAL, 4=GUS, 5=Other, 6=Not Applicable
+ */
+export const mapAUSystem = (value: string | number | null | undefined): string => {
+  // If no value, return empty string - do NOT default to '6'
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+  
+  // Handle placeholder values
+  if (value === '1111' || value === 1111) {
+    return '';
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid numeric code (1-6), return it as-is
+  if (/^[1-6]$/.test(val)) return val;
+
+  // Map text values to HMDA codes
+  const ausSystemMap: Record<string, string> = {
+    'desktop underwriter': '1',
+    'du': '1',
+    'fannie mae': '1',
+    'fnma': '1',
+    'loan prospector': '2',
+    'lp': '2',
+    'loan product advisor': '2',
+    'lpa': '2',
+    'freddie mac': '2',
+    'fhlmc': '2',
+    'total': '3',
+    'total scorecard': '3',
+    'fha total': '3',
+    'fha total mortgage scorecard': '3',
+    'gus': '4',
+    'guaranteed underwriting system': '4',
+    'usda': '4',
+    'rural development': '4',
+    'other': '5',
+    'not applicable': '6',
+    'n/a': '6',
+    'na': '6',
+    'none': '6',
+    'exempt': '6',
+  };
+
+  return ausSystemMap[val] || String(value).trim();
+};
+
+/**
+ * Map Non-Amortizing Features text/values to HMDA codes
+ * HMDA Spec codes: 1=Balloon, 2=Interest-Only, 3=Negative Amortization, 1111=None/N/A
+ */
+export const mapNonAmortz = (value: string | number | null | undefined, balloonPmt?: any, ioPmt?: any, negAm?: any): string => {
+  // Check individual feature flags first
+  if (balloonPmt === '1' || balloonPmt === 1 || String(balloonPmt).toLowerCase() === 'yes') {
+    return '1'; // Balloon Payment
+  }
+  if (ioPmt === '1' || ioPmt === 1 || String(ioPmt).toLowerCase() === 'yes') {
+    return '2'; // Interest-Only Payments
+  }
+  if (negAm === '1' || negAm === 1 || String(negAm).toLowerCase() === 'yes') {
+    return '3'; // Negative Amortization
+  }
+
+  if (value === null || value === undefined || value === '' || value === '1111' || value === 1111) {
+    return '2'; // Per client feedback: 1111s should be 2 (Interest-Only)
+  }
+
+  const val = String(value).trim().toLowerCase();
+
+  // If already a valid code (1, 2, 3, or 1111), return it
+  if (/^[123]$/.test(val)) return val;
+  if (val === '1111') return '2';
+
+  // Map text values
+  const nonAmortzMap: Record<string, string> = {
+    'balloon': '1',
+    'balloon payment': '1',
+    'interest only': '2',
+    'interest-only': '2',
+    'io': '2',
+    'negative amortization': '3',
+    'neg am': '3',
+    'negative am': '3',
+    'none': '1111',
+    'no': '1111',
+    'n/a': '1111',
+    'na': '1111',
+    'not applicable': '1111',
+  };
+
+  return nonAmortzMap[val] || '2';
+};
+
+/**
+ * Convert Loan Term to years with floor rounding
+ * HMDA Spec: Loan Term in whole years, use floor for partial years
+ */
+export const convertLoanTermToYears = (months: any): string => {
+  if (months === null || months === undefined || months === '') return '';
+
+  const numMonths = Number(months);
+  if (isNaN(numMonths) || numMonths <= 0) return '';
+
+  // If value looks like it's already in years (small number), return as-is
+  if (numMonths <= 50) {
+    return String(Math.floor(numMonths));
+  }
+
+  // Convert months to years with floor (18 months = 1 year, not 1.5 or 2)
+  return String(Math.floor(numMonths / 12));
+};
+
+/**
+ * Get Loan Term in Months (preserve raw monthly value)
+ */
+export const getLoanTermMonths = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '';
+
+  const numValue = Number(value);
+  if (isNaN(numValue) || numValue <= 0) return '';
+
+  // If value is clearly in years (small number < 50), convert to months
+  if (numValue <= 50) {
+    return String(Math.round(numValue * 12));
+  }
+
+  // Otherwise return as-is (already in months)
+  return String(Math.round(numValue));
+};
+
+/**
+ * Format Census Tract with leading zeros (11 digits)
+ */
+export const formatCensusTract = (tract: any): string => {
+  if (tract === null || tract === undefined || tract === '') return '';
+
+  const tractStr = String(tract).trim();
+
+  // If it's a special value (NA, Exempt), return as-is
+  if (['NA', 'Exempt', 'na', 'exempt'].includes(tractStr)) {
+    return tractStr.toUpperCase();
+  }
+
+  // Remove any decimal points and leading zeros, then pad to 11 digits
+  const cleanTract = tractStr.replace(/\./g, '').replace(/^0+/, '');
+
+  // If numeric, pad with leading zeros to 11 digits
+  if (/^\d+$/.test(cleanTract)) {
+    return cleanTract.padStart(11, '0');
+  }
+
+  return tractStr;
+};
+
+/**
+ * Derive RateType from IntroRatePeriod
+ * IntroRatePeriod = N/A → Fixed (1), IntroRatePeriod = number → Variable (2)
+ */
+export const deriveRateType = (introRatePeriod: string | number | null | undefined): string => {
+  if (introRatePeriod === null ||
+      introRatePeriod === undefined ||
+      introRatePeriod === '' ||
+      introRatePeriod === 'N/A' ||
+      introRatePeriod === 'NA' ||
+      introRatePeriod === 'n/a' ||
+      introRatePeriod === 'na' ||
+      introRatePeriod === 'Exempt' ||
+      introRatePeriod === 'exempt' ||
+      introRatePeriod === '1111' ||
+      introRatePeriod === 1111) {
+    return '1'; // Fixed Rate
+  }
+
+  const numValue = Number(introRatePeriod);
+
+  // If it's a valid positive number → Variable Rate (2)
+  if (!isNaN(numValue) && numValue > 0) {
+    return '2'; // Variable Rate
+  }
+
+  // Default to Fixed Rate
+  return '1';
+};
+
+/**
+ * Derive Var_Term from IntroRatePeriod - convert to years with CEILING (round UP)
+ * 1 month → 1 year, 13 months → 2 years, N/A → blank
+ */
+export const deriveVarTerm = (introRatePeriod: string | number | null | undefined): string => {
+  if (introRatePeriod === null ||
+      introRatePeriod === undefined ||
+      introRatePeriod === '' ||
+      introRatePeriod === 'N/A' ||
+      introRatePeriod === 'NA' ||
+      introRatePeriod === 'n/a' ||
+      introRatePeriod === 'na' ||
+      introRatePeriod === 'Exempt' ||
+      introRatePeriod === 'exempt' ||
+      introRatePeriod === '1111' ||
+      introRatePeriod === 1111) {
+    return ''; // Fixed Rate loans have no Var_Term
+  }
+
+  const numValue = Number(introRatePeriod);
+
+  // If it's a valid positive number, convert months to years with CEILING
+  if (!isNaN(numValue) && numValue > 0) {
+    return String(Math.ceil(numValue / 12));
+  }
+
+  return '';
+};
+
+/**
+ * Auto-detect the delimiter used in a text file
+ * Supports: pipe (|), tilde (~), tab (\t), semicolon (;)
+ */
+export const detectDelimiter = (content: string): string => {
+  const lines = content.split('\n').filter(l => l.trim().length > 0).slice(0, 10);
+  if (lines.length === 0) return '|';
+
+  const delimiters = ['|', '~', '\t', ';'];
+  const scores: Record<string, number> = {};
+
+  for (const delimiter of delimiters) {
+    // Count how many fields each delimiter produces
+    const fieldCounts = lines.map(line => line.split(delimiter).length);
+    
+    // Calculate consistency score (prefer delimiters that produce consistent field counts)
+    const avgFields = fieldCounts.reduce((a, b) => a + b, 0) / fieldCounts.length;
+    const variance = fieldCounts.reduce((sum, count) => sum + Math.pow(count - avgFields, 2), 0) / fieldCounts.length;
+    
+    // Score = average fields / (1 + variance) - prefer more fields with less variance
+    // Minimum 10 fields expected for HMDA LAR format
+    scores[delimiter] = avgFields >= 10 ? avgFields / (1 + variance) : 0;
+  }
+
+  // Return delimiter with highest score
+  const bestDelimiter = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  console.log('Delimiter detection scores:', scores, '-> Selected:', bestDelimiter[0]);
+  return bestDelimiter[0];
+};
+
+/**
+ * Get trimmed value - handles space-only strings as empty
+ */
+export const getTrimmedValue = (val: any): string => {
+  return String(val ?? '').trim();
+};
+
+/**
+ * Filter data by current month
+ */
+export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], count: number } => {
+  // For now, return all data - implement date filtering as needed
+  return { filtered: data, count: data.length };
+};
+
+/**
+ * Generate summary statistics for processed data
+ */
+export const generateSummaryStats = (data: SbslRow[]) => {
+  return {
+    totalRecords: data.length,
+    loanTypes: {} as Record<string, number>,
+    actionTypes: {} as Record<string, number>,
+    purposes: {} as Record<string, number>,
+  };
+};
