@@ -98,21 +98,67 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['Coa_Age'] || String(output['Coa_Age']) === '') output['Coa_Age'] = '9999';
     if (!output['Coa_CreditScore'] || String(output['Coa_CreditScore']) === '') output['Coa_CreditScore'] = '9999';
 
+    // HMDA "No Co-Applicant" defaults for demographic fields
+    // Per HMDA spec: Apply these codes ONLY if the source data is blank (no co-applicant present)
+    // Ethnicity: 5 = No co-applicant, Determinant: 4 = Not applicable
+    // Race: 8 = No co-applicant, Determinant: 4 = Not applicable
+    // Sex: 5 = No co-applicant, Determinant: 4 = Not applicable
+    if (!output['Coa_Ethnicity_1'] || String(output['Coa_Ethnicity_1']) === '') {
+      output['Coa_Ethnicity_1'] = findFieldValue(row, 'Coa_Ethnicity_1') ?? '5';
+    }
+    if (!output['Coa_Ethnicity_Determinant'] || String(output['Coa_Ethnicity_Determinant']) === '') {
+      output['Coa_Ethnicity_Determinant'] = findFieldValue(row, 'Coa_Ethnicity_Determinant') ?? '4';
+    }
+    if (!output['CoaRace_1'] || String(output['CoaRace_1']) === '') {
+      output['CoaRace_1'] = findFieldValue(row, 'CoaRace_1') ?? '8';
+    }
+    if (!output['CoaRace_Determinant'] || String(output['CoaRace_Determinant']) === '') {
+      output['CoaRace_Determinant'] = findFieldValue(row, 'CoaRace_Determinant') ?? '4';
+    }
+    if (!output['CoaSex'] || String(output['CoaSex']) === '') {
+      output['CoaSex'] = findFieldValue(row, 'CoaSex') ?? '5';
+    }
+    if (!output['CoaSex_Determinant'] || String(output['CoaSex_Determinant']) === '') {
+      output['CoaSex_Determinant'] = findFieldValue(row, 'CoaSex_Determinant') ?? '4';
+    }
+
     // DTIRatio: should be numeric value or "NA" (HMDA code for Exempt)
     if (output['DTIRatio'] === '' || output['DTIRatio'] === null || output['DTIRatio'] === undefined) {
       output['DTIRatio'] = 'NA';
     }
 
-    // CreditModel: Pass through from source data - do NOT default to '9'
-    if (output['CreditModel'] === '' || output['CreditModel'] === null || output['CreditModel'] === undefined) {
-      const creditModel = findFieldValue(row, 'CreditModel');
-      output['CreditModel'] = creditModel ?? '';
+    // CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
+    // IMPORTANT: Per Jonathan's feedback - need to show actual values from source, not all '9'
+    const rawCreditModel = output['CreditModel'] ?? findFieldValue(row, 'CreditModel');
+    if (rawCreditModel && rawCreditModel !== '' && rawCreditModel !== null && rawCreditModel !== undefined) {
+      output['CreditModel'] = String(rawCreditModel);
+    } else {
+      output['CreditModel'] = '9';  // 9 = Not applicable per HMDA spec
     }
-    
-    // Coa_CreditModel: Pass through from source data
-    if (output['Coa_CreditModel'] === '' || output['Coa_CreditModel'] === null || output['Coa_CreditModel'] === undefined) {
-      const coaCreditModel = findFieldValue(row, 'Coa_CreditModel');
-      output['Coa_CreditModel'] = coaCreditModel ?? '';
+    // Debug log for CreditModel
+    if (idx === 0) {
+      console.log('CreditModel source values:', {
+        outputCreditModel: output['CreditModel'],
+        rawCreditModel,
+        'Credit Score Type Used': row['Credit Score Type Used'],
+        'Credit Scoring Model': row['Credit Scoring Model']
+      });
+    }
+
+    // Coa_CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
+    const rawCoaCreditModel = output['Coa_CreditModel'] ?? findFieldValue(row, 'Coa_CreditModel');
+    if (rawCoaCreditModel && rawCoaCreditModel !== '' && rawCoaCreditModel !== null && rawCoaCreditModel !== undefined) {
+      output['Coa_CreditModel'] = String(rawCoaCreditModel);
+    } else {
+      output['Coa_CreditModel'] = '9';  // 9 = Not applicable per HMDA spec
+    }
+    // Debug log for Coa_CreditModel
+    if (idx === 0) {
+      console.log('Coa_CreditModel source values:', {
+        outputCoaCreditModel: output['Coa_CreditModel'],
+        rawCoaCreditModel,
+        'Co-Applicant Credit Scoring Model': row['Co-Applicant Credit Scoring Model']
+      });
     }
 
     // NonAmortz - Map to valid HMDA codes

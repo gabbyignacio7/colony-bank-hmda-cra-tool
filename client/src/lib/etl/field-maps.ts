@@ -336,13 +336,16 @@ export const ENCOMPASS_FIELD_MAP: Record<string, string> = {
   // Credit Model
   'Name and Version of Credit Scoring Model': 'CreditModel',
   'Credit Scoring Model': 'CreditModel',
+  'Credit Score Type Used': 'CreditModel',
+  'Credit Model': 'CreditModel',
   'Applicant or Borrower, Name and Version of Credit Scoring Model': 'CreditModel',
   'Name and Version of Credit Scoring Model: Conditional Free Form Text Field for Code 8': 'CreditModelOther',
   'Applicant or Borrower, Name and Version of Credit Scoring Model: Conditional Free Form Text Field for Code 8': 'CreditModelOther',
-  
+
   // Co-Applicant Credit Model
   'Co-Applicant Credit Scoring Model': 'Coa_CreditModel',
   'Credit Score Type of Co-Applicant or Co-Borrower': 'Coa_CreditModel',
+  'Credit Score Type Used for Co-Applicant': 'Coa_CreditModel',
   'Name and Version of Credit Scoring Model of Co-Applicant or Co-Borrower': 'Coa_CreditModel',
   'Co-Applicant or CoBorrower, Name and Version of Credit Scoring Model': 'Coa_CreditModel',
   'Co-Applicant Name and Version of Credit Scoring Model: Conditional Free Form Text Field': 'Coa_CreditModelOther',
@@ -663,8 +666,8 @@ export const FIELD_VARIATIONS: Record<string, string[]> = {
   'Coa_Age': ['Coa_Age', 'Co-Applicant Age', 'Age of Co-Applicant or Co-Borrower', 'Age of CoApplicant or Co-Borrower', 'COA_AGE'],
   'Sex': ['Sex', 'Applicant Sex', 'Sex of Applicant or Borrower', 'SEX'],
   'CoaSex': ['CoaSex', 'Co-Applicant Sex', 'Sex of Co-Applicant or Co-Borrower', 'Sex of CoApplicant or Co-Borrower', 'COASEX'],
-  'CreditModel': ['CreditModel', 'Credit Scoring Model', 'Name and Version of Credit Scoring Model', 'Applicant or Borrower, Name and Version of Credit Scoring Model', 'CREDITMODEL'],
-  'Coa_CreditModel': ['Coa_CreditModel', 'Co-Applicant Credit Scoring Model', 'Co-Applicant or CoBorrower, Name and Version of Credit Scoring Model', 'COA_CREDITMODEL'],
+  'CreditModel': ['CreditModel', 'Credit Scoring Model', 'Name and Version of Credit Scoring Model', 'Credit Score Type Used', 'Credit Model', 'Applicant or Borrower, Name and Version of Credit Scoring Model', 'CREDITMODEL'],
+  'Coa_CreditModel': ['Coa_CreditModel', 'Co-Applicant Credit Scoring Model', 'Co-Applicant or CoBorrower, Name and Version of Credit Scoring Model', 'Credit Score Type Used for Co-Applicant', 'Coa Credit Model', 'COA_CREDITMODEL'],
   'NMLSRID': ['NMLSRID', 'NMLS ID', 'Originator NMLSR ID', 'Loan Originator NMLSR ID', 'Mortgage Loan Originator NMLSR Identifier', 'NMLSR Identifier', 'MLO NMLS ID', 'Mortgage Loan Originator NMLS ID'],
   'AUSystem1': ['AUSystem1', 'AUS', 'AUS 1', 'Automated Underwriting System 1', 'Automated Underwriting System: 1', 'AUS System 1', 'AUS Name', 'AUS Type'],
   'AUSResult1': ['AUSResult1', 'AUS Result', 'AUS Result 1', 'Automated Underwriting System Result: 1', 'AUS Recommendation', 'AUS Decision'],
