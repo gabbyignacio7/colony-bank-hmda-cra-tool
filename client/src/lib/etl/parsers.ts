@@ -3,7 +3,11 @@
  */
 
 import type { SbslRow } from './types';
-import { ENCOMPASS_FIELD_MAP, COMPLIANCE_REPORTER_FIELD_MAP, normalizeFieldName } from './field-maps';
+import {
+  ENCOMPASS_FIELD_MAP,
+  COMPLIANCE_REPORTER_FIELD_MAP,
+  normalizeFieldName,
+} from './field-maps';
 import { detectDelimiter, excelDateToString } from './utils';
 import { logInfo, trackETLStep } from '../error-tracker';
 
@@ -13,7 +17,7 @@ import { logInfo, trackETLStep } from '../error-tracker';
 export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
   const startTime = Date.now();
   logInfo('ETL:Parse', 'Starting Encompass file parsing', { totalRows: worksheet.length });
-  
+
   console.log('=== PARSING ENCOMPASS FILE ===');
   console.log('Total rows:', worksheet.length);
   console.log('Row 0 (first 5 cells):', worksheet[0]?.slice(0, 5));
@@ -22,13 +26,26 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
 
   // Find the real header row by looking for HMDA-like column names
   const headerIndicators = [
-    'LEI', 'ULI', 'Loan', 'Applicant', 'Property', 'Legal Entity',
-    'Universal Loan', 'Application Date', 'Action', 'Census'
+    'LEI',
+    'ULI',
+    'Loan',
+    'Applicant',
+    'Property',
+    'Legal Entity',
+    'Universal Loan',
+    'Application Date',
+    'Action',
+    'Census',
   ];
 
   const metadataIndicators = [
-    'Financial Institution', 'Calendar Year', 'Calendar Quarter',
-    'Contact Person', 'Colony Bank', 'Phone Number', 'Email'
+    'Financial Institution',
+    'Calendar Year',
+    'Calendar Quarter',
+    'Contact Person',
+    'Colony Bank',
+    'Phone Number',
+    'Email',
   ];
 
   let headerRowIndex = 0;
@@ -71,42 +88,50 @@ export const parseEncompassFile = (worksheet: any[][]): SbslRow[] => {
   console.log('Data rows count:', dataRows.length);
 
   // Map data rows to objects
-  const results = dataRows.map((row, idx) => {
-    const obj: SbslRow = {};
+  const results = dataRows
+    .map((row, idx) => {
+      const obj: SbslRow = {};
 
-    headers.forEach((header: string, colIndex: number) => {
-      if (header && row[colIndex] !== undefined && row[colIndex] !== null) {
-        const value = row[colIndex];
-        // Preserve zeros! Use nullish coalescing
-        obj[header] = value;
-      }
-    });
-
-    // Also keep the original Encompass names for debugging
-    rawHeaders.forEach((rawHeader: any, colIndex: number) => {
-      if (rawHeader && row[colIndex] !== undefined && row[colIndex] !== null) {
-        const headerStr = String(rawHeader).trim();
-        if (headerStr && !obj[headerStr]) {
-          obj[headerStr] = row[colIndex];
+      headers.forEach((header: string, colIndex: number) => {
+        if (header && row[colIndex] !== undefined && row[colIndex] !== null) {
+          const value = row[colIndex];
+          // Preserve zeros! Use nullish coalescing
+          obj[header] = value;
         }
+      });
+
+      // Also keep the original Encompass names for debugging
+      rawHeaders.forEach((rawHeader: any, colIndex: number) => {
+        if (rawHeader && row[colIndex] !== undefined && row[colIndex] !== null) {
+          const headerStr = String(rawHeader).trim();
+          if (headerStr && !obj[headerStr]) {
+            obj[headerStr] = row[colIndex];
+          }
+        }
+      });
+
+      if (idx === 0) {
+        console.log('First data row keys:', Object.keys(obj).slice(0, 15));
+        console.log('First data row values:', Object.values(obj).slice(0, 15));
       }
-    });
 
-    if (idx === 0) {
-      console.log('First data row keys:', Object.keys(obj).slice(0, 15));
-      console.log('First data row values:', Object.values(obj).slice(0, 15));
-    }
-
-    return obj;
-  }).filter(row => Object.keys(row).length > 0);
+      return obj;
+    })
+    .filter(row => Object.keys(row).length > 0);
 
   console.log('Parsed rows:', results.length);
-  
+
   const duration = Date.now() - startTime;
-  trackETLStep('ParseEncompass', worksheet.length, results.length, duration, [], [], 
+  trackETLStep(
+    'ParseEncompass',
+    worksheet.length,
+    results.length,
+    duration,
+    [],
+    [],
     results.length > 0 ? { firstRowKeys: Object.keys(results[0]).slice(0, 10) } : undefined
   );
-  
+
   return results;
 };
 
@@ -141,7 +166,9 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
 
     // Skip if this doesn't look like a data row (record type should be 2, or have enough fields)
     if (values[0] !== '2' && values.length < 50) {
-      console.log(`Skipping non-data row at line ${i}: first field="${values[0]}", fields=${values.length}`);
+      console.log(
+        `Skipping non-data row at line ${i}: first field="${values[0]}", fields=${values.length}`
+      );
       continue;
     }
 
@@ -167,7 +194,9 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
   }
 
   console.info(`LaserPro records parsed: ${results.length}`);
-  console.info(`Parsed ${results.length} LaserPro/Compliance Reporter records (delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}")`);
+  console.info(
+    `Parsed ${results.length} LaserPro/Compliance Reporter records (delimiter: "${delimiter === '\t' ? 'TAB' : delimiter}")`
+  );
   if (results.length > 0) {
     console.info('First LaserPro record keys:', Object.keys(results[0]).slice(0, 15));
     console.info('First LaserPro record ApplNumb:', results[0].ApplNumb);
@@ -178,9 +207,12 @@ export const parseLaserProFile = (content: string): SbslRow[] => {
 /**
  * Detect file type based on content or extension
  */
-export const detectFileType = (file: File, content?: string): 'encompass' | 'laserpro' | 'supplemental' | 'unknown' => {
+export const detectFileType = (
+  file: File,
+  content?: string
+): 'encompass' | 'laserpro' | 'supplemental' | 'unknown' => {
   const name = file.name.toLowerCase();
-  
+
   // Check extension first
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
     if (name.includes('additional') || name.includes('supplemental')) {
@@ -188,11 +220,11 @@ export const detectFileType = (file: File, content?: string): 'encompass' | 'las
     }
     return 'encompass';
   }
-  
+
   if (name.endsWith('.txt') || name.endsWith('.csv')) {
     return 'laserpro';
   }
-  
+
   // Check content if available
   if (content) {
     const firstLine = content.split('\n')[0] || '';
@@ -200,6 +232,6 @@ export const detectFileType = (file: File, content?: string): 'encompass' | 'las
       return 'laserpro';
     }
   }
-  
+
   return 'unknown';
 };

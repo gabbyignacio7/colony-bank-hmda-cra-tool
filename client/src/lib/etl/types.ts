@@ -68,13 +68,16 @@ export interface ComparisonResult {
   totalRowsOld: number;
   totalRowsNew: number;
   columnsCompared: string[];
-  columnChanges: Record<string, {
-    blanksOld: number;
-    blanksNew: number;
-    uniqueValuesOld: number;
-    uniqueValuesNew: number;
-    changedRows: number;
-  }>;
+  columnChanges: Record<
+    string,
+    {
+      blanksOld: number;
+      blanksNew: number;
+      uniqueValuesOld: number;
+      uniqueValuesNew: number;
+      changedRows: number;
+    }
+  >;
   rowChanges: RowComparison[];
   summary: string;
   // Additional properties for UI display

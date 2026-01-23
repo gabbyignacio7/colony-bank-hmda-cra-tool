@@ -114,12 +114,7 @@ const saveETLTraces = (traces: ETLTraceLog[]): void => {
 /**
  * Log an error
  */
-export const logError = (
-  category: string,
-  message: string,
-  details?: any,
-  error?: Error
-): void => {
+export const logError = (category: string, message: string, details?: any, error?: Error): void => {
   const log: ErrorLog = {
     id: generateId(),
     timestamp: new Date().toISOString(),
@@ -141,11 +136,7 @@ export const logError = (
 /**
  * Log a warning
  */
-export const logWarning = (
-  category: string,
-  message: string,
-  details?: any
-): void => {
+export const logWarning = (category: string, message: string, details?: any): void => {
   const log: ErrorLog = {
     id: generateId(),
     timestamp: new Date().toISOString(),
@@ -165,11 +156,7 @@ export const logWarning = (
 /**
  * Log info
  */
-export const logInfo = (
-  category: string,
-  message: string,
-  details?: any
-): void => {
+export const logInfo = (category: string, message: string, details?: any): void => {
   const log: ErrorLog = {
     id: generateId(),
     timestamp: new Date().toISOString(),
@@ -189,11 +176,7 @@ export const logInfo = (
 /**
  * Log debug info
  */
-export const logDebug = (
-  category: string,
-  message: string,
-  details?: any
-): void => {
+export const logDebug = (category: string, message: string, details?: any): void => {
   const log: ErrorLog = {
     id: generateId(),
     timestamp: new Date().toISOString(),
@@ -240,9 +223,19 @@ export const trackETLStep = (
 
   // Log summary
   if (errors.length > 0) {
-    console.error(`[ETL:${step}] Completed with ${errors.length} errors`, { inputCount, outputCount, duration, errors });
+    console.error(`[ETL:${step}] Completed with ${errors.length} errors`, {
+      inputCount,
+      outputCount,
+      duration,
+      errors,
+    });
   } else if (warnings.length > 0) {
-    console.warn(`[ETL:${step}] Completed with ${warnings.length} warnings`, { inputCount, outputCount, duration, warnings });
+    console.warn(`[ETL:${step}] Completed with ${warnings.length} warnings`, {
+      inputCount,
+      outputCount,
+      duration,
+      warnings,
+    });
   } else {
     console.info(`[ETL:${step}] Completed`, { inputCount, outputCount, duration });
   }
@@ -325,7 +318,7 @@ export const getErrorStats = (): {
       error: 'errors',
       warning: 'warnings',
       info: 'info',
-      debug: 'debug'
+      debug: 'debug',
     };
     const statKey = levelMap[log.level];
     if (statKey && statKey !== 'total' && statKey !== 'byCategory') {

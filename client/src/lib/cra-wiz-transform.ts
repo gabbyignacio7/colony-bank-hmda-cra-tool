@@ -52,7 +52,7 @@ export const BRANCH_LIST: Record<string, string> = {
   '413': 'Birmingham',
   '414': 'Milledgeville',
   '415': 'Atlanta',
-  '416': 'Tallahassee'
+  '416': 'Tallahassee',
 };
 
 // Loan Officer to Branch Mapping - Maps loan officer names to branch numbers
@@ -61,51 +61,51 @@ export const LOAN_OFFICER_BRANCH_MAP: Record<string, string> = {
   // Valdosta Mortgage (402)
   'Dana Williams': '402',
   'Sara Ellen Whiddon': '402',
-  
+
   // Columbus (408)
   'Barry Raymond Butcher': '408',
   'Barry  Raymond Butcher': '408', // Handle extra space variant
-  
+
   // Athens (404)
   'Billy Leopold': '404',
   'Alan Coleman': '404',
-  
+
   // LaGrange (405)
   'Susan Blanche Whatley': '405',
   'Alex Paul Whatley': '405',
-  
+
   // Tallahassee (416)
   'Tiffany H Mazo': '416',
-  
+
   // Savannah (401)
   'Lucia Smith Barnes': '401',
   'Amber Davies': '401',
-  
+
   // Macon (403)
   'Patrick Williams': '403',
   'Kelly Kremer': '403',
-  
+
   // Warner Robins (406)
   'Kyle Harrison': '406',
   'Landon Lanier': '406',
-  
+
   // Albany (407)
   'Jeffery Conzett': '407',
   'Bob Goodman': '407',
-  
+
   // Augusta (410)
   'Jennifer Gross': '410',
   'Davis Clark': '410',
-  
+
   // Statesboro (409)
   'Tim S. Hazelman': '409',
   'Tim S Hazelman': '409', // Handle variant without period
   'Lisa T. Brantley': '409',
   'Lisa T Brantley': '409', // Handle variant without period
-  
+
   // Pooler (412)
   'Adrienne Granger': '412',
-  
+
   // Milledgeville (414)
   'Kristen Laine Phillips': '414',
   'Lisa Canup': '414',
@@ -116,11 +116,11 @@ export const LOAN_OFFICER_BRANCH_MAP: Record<string, string> = {
  */
 export const getBranchFromLoanOfficer = (loanOfficer: string): string => {
   if (!loanOfficer) return '';
-  
+
   // Direct lookup
   const branch = LOAN_OFFICER_BRANCH_MAP[loanOfficer];
   if (branch) return branch;
-  
+
   // Try normalized lookup (trim spaces, lowercase compare)
   const normalized = loanOfficer.trim();
   for (const [name, branchNum] of Object.entries(LOAN_OFFICER_BRANCH_MAP)) {
@@ -128,24 +128,24 @@ export const getBranchFromLoanOfficer = (loanOfficer: string): string => {
       return branchNum;
     }
   }
-  
+
   return '';
 };
 
 // Work Item 125-Column Format (Phase 3 / Step 6 Output)
 export const OUTPUT_COLUMNS: string[] = [
-  'BRANCHNAME',           // From input OR VLOOKUP
-  'BRANCHNUMB',           // Branch number
+  'BRANCHNAME', // From input OR VLOOKUP
+  'BRANCHNUMB', // Branch number
   'LEI',
   'ULI',
   'LASTNAME',
   'FIRSTNAME',
-  'CLASTNAME',            // Co-applicant last name
-  'CFIRSTNAME',           // Co-applicant first name
+  'CLASTNAME', // Co-applicant last name
+  'CFIRSTNAME', // Co-applicant first name
   'LENDER',
   'AA_LOANPROCESSOR',
   'LDP_POSTCLOSER',
-  'ErrorMadeBy',          // NEW - blank column
+  'ErrorMadeBy', // NEW - blank column
   'APPLDATE',
   'LOANTYPE',
   'PURPOSE',
@@ -198,14 +198,14 @@ export const OUTPUT_COLUMNS: string[] = [
   'SEX_DETERMINANT',
   'COASEX_DETERMINANT',
   'AGE',
-  'COA_AGE',               // 9999 if no co-applicant
+  'COA_AGE', // 9999 if no co-applicant
   'INCOME',
   'PURCHASER',
   'RATE_SPREAD',
   'HOEPA_STATUS',
   'LIEN_STATUS',
   'CREDITSCORE',
-  'COA_CREDITSCORE',       // 9999 if no co-applicant
+  'COA_CREDITSCORE', // 9999 if no co-applicant
   'CREDITMODEL',
   'CREDITMODELOTHER',
   'COA_CREDITMODEL',
@@ -225,7 +225,7 @@ export const OUTPUT_COLUMNS: string[] = [
   'RATE_LOCK_DATE',
   'PPPTERM',
   'DTIRATIO',
-  'DSC',                   // NEW - blank column
+  'DSC', // NEW - blank column
   'CLTV',
   'LOAN_TERM',
   'LOAN_TERM_MONTHS',
@@ -258,7 +258,7 @@ export const OUTPUT_COLUMNS: string[] = [
   'OPENLOC',
   'BUSCML',
   'RATETYPE',
-  'VAR_TERM'
+  'VAR_TERM',
 ];
 
 export interface CRAWizRow {
@@ -275,17 +275,17 @@ export const excelDateToString = (value: any): string => {
   if (typeof value === 'string' && value.includes('/')) {
     return value;
   }
-  
+
   const serial = Number(value);
   if (isNaN(serial) || serial < 1000 || serial > 100000) {
     return String(value || '');
   }
-  
+
   const date = new Date((serial - 25569) * 86400 * 1000);
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const year = String(date.getFullYear()).slice(-2);
-  
+
   return `${month}/${day}/${year}`;
 };
 
@@ -312,18 +312,20 @@ export interface TransformResult {
 export const parseCRAWizFile = async (file: File): Promise<CRAWizRow[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
+
+    reader.onload = e => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = utils.sheet_to_json(sheet) as CRAWizRow[];
-        console.log(`Parsed CRA Wiz file: ${jsonData.length} rows, ${Object.keys(jsonData[0] || {}).length} columns`);
+        console.log(
+          `Parsed CRA Wiz file: ${jsonData.length} rows, ${Object.keys(jsonData[0] || {}).length} columns`
+        );
         resolve(jsonData);
       } catch (error) {
-        console.error("Error parsing CRA Wiz file:", error);
+        console.error('Error parsing CRA Wiz file:', error);
         reject(error);
       }
     };
@@ -338,7 +340,7 @@ export const parseCRAWizFile = async (file: File): Promise<CRAWizRow[]> => {
 export const transformToWorkItemFormat = (data: any[]): any[] => {
   return data.map(row => {
     const output: Record<string, any> = {};
-    
+
     OUTPUT_COLUMNS.forEach(col => {
       if (col === 'BRANCHNAME') {
         output[col] = getBranchName(
@@ -353,41 +355,41 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
       } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
         // Use ?? to preserve valid zero values, only default to 9999 if truly missing
         const value = row[col] ?? row[col.toLowerCase()] ?? '';
-        output[col] = (value !== '' && value !== null && value !== undefined) ? value : '9999';
+        output[col] = value !== '' && value !== null && value !== undefined ? value : '9999';
       } else {
         // IMPORTANT: Use ?? to preserve zeros (0, "0") - || would drop them
         const val = row[col] ?? row[col.toLowerCase()] ?? row[col.replace(/_/g, '')];
         output[col] = val !== undefined && val !== null ? val : '';
       }
     });
-    
+
     return output;
   });
 };
 
 export const transformCRAWizExport = (
-  inputData: CRAWizRow[], 
+  inputData: CRAWizRow[],
   customBranchList?: Record<string, string>
 ): TransformResult => {
   const branchLookup = customBranchList || BRANCH_LIST;
   let branchMatchCount = 0;
   let branchMissCount = 0;
-  
+
   const transformedData = inputData.map(row => {
     const inputBranchName = row.BRANCHNAME ? String(row.BRANCHNAME).trim() : '';
     const branchNum = String(row.BRANCHNUMB || '').trim();
     const lookupBranchName = branchLookup[branchNum] || '';
-    
+
     const branchName = inputBranchName || lookupBranchName;
-    
+
     if (branchName) {
       branchMatchCount++;
     } else {
       branchMissCount++;
     }
-    
+
     const outputRow: CRAWizRow = {};
-    
+
     OUTPUT_COLUMNS.forEach(col => {
       if (col === 'BRANCHNAME') {
         outputRow[col] = branchName;
@@ -398,22 +400,22 @@ export const transformCRAWizExport = (
       } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {
         // Use ?? to preserve valid zero values, only default to 9999 if truly missing
         const value = row[col] ?? '';
-        outputRow[col] = (value !== '' && value !== null && value !== undefined) ? value : '9999';
+        outputRow[col] = value !== '' && value !== null && value !== undefined ? value : '9999';
       } else {
         outputRow[col] = row[col] !== undefined ? row[col] : '';
       }
     });
-    
+
     return outputRow;
   });
-  
+
   return {
     data: transformedData,
     inputColumns: Object.keys(inputData[0] || {}).length,
     outputColumns: OUTPUT_COLUMNS.length,
     rowCount: transformedData.length,
     branchMatchCount,
-    branchMissCount
+    branchMissCount,
   };
 };
 
@@ -422,55 +424,71 @@ export const transformCRAWizExport = (
  */
 export const exportWorkItemFile = (data: CRAWizRow[], filename?: string) => {
   const transformedData = transformToWorkItemFormat(data);
-  
+
   const ws = utils.json_to_sheet(transformedData, {
-    header: OUTPUT_COLUMNS
+    header: OUTPUT_COLUMNS,
   });
-  
+
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'Work Items');
-  
+
   const now = new Date();
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                      'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   const defaultFilename = `HMDA_WorkItem_${monthNames[now.getMonth()]}_${now.getFullYear()}.csv`;
-  
+
   writeFile(wb, filename || defaultFilename, { bookType: 'csv' });
 };
 
 export const exportTransformSummary = (result: TransformResult) => {
   const monthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const filename = `HMDA_Transform_Summary_${monthYear.replace(' ', '_')}.xlsx`;
-  
-  const summaryData = [{
-    'Transformation Date': new Date().toLocaleString(),
-    'Input Columns': result.inputColumns,
-    'Output Columns': result.outputColumns,
-    'Total Rows': result.rowCount,
-    'Branch Matches': result.branchMatchCount,
-    'Branch Misses': result.branchMissCount,
-    'New Columns Added': 'ErrorMadeBy, DSC',
-    'Columns Removed': result.inputColumns - result.outputColumns + 2
-  }];
-  
+
+  const summaryData = [
+    {
+      'Transformation Date': new Date().toLocaleString(),
+      'Input Columns': result.inputColumns,
+      'Output Columns': result.outputColumns,
+      'Total Rows': result.rowCount,
+      'Branch Matches': result.branchMatchCount,
+      'Branch Misses': result.branchMissCount,
+      'New Columns Added': 'ErrorMadeBy, DSC',
+      'Columns Removed': result.inputColumns - result.outputColumns + 2,
+    },
+  ];
+
   const ws = utils.json_to_sheet(summaryData);
   const wb = utils.book_new();
-  utils.book_append_sheet(wb, ws, "Summary");
-  
+  utils.book_append_sheet(wb, ws, 'Summary');
+
   const branchData = Object.entries(BRANCH_LIST).map(([num, name]) => ({
     'Branch Number': num,
-    'Branch Name': name
+    'Branch Name': name,
   }));
   const branchWs = utils.json_to_sheet(branchData);
-  utils.book_append_sheet(wb, branchWs, "Branch Reference");
-  
+  utils.book_append_sheet(wb, branchWs, 'Branch Reference');
+
   writeFile(wb, filename);
 };
 
 /**
  * Process CRA Wiz export file for Step 6 transformation
  */
-export const processCRAWizExport = async (file: File): Promise<{
+export const processCRAWizExport = async (
+  file: File
+): Promise<{
   inputColumns: number;
   outputColumns: number;
   rowCount: number;
@@ -480,30 +498,30 @@ export const processCRAWizExport = async (file: File): Promise<{
 }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
+
+    reader.onload = e => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = utils.sheet_to_json(worksheet) as CRAWizRow[];
-        
+
         const result = transformCRAWizExport(jsonData);
-        
+
         resolve({
           inputColumns: result.inputColumns,
           outputColumns: result.outputColumns,
           rowCount: result.rowCount,
           branchMatches: result.branchMatchCount,
           dateConversions: result.rowCount * DATE_COLUMNS.length,
-          data: result.data
+          data: result.data,
         });
       } catch (error) {
         reject(error);
       }
     };
-    
+
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsArrayBuffer(file);
   });

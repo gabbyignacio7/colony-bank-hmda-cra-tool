@@ -71,25 +71,25 @@ export const findFieldValue = (row: Record<string, any>, targetField: string): a
  */
 export const parseBorrowerName = (fullName: string): { firstName: string; lastName: string } => {
   if (!fullName) return { firstName: '', lastName: '' };
-  
+
   const parts = fullName.split(',').map(p => p.trim());
   if (parts.length >= 2) {
     // Format: "LastName, FirstName MiddleName" or "LastName Suffix, FirstName"
     return {
       lastName: parts[0],
-      firstName: parts[1].split(' ')[0] // Take first word after comma as first name
+      firstName: parts[1].split(' ')[0], // Take first word after comma as first name
     };
   }
-  
+
   // Fallback: split on space
   const spaceParts = fullName.trim().split(' ');
   if (spaceParts.length >= 2) {
     return {
       firstName: spaceParts[0],
-      lastName: spaceParts.slice(1).join(' ')
+      lastName: spaceParts.slice(1).join(' '),
     };
   }
-  
+
   return { firstName: fullName, lastName: '' };
 };
 
@@ -102,7 +102,7 @@ export const mapAUSResult = (value: string | number | null | undefined): string 
   if (value === null || value === undefined || value === '') {
     return '';
   }
-  
+
   // Handle placeholder values
   if (value === '1111' || value === 1111) {
     return '';
@@ -127,18 +127,18 @@ export const mapAUSResult = (value: string | number | null | undefined): string 
     'refer ineligible': '4',
     'refer with caution': '5',
     'out of scope': '6',
-    'error': '7',
-    'accept': '8',
-    'caution': '9',
-    'ineligible': '10',
-    'incomplete': '11',
-    'invalid': '12',
+    error: '7',
+    accept: '8',
+    caution: '9',
+    ineligible: '10',
+    incomplete: '11',
+    invalid: '12',
     'not applicable': '16',
     'n/a': '16',
-    'na': '16',
+    na: '16',
     'unable to determine': '14',
-    'other': '15',
-    'exempt': '17',
+    other: '15',
+    exempt: '17',
   };
 
   return ausResultMap[val] || String(value).trim();
@@ -153,7 +153,7 @@ export const mapAUSystem = (value: string | number | null | undefined): string =
   if (value === null || value === undefined || value === '') {
     return '';
   }
-  
+
   // Handle placeholder values
   if (value === '1111' || value === 1111) {
     return '';
@@ -167,29 +167,29 @@ export const mapAUSystem = (value: string | number | null | undefined): string =
   // Map text values to HMDA codes
   const ausSystemMap: Record<string, string> = {
     'desktop underwriter': '1',
-    'du': '1',
+    du: '1',
     'fannie mae': '1',
-    'fnma': '1',
+    fnma: '1',
     'loan prospector': '2',
-    'lp': '2',
+    lp: '2',
     'loan product advisor': '2',
-    'lpa': '2',
+    lpa: '2',
     'freddie mac': '2',
-    'fhlmc': '2',
-    'total': '3',
+    fhlmc: '2',
+    total: '3',
     'total scorecard': '3',
     'fha total': '3',
     'fha total mortgage scorecard': '3',
-    'gus': '4',
+    gus: '4',
     'guaranteed underwriting system': '4',
-    'usda': '4',
+    usda: '4',
     'rural development': '4',
-    'other': '5',
+    other: '5',
     'not applicable': '6',
     'n/a': '6',
-    'na': '6',
-    'none': '6',
-    'exempt': '6',
+    na: '6',
+    none: '6',
+    exempt: '6',
   };
 
   return ausSystemMap[val] || String(value).trim();
@@ -199,7 +199,12 @@ export const mapAUSystem = (value: string | number | null | undefined): string =
  * Map Non-Amortizing Features text/values to HMDA codes
  * HMDA Spec codes: 1=Balloon, 2=Interest-Only, 3=Negative Amortization, 1111=None/N/A
  */
-export const mapNonAmortz = (value: string | number | null | undefined, balloonPmt?: any, ioPmt?: any, negAm?: any): string => {
+export const mapNonAmortz = (
+  value: string | number | null | undefined,
+  balloonPmt?: any,
+  ioPmt?: any,
+  negAm?: any
+): string => {
   // Check individual feature flags first
   if (balloonPmt === '1' || balloonPmt === 1 || String(balloonPmt).toLowerCase() === 'yes') {
     return '1'; // Balloon Payment
@@ -223,18 +228,18 @@ export const mapNonAmortz = (value: string | number | null | undefined, balloonP
 
   // Map text values
   const nonAmortzMap: Record<string, string> = {
-    'balloon': '1',
+    balloon: '1',
     'balloon payment': '1',
     'interest only': '2',
     'interest-only': '2',
-    'io': '2',
+    io: '2',
     'negative amortization': '3',
     'neg am': '3',
     'negative am': '3',
-    'none': '1111',
-    'no': '1111',
+    none: '1111',
+    no: '1111',
     'n/a': '1111',
-    'na': '1111',
+    na: '1111',
     'not applicable': '1111',
   };
 
@@ -304,17 +309,19 @@ export const formatCensusTract = (tract: any): string => {
  * IntroRatePeriod = N/A → Fixed (1), IntroRatePeriod = number → Variable (2)
  */
 export const deriveRateType = (introRatePeriod: string | number | null | undefined): string => {
-  if (introRatePeriod === null ||
-      introRatePeriod === undefined ||
-      introRatePeriod === '' ||
-      introRatePeriod === 'N/A' ||
-      introRatePeriod === 'NA' ||
-      introRatePeriod === 'n/a' ||
-      introRatePeriod === 'na' ||
-      introRatePeriod === 'Exempt' ||
-      introRatePeriod === 'exempt' ||
-      introRatePeriod === '1111' ||
-      introRatePeriod === 1111) {
+  if (
+    introRatePeriod === null ||
+    introRatePeriod === undefined ||
+    introRatePeriod === '' ||
+    introRatePeriod === 'N/A' ||
+    introRatePeriod === 'NA' ||
+    introRatePeriod === 'n/a' ||
+    introRatePeriod === 'na' ||
+    introRatePeriod === 'Exempt' ||
+    introRatePeriod === 'exempt' ||
+    introRatePeriod === '1111' ||
+    introRatePeriod === 1111
+  ) {
     return '1'; // Fixed Rate
   }
 
@@ -334,17 +341,19 @@ export const deriveRateType = (introRatePeriod: string | number | null | undefin
  * 1 month → 1 year, 13 months → 2 years, N/A → blank
  */
 export const deriveVarTerm = (introRatePeriod: string | number | null | undefined): string => {
-  if (introRatePeriod === null ||
-      introRatePeriod === undefined ||
-      introRatePeriod === '' ||
-      introRatePeriod === 'N/A' ||
-      introRatePeriod === 'NA' ||
-      introRatePeriod === 'n/a' ||
-      introRatePeriod === 'na' ||
-      introRatePeriod === 'Exempt' ||
-      introRatePeriod === 'exempt' ||
-      introRatePeriod === '1111' ||
-      introRatePeriod === 1111) {
+  if (
+    introRatePeriod === null ||
+    introRatePeriod === undefined ||
+    introRatePeriod === '' ||
+    introRatePeriod === 'N/A' ||
+    introRatePeriod === 'NA' ||
+    introRatePeriod === 'n/a' ||
+    introRatePeriod === 'na' ||
+    introRatePeriod === 'Exempt' ||
+    introRatePeriod === 'exempt' ||
+    introRatePeriod === '1111' ||
+    introRatePeriod === 1111
+  ) {
     return ''; // Fixed Rate loans have no Var_Term
   }
 
@@ -363,7 +372,10 @@ export const deriveVarTerm = (introRatePeriod: string | number | null | undefine
  * Supports: pipe (|), tilde (~), tab (\t), semicolon (;)
  */
 export const detectDelimiter = (content: string): string => {
-  const lines = content.split('\n').filter(l => l.trim().length > 0).slice(0, 10);
+  const lines = content
+    .split('\n')
+    .filter(l => l.trim().length > 0)
+    .slice(0, 10);
   if (lines.length === 0) return '|';
 
   const delimiters = ['|', '~', '\t', ';'];
@@ -372,11 +384,13 @@ export const detectDelimiter = (content: string): string => {
   for (const delimiter of delimiters) {
     // Count how many fields each delimiter produces
     const fieldCounts = lines.map(line => line.split(delimiter).length);
-    
+
     // Calculate consistency score (prefer delimiters that produce consistent field counts)
     const avgFields = fieldCounts.reduce((a, b) => a + b, 0) / fieldCounts.length;
-    const variance = fieldCounts.reduce((sum, count) => sum + Math.pow(count - avgFields, 2), 0) / fieldCounts.length;
-    
+    const variance =
+      fieldCounts.reduce((sum, count) => sum + Math.pow(count - avgFields, 2), 0) /
+      fieldCounts.length;
+
     // Score = average fields / (1 + variance) - prefer more fields with less variance
     // Minimum 10 fields expected for HMDA LAR format
     scores[delimiter] = avgFields >= 10 ? avgFields / (1 + variance) : 0;
@@ -398,7 +412,7 @@ export const getTrimmedValue = (val: any): string => {
 /**
  * Filter data by current month
  */
-export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[], count: number } => {
+export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[]; count: number } => {
   // For now, return all data - implement date filtering as needed
   return { filtered: data, count: data.length };
 };
