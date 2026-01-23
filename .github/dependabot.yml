@@ -32,6 +32,16 @@ updates:
     # Helpful commit message
     commit-message:
       prefix: "deps"
+    # Ignore packages that would break compatibility
+    ignore:
+      # typescript-eslint v8 requires ESLint 9 (breaking change)
+      - dependency-name: "@typescript-eslint/*"
+        update-types: ["version-update:semver-major"]
+      # These major updates need manual testing
+      - dependency-name: "recharts"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-resizable-panels"
+        update-types: ["version-update:semver-major"]
 
   # Keep GitHub Actions up to date
   - package-ecosystem: "github-actions"
