@@ -267,7 +267,7 @@ export const verifyPhase3Output = (data: any[][]): VerificationResult => {
 
   // Check 8: Co-applicant fields show 9999 when empty
   const coaAgeIdx = headers.findIndex((h: any) => String(h) === 'COA_AGE');
-  let coaFieldsCorrect = true;
+  const coaFieldsCorrect = true;
   if (coaAgeIdx >= 0) {
     for (let rowIdx = 1; rowIdx < Math.min(10, data.length); rowIdx++) {
       const coaAge = data[rowIdx]?.[coaAgeIdx];
