@@ -118,7 +118,7 @@ jobs:
 
       # Save the build for deployment
       - name: 💾 Save build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: website-build
           path: dist/public
