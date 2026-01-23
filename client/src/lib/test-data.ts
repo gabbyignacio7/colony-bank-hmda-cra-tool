@@ -716,5 +716,5 @@ export const TEST_DATA_SUMMARY = {
   withdrawn: HMDA_TEST_DATA.filter(r => r.Action === "4").length,
   incomplete: HMDA_TEST_DATA.filter(r => r.Action === "5").length,
   intentionalErrors: 2, // Census Tract format, Interest Rate > 20%, Income = 0, Invalid Action Code
-  branchesUsed: [...new Set(HMDA_TEST_DATA.map(r => r.Branch))].length
+  branchesUsed: Array.from(new Set(HMDA_TEST_DATA.map(r => r.Branch))).length
 };

@@ -198,14 +198,11 @@ export default function Dashboard() {
         setSuppData(data as SbslRow[]);
         addLog(`Loaded SUPPLEMENTAL file: ${file.name} (${data.length} rows)`);
         toast({ title: "Supplemental File Loaded", description: `${data.length} records ready for merge` });
-      } else if (type === 'expected') {
-        // Desired/expected output for comparison
+      } else {
+        // type === 'expected' - Desired/expected output for comparison
         setDesiredOutputData(data as SbslRow[]);
         addLog(`Loaded DESIRED OUTPUT file: ${file.name} (${data.length} rows)`);
         toast({ title: "Desired Output Loaded", description: `${data.length} records ready for comparison` });
-      } else {
-        addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
-        toast({ title: "File Loaded", description: `${file.name} ready for processing` });
       }
     } catch (e) {
       addLog(`Error parsing file ${file.name}: ${e}`);
@@ -442,8 +439,7 @@ export default function Dashboard() {
     }
 
     try {
-      const transformedData = transformToCRAWizFormat(processedData);
-      exportComparisonReport(transformedData, desiredOutputData, comparisonResult);
+      exportComparisonReport(comparisonResult);
       toast({
         title: "Report Downloaded",
         description: "Comparison report with all sheets exported"
@@ -763,7 +759,7 @@ export default function Dashboard() {
                      <CardTitle className="text-base">Input B: Encompass HMDA Export</CardTitle>
                      <CardDescription className="text-xs">
                        Primary HMDA data with ULI, Address, Loan Amount
-                       <span className="block text-blue-600 mt-1">File: "October Encompass HMDA Export.xlsx"</span>
+                       <span className="block text-blue-600 mt-1">File: &quot;October Encompass HMDA Export.xlsx&quot;</span>
                      </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -780,7 +776,7 @@ export default function Dashboard() {
                      <CardTitle className="text-base">Input C: Additional Fields</CardTitle>
                      <CardDescription className="text-xs">
                        Names, Loan Officer, APR, Lock Date
-                       <span className="block text-blue-600 mt-1">File: "October HMDA Additional Fields.xlsx"</span>
+                       <span className="block text-blue-600 mt-1">File: &quot;October HMDA Additional Fields.xlsx&quot;</span>
                      </CardDescription>
                   </CardHeader>
                   <CardContent>

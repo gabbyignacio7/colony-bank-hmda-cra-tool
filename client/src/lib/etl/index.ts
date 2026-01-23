@@ -10,6 +10,8 @@ export type {
   ColumnStats,
   RowComparison,
   ComparisonResult,
+  ColumnAccuracy,
+  RowComparisonResult,
   DeduplicationResult,
   FilterResult,
   SummaryStats,

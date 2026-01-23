@@ -244,6 +244,8 @@ export const mapNonAmortz = (value: string | number | null | undefined, balloonP
 /**
  * Convert Loan Term to years with floor rounding
  * HMDA Spec: Loan Term in whole years, use floor for partial years
+ * Input: months (e.g., 360, 180, 18)
+ * Output: years as string (e.g., '30', '15', '1')
  */
 export const convertLoanTermToYears = (months: any): string => {
   if (months === null || months === undefined || months === '') return '';
@@ -251,12 +253,7 @@ export const convertLoanTermToYears = (months: any): string => {
   const numMonths = Number(months);
   if (isNaN(numMonths) || numMonths <= 0) return '';
 
-  // If value looks like it's already in years (small number), return as-is
-  if (numMonths <= 50) {
-    return String(Math.floor(numMonths));
-  }
-
-  // Convert months to years with floor (18 months = 1 year, not 1.5 or 2)
+  // Always convert months to years with floor (18 months = 1 year, not 1.5 or 2)
   return String(Math.floor(numMonths / 12));
 };
 

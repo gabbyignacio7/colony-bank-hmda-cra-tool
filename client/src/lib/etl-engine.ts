@@ -71,7 +71,7 @@ export {
 } from './etl/merge';
 
 // Import types for use in functions below
-import type { SbslRow, ComparisonResult, RowComparison, ColumnStats } from './etl/types';
+import type { SbslRow, ComparisonResult, RowComparison, ColumnStats, ColumnAccuracy, RowComparisonResult } from './etl/types';
 import { CRA_WIZ_128_COLUMNS } from './etl/field-maps';
 import { excelDateToString, findFieldValue } from './etl/utils';
 import { parseEncompassFile, parseLaserProFile } from './etl/parsers';
@@ -305,13 +305,86 @@ export const compareOutputs = (
     .map(([col, stats]) => `${col}: ${stats.changedRows} changed, blanks ${stats.blanksOld}→${stats.blanksNew}`)
     .join('\n');
   
+  // Compute additional UI properties
+  const totalRecords = Math.max(oldData.length, newData.length);
+  
+  // Build row comparisons for UI display
+  const rowComparisons: RowComparisonResult[] = [];
+  const matchedULIs = new Set<string>();
+  let exactMatches = 0;
+  let partialMatches = 0;
+  
+  // Check all new data rows
+  newData.forEach((row, idx) => {
+    const uli = String(row.ULI || row['Universal Loan Identifier'] || '').trim();
+    const key = uli || `row-${idx}`;
+    const oldRow = uli ? oldByULI.get(uli) : undefined;
+    
+    if (!oldRow) {
+      // New record
+      rowComparisons.push({
+        key,
+        isMatch: false,
+        isNewRecord: true,
+        differences: {}
+      });
+    } else {
+      matchedULIs.add(uli);
+      const differences: Record<string, { old: string; new: string }> = {};
+      
+      columns.forEach(col => {
+        const oldVal = String(oldRow[col] ?? '').trim();
+        const newVal = String(row[col] ?? '').trim();
+        if (oldVal !== newVal) {
+          differences[col] = { old: oldVal || '(blank)', new: newVal || '(blank)' };
+        }
+      });
+      
+      const isExactMatch = Object.keys(differences).length === 0;
+      if (isExactMatch) {
+        exactMatches++;
+      } else if (Object.keys(differences).length <= 5) {
+        partialMatches++;
+      }
+      
+      rowComparisons.push({
+        key,
+        isMatch: isExactMatch,
+        isNewRecord: false,
+        differences
+      });
+    }
+  });
+  
+  const newRecords = newData.length - matchedULIs.size;
+  const matchPercentage = totalRecords > 0 ? (exactMatches / totalRecords) * 100 : 0;
+  
+  // Compute worst columns (columns with most mismatches)
+  const worstColumns: ColumnAccuracy[] = Object.entries(columnChanges)
+    .map(([col, stats]) => ({
+      column: col,
+      matchRate: totalRecords > 0 ? ((totalRecords - stats.changedRows) / totalRecords) * 100 : 100,
+      mismatches: stats.changedRows
+    }))
+    .filter(c => c.mismatches > 0)
+    .sort((a, b) => b.mismatches - a.mismatches)
+    .slice(0, 20);
+  
   return {
     totalRowsOld: oldData.length,
     totalRowsNew: newData.length,
     columnsCompared: columns,
     columnChanges,
     rowChanges,
-    summary: significantChanges || 'No significant changes detected'
+    summary: significantChanges || 'No significant changes detected',
+    // Additional properties for UI
+    matchPercentage,
+    matchedRecords: exactMatches,
+    totalRecords,
+    partialMatches,
+    newRecords,
+    worstColumns,
+    rowComparisons
   };
 };
 

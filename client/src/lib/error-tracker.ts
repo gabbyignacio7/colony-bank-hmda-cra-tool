@@ -320,7 +320,17 @@ export const getErrorStats = (): {
   };
 
   logs.forEach(log => {
-    stats[log.level]++;
+    // Map level names to stats property names
+    const levelMap: Record<string, keyof typeof stats> = {
+      error: 'errors',
+      warning: 'warnings',
+      info: 'info',
+      debug: 'debug'
+    };
+    const statKey = levelMap[log.level];
+    if (statKey && statKey !== 'total' && statKey !== 'byCategory') {
+      (stats[statKey] as number)++;
+    }
     stats.byCategory[log.category] = (stats.byCategory[log.category] || 0) + 1;
   });
 
