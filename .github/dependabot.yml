@@ -34,6 +34,9 @@ updates:
       prefix: "deps"
     # Ignore packages that would break compatibility
     ignore:
+      # ESLint 9 requires flat config migration (breaking change)
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
       # typescript-eslint v8 requires ESLint 9 (breaking change)
       - dependency-name: "@typescript-eslint/*"
         update-types: ["version-update:semver-major"]
