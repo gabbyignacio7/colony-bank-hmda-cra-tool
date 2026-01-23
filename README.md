@@ -1,13 +1,13 @@
 # Colony Bank HMDA/CRA Tool
 
-[![CI](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml)
-[![Deploy](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml)
+[![CI](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/ci.yml)
+[![Deploy](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/deploy.yml)
 
 A professional ETL (Extract, Transform, Load) tool for processing HMDA (Home Mortgage Disclosure Act) data and generating CRA (Community Reinvestment Act) Wiz-compatible exports.
 
 ## 🔗 Live Demo
 
-**[https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/](https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/)**
+**[https://deepseeai.github.io/colony-bank-hmda-tool/](https://deepseeai.github.io/colony-bank-hmda-tool/)**
 
 ## Features
 
@@ -30,8 +30,8 @@ A professional ETL (Extract, Transform, Load) tool for processing HMDA (Home Mor
 
 ```bash
 # Clone the repository
-git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
-cd colony-bank-hmda-cra-tool
+git clone https://github.com/deepseeai/colony-bank-hmda-tool.git
+cd colony-bank-hmda-tool
 
 # Install dependencies
 npm install
@@ -73,7 +73,9 @@ colony-bank-hmda-tool/
 ├── .github/              # GitHub Actions workflows and templates
 │   ├── workflows/
 │   │   ├── ci.yml        # Continuous Integration
-│   │   └── deploy.yml    # GitHub Pages deployment
+│   │   ├── deploy.yml    # GitHub Pages deployment
+│   │   ├── auto-fix.yml  # Auto-format PRs
+│   │   └── release.yml   # Release automation
 │   └── ISSUE_TEMPLATE/
 ├── client/               # Frontend application
 │   ├── src/
@@ -84,7 +86,7 @@ colony-bank-hmda-tool/
 │   │   ├── pages/        # Page components
 │   │   └── __tests__/    # Unit tests
 │   └── public/           # Static assets
-├── server/               # Backend server
+├── server/               # Backend server (dev only)
 ├── shared/               # Shared types and schemas
 ├── docs/                 # Documentation
 └── package.json
@@ -126,6 +128,7 @@ Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of c
 
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [Contributing Guide](docs/CONTRIBUTING.md)
+- [Setup Guide](docs/SETUP_GUIDE.md)
 - [User Manual](client/public/USER_MANUAL.md)
 
 ## Tech Stack
