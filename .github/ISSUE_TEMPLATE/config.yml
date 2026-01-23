@@ -1,0 +1,9 @@
+# Configuration for issue templates
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & Help
+    url: https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/discussions
+    about: Ask questions or get help using the tool
+  - name: 📚 Documentation
+    url: https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/blob/main/client/public/USER_MANUAL.md
+    about: Check the user manual first
