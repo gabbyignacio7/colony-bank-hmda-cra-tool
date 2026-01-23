@@ -421,8 +421,21 @@ export const filterByCurrentMonth = (data: SbslRow[]): { filtered: SbslRow[]; co
  * Generate summary statistics for processed data
  */
 export const generateSummaryStats = (data: SbslRow[]) => {
+  // Calculate total loan amount from various possible field names
+  const totalLoanAmount = data.reduce((sum, row) => {
+    const amount = Number(
+      row.LoanAmountInDollars ||
+        row.LoanAmount ||
+        row['Loan Amount'] ||
+        row['Loan Amount in Dollars'] ||
+        0
+    );
+    return sum + (isNaN(amount) ? 0 : amount);
+  }, 0);
+
   return {
     totalRecords: data.length,
+    totalLoanAmount,
     loanTypes: {} as Record<string, number>,
     actionTypes: {} as Record<string, number>,
     purposes: {} as Record<string, number>,
