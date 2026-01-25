@@ -111,6 +111,8 @@ export default function Dashboard() {
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   
   const [rawData, setRawData] = useState<SbslRow[]>([]);
+  const [laserProData, setLaserProData] = useState<SbslRow[]>([]); // LaserPro data (commercial/ag loans)
+  const [encompassData, setEncompassData] = useState<SbslRow[]>([]); // Encompass data (consumer loans)
   const [suppData, setSuppData] = useState<SbslRow[]>([]); // Supplemental data for merge
   const [processedData, setProcessedData] = useState<SbslRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationResult[]>([]);
@@ -187,11 +189,17 @@ export default function Dashboard() {
     try {
       const data = await processFile(file);
 
-      if (type === 'encompass' || type === 'laserPro') {
-        // Primary data sources
-        setRawData(data as SbslRow[]);
-        addLog(`Loaded ${type.toUpperCase()} file: ${file.name} (${data.length} rows)`);
-        toast({ title: "File Loaded", description: `Successfully loaded ${data.length} records from ${file.name}` });
+      if (type === 'laserPro') {
+        // LaserPro data source (commercial/ag loans)
+        setLaserProData(data as SbslRow[]);
+        addLog(`Loaded LASERPRO file: ${file.name} (${data.length} commercial/ag records)`);
+        toast({ title: "LaserPro File Loaded", description: `Successfully loaded ${data.length} commercial/ag records from ${file.name}` });
+        setCurrentScenario("Custom Upload");
+      } else if (type === 'encompass') {
+        // Encompass data source (consumer loans)
+        setEncompassData(data as SbslRow[]);
+        addLog(`Loaded ENCOMPASS file: ${file.name} (${data.length} consumer records)`);
+        toast({ title: "Encompass File Loaded", description: `Successfully loaded ${data.length} consumer records from ${file.name}` });
         setCurrentScenario("Custom Upload");
       } else if (type === 'supp') {
         // Supplemental data for merge
@@ -228,46 +236,74 @@ export default function Dashboard() {
   const runEtlProcess = async () => {
     setIsProcessing(true);
     setActiveTab('process');
-    setLogs([]); 
+    setLogs([]);
     addLog("Starting Comprehensive ETL Process...");
-    
-    // Check if we have uploaded data
-    if (rawData.length === 0 && !files.encompass && !files.laserPro) {
-      addLog("No files uploaded. Using sample data for demonstration...");
-      toast({ 
-        title: "Using Sample Data", 
-        description: "Upload files to process your own data", 
-        variant: "default" 
+
+    // ISSUE 1 FIX: Combine LaserPro and Encompass data as separate records
+    // LaserPro records are commercial/ag loans, Encompass records are consumer loans
+    // Both should be APPENDED to create the complete HMDA output
+    const combinedData: SbslRow[] = [];
+
+    // Add Encompass records first (consumer loans)
+    if (encompassData.length > 0) {
+      addLog(`📊 Loading ${encompassData.length} consumer records from Encompass...`);
+      // Mark each record with its source for tracking
+      encompassData.forEach(row => {
+        combinedData.push({ ...row, _source: 'encompass' });
       });
     }
-    
+
+    // APPEND LaserPro records (commercial/ag loans) - these are SEPARATE loans
+    if (laserProData.length > 0) {
+      addLog(`📊 Appending ${laserProData.length} commercial/ag records from LaserPro...`);
+      // Mark each record with its source for tracking
+      laserProData.forEach(row => {
+        combinedData.push({ ...row, _source: 'laserPro' });
+      });
+    }
+
+    // Check if we have uploaded data
+    if (combinedData.length === 0 && !files.encompass && !files.laserPro) {
+      addLog("No files uploaded. Using sample data for demonstration...");
+      toast({
+        title: "Using Sample Data",
+        description: "Upload files to process your own data",
+        variant: "default"
+      });
+    } else {
+      addLog(`📊 Total combined records: ${combinedData.length} (${encompassData.length} Encompass + ${laserProData.length} LaserPro)`);
+    }
+
+    // Update rawData with combined data for downstream processing
+    setRawData(combinedData);
+
     // Validate primary data has key HMDA fields
-    if (rawData.length > 0) {
-      const firstRow = rawData[0];
+    if (combinedData.length > 0) {
+      const firstRow = combinedData[0];
       const hasULI = !!(firstRow?.ULI || firstRow?.['Universal Loan Identifier'] || firstRow?.['Universal Loan Identifier (ULI)']);
       const hasLoanAmount = !!(firstRow?.LoanAmount || firstRow?.['Loan Amount']);
       const hasAddress = !!(firstRow?.Address || firstRow?.['Street Address']);
-      
+
       if (!hasULI && !hasLoanAmount) {
         addLog("⚠️ WARNING: Primary data appears to be missing ULI and Loan Amount fields.");
         addLog("   This may indicate files were uploaded in the wrong slots.");
         addLog("   Input B should be: Encompass HMDA Export (with ULI, Loan Amount, Census data)");
         addLog("   Input C should be: Additional Fields (with Names, Loan Officer, APR)");
-        toast({ 
-          title: "⚠️ Check File Slots", 
-          description: "Primary data missing ULI/Loan Amount. Make sure files are in correct slots.", 
+        toast({
+          title: "⚠️ Check File Slots",
+          description: "Primary data missing ULI/Loan Amount. Make sure files are in correct slots.",
           variant: "destructive",
           duration: 10000
         });
       }
     }
-    
+
     await new Promise(r => setTimeout(r, 500));
-    
+
     // Step 1: Filter
     const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     addLog(`Phase 1: Filtering by current month (${currentMonth})...`);
-    let currentData = rawData.length > 0 ? rawData : MOCK_SBSL_DATA;
+    let currentData = combinedData.length > 0 ? combinedData : MOCK_SBSL_DATA;
     const { filtered, count } = filterByCurrentMonth(currentData);
     addLog(`Filtered: Kept ${count} records out of ${currentData.length} total.`);
 
