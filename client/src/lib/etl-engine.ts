@@ -23,7 +23,8 @@ export type {
 
 // Re-export field maps
 export {
-  CRA_WIZ_128_COLUMNS,
+  HMDA_COLUMN_ORDER,  // 126-column HMDA template (single source of truth)
+  CRA_WIZ_128_COLUMNS,  // Alias for backwards compatibility
   ENCOMPASS_FIELD_MAP,
   COMPLIANCE_REPORTER_FIELD_MAP,
   FIELD_VARIATIONS,
@@ -72,7 +73,7 @@ import type {
   ColumnAccuracy,
   RowComparisonResult,
 } from './etl/types';
-import { CRA_WIZ_128_COLUMNS } from './etl/field-maps';
+import { HMDA_COLUMN_ORDER, CRA_WIZ_128_COLUMNS } from './etl/field-maps';
 import { excelDateToString, findFieldValue } from './etl/utils';
 import { parseEncompassFile, parseLaserProFile } from './etl/parsers';
 import { transformToCRAWizFormat, autoCorrectData } from './etl/transform';
@@ -83,12 +84,13 @@ import { logInfo, logWarning, logError, trackETLStep } from './error-tracker';
  * Export to CRA Wiz Excel format
  */
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
-  const ws = utils.json_to_sheet(data, { header: CRA_WIZ_128_COLUMNS });
+  // ISSUE 6 FIX: Enforce exactly 126 columns using HMDA_COLUMN_ORDER
+  const ws = utils.json_to_sheet(data, { header: HMDA_COLUMN_ORDER });
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'CRA_Wiz_Data');
 
   // Auto-size columns
-  const colWidths = CRA_WIZ_128_COLUMNS.map(col => ({
+  const colWidths = HMDA_COLUMN_ORDER.map(col => ({
     wch: Math.max(col.length, 12),
   }));
   ws['!cols'] = colWidths;
