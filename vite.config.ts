@@ -11,8 +11,12 @@ const __dirname = path.dirname(__filename);
 // Conditionally import Replit plugins only when running on Replit
 const isReplit = process.env.REPL_ID !== undefined;
 
-// Get the base path from environment variable, allowing override
-const basePath = process.env.GITHUB_PAGES_BASE || (process.env.GITHUB_PAGES ? "/colony-bank-hmda-tool/" : "/");
+// Base path configuration:
+// - For private GitHub Pages (random subdomain like xxx.pages.github.io): use "/"
+// - For public GitHub Pages (org.github.io/repo): use "/repo-name/"
+// - For local development: use "/"
+// Currently using "/" since the repo has private GitHub Pages enabled
+const basePath = "/";
 
 export default defineConfig({
   plugins: [

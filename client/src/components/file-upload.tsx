@@ -24,15 +24,18 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileSelect(e.dataTransfer.files[0]);
-    }
-  }, [onFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        onFileSelect(e.dataTransfer.files[0]);
+      }
+    },
+    [onFileSelect]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -46,9 +49,9 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
   };
 
   // Simple accept string for input
-  const acceptString = accept 
+  const acceptString = accept
     ? Object.values(accept).flat().join(',')
-    : ".xlsx,.xls,.csv,.txt,.pdf";
+    : '.xlsx,.xls,.csv,.txt,.pdf';
 
   return (
     <div className="w-full">
@@ -60,7 +63,7 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
           </span>
         )}
       </div>
-      
+
       <div
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -68,19 +71,19 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
         onDrop={handleDrop}
         onClick={onButtonClick}
         className={cn(
-          "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer flex flex-col items-center justify-center text-center min-h-[120px]",
-          isDragActive ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-accent/50",
-          file ? "border-green-200 bg-green-50/30" : ""
+          'border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer flex flex-col items-center justify-center text-center min-h-[120px]',
+          isDragActive ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent/50',
+          file ? 'border-green-200 bg-green-50/30' : ''
         )}
       >
-        <input 
+        <input
           ref={inputRef}
-          type="file" 
-          className="hidden" 
+          type="file"
+          className="hidden"
           onChange={handleChange}
           accept={acceptString}
         />
-        
+
         {file ? (
           <div className="flex flex-col items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
@@ -95,7 +98,7 @@ export function FileUpload({ label, description, accept, onFileSelect, file }: F
               <Upload className="w-5 h-5" />
             </div>
             <p className="text-sm text-muted-foreground">
-              {isDragActive ? "Drop file here..." : description || "Drag & drop or click to upload"}
+              {isDragActive ? 'Drop file here...' : description || 'Drag & drop or click to upload'}
             </p>
           </div>
         )}

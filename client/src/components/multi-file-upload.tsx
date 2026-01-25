@@ -12,13 +12,13 @@ interface MultiFileUploadProps {
   onRemoveFile: (index: number) => void;
 }
 
-export function MultiFileUpload({ 
-  label, 
-  description, 
-  accept, 
-  onFilesSelect, 
+export function MultiFileUpload({
+  label,
+  description,
+  accept,
+  onFilesSelect,
   files,
-  onRemoveFile 
+  onRemoveFile,
 }: MultiFileUploadProps) {
   const [isDragActive, setIsDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,16 +33,19 @@ export function MultiFileUpload({
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles = Array.from(e.dataTransfer.files);
-      onFilesSelect(newFiles);
-    }
-  }, [onFilesSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const newFiles = Array.from(e.dataTransfer.files);
+        onFilesSelect(newFiles);
+      }
+    },
+    [onFilesSelect]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -56,9 +59,9 @@ export function MultiFileUpload({
     inputRef.current?.click();
   };
 
-  const acceptString = accept 
+  const acceptString = accept
     ? Object.values(accept).flat().join(',')
-    : ".xlsx,.xls,.csv,.txt,.pdf";
+    : '.xlsx,.xls,.csv,.txt,.pdf';
 
   return (
     <div className="w-full">
@@ -70,7 +73,7 @@ export function MultiFileUpload({
           </span>
         )}
       </div>
-      
+
       <div
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -78,26 +81,28 @@ export function MultiFileUpload({
         onDrop={handleDrop}
         onClick={onButtonClick}
         className={cn(
-          "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer flex flex-col items-center justify-center text-center min-h-[120px]",
-          isDragActive ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-accent/50",
-          files.length > 0 ? "border-green-200 bg-green-50/30" : ""
+          'border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer flex flex-col items-center justify-center text-center min-h-[120px]',
+          isDragActive ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent/50',
+          files.length > 0 ? 'border-green-200 bg-green-50/30' : ''
         )}
       >
-        <input 
+        <input
           ref={inputRef}
-          type="file" 
-          className="hidden" 
+          type="file"
+          className="hidden"
           onChange={handleChange}
           accept={acceptString}
           multiple
         />
-        
+
         <div className="flex flex-col items-center gap-2">
           <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
             <Upload className="w-5 h-5" />
           </div>
           <p className="text-sm text-muted-foreground">
-            {isDragActive ? "Drop files here..." : description || "Drag & drop multiple files or click to upload"}
+            {isDragActive
+              ? 'Drop files here...'
+              : description || 'Drag & drop multiple files or click to upload'}
           </p>
         </div>
       </div>
@@ -105,8 +110,8 @@ export function MultiFileUpload({
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
           {files.map((file, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="flex items-center justify-between bg-white border rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
               data-testid={`file-item-${index}`}
             >
@@ -116,13 +121,15 @@ export function MultiFileUpload({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   onRemoveFile(index);
                 }}

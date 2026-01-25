@@ -1,0 +1,60 @@
+# =============================================================================
+# Dependabot - Automatically updates dependencies
+# =============================================================================
+# This keeps your project's packages up to date automatically.
+# Dependabot will create PRs when updates are available.
+# =============================================================================
+
+version: 2
+updates:
+  # Keep npm packages up to date
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    # Group minor and patch updates together (less noise)
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Limit to 5 PRs at a time (not overwhelming)
+    open-pull-requests-limit: 5
+    # Add labels for easy identification
+    labels:
+      - "dependencies"
+      - "automated"
+    # Helpful commit message
+    commit-message:
+      prefix: "deps"
+    # Ignore packages that would break compatibility
+    ignore:
+      # ESLint 9 requires flat config migration (breaking change)
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint v8 requires ESLint 9 (breaking change)
+      - dependency-name: "@typescript-eslint/*"
+        update-types: ["version-update:semver-major"]
+      # These major updates need manual testing
+      - dependency-name: "recharts"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-resizable-panels"
+        update-types: ["version-update:semver-major"]
+
+  # Keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "ci"

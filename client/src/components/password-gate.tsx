@@ -25,14 +25,14 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
 
     // Client-side password validation for static deployment
     // The password is "colony2024" - this is a simple access gate, not security-critical
-    const validPassword = "colony2024";
+    const validPassword = 'colony2024';
 
     if (password === validPassword) {
       onUnlock();
-      toast({ title: "Access Granted", description: "Welcome to Colony Bank ETL Tool" });
+      toast({ title: 'Access Granted', description: 'Welcome to Colony Bank ETL Tool' });
     } else {
       setError(true);
-      toast({ title: "Access Denied", description: "Incorrect password.", variant: "destructive" });
+      toast({ title: 'Access Denied', description: 'Incorrect password.', variant: 'destructive' });
     }
 
     setIsValidating(false);
@@ -55,11 +55,11 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                 type="password"
                 placeholder="Enter Password"
                 value={password}
-                onChange={(e) => {
+                onChange={e => {
                   setPassword(e.target.value);
                   setError(false);
                 }}
-                className={error ? "border-red-500 focus-visible:ring-red-500" : ""}
+                className={error ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 disabled={isValidating}
                 data-testid="input-password"
               />
@@ -70,8 +70,8 @@ export function PasswordGate({ onUnlock }: PasswordGateProps) {
                 </div>
               )}
             </div>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-[#003366] hover:bg-[#002244]"
               disabled={isValidating}
               data-testid="button-authenticate"

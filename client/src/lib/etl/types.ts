@@ -43,21 +43,51 @@ export interface RowComparison {
 }
 
 /**
+ * Column accuracy info for comparison UI
+ */
+export interface ColumnAccuracy {
+  column: string;
+  matchRate: number;
+  mismatches: number;
+}
+
+/**
+ * Row-level comparison result for UI display
+ */
+export interface RowComparisonResult {
+  key: string;
+  isMatch: boolean;
+  isNewRecord: boolean;
+  differences: Record<string, { old: string; new: string }>;
+}
+
+/**
  * Result of comparing two datasets
  */
 export interface ComparisonResult {
   totalRowsOld: number;
   totalRowsNew: number;
   columnsCompared: string[];
-  columnChanges: Record<string, {
-    blanksOld: number;
-    blanksNew: number;
-    uniqueValuesOld: number;
-    uniqueValuesNew: number;
-    changedRows: number;
-  }>;
+  columnChanges: Record<
+    string,
+    {
+      blanksOld: number;
+      blanksNew: number;
+      uniqueValuesOld: number;
+      uniqueValuesNew: number;
+      changedRows: number;
+    }
+  >;
   rowChanges: RowComparison[];
   summary: string;
+  // Additional properties for UI display
+  matchPercentage: number;
+  matchedRecords: number;
+  totalRecords: number;
+  partialMatches: number;
+  newRecords: number;
+  worstColumns: ColumnAccuracy[];
+  rowComparisons: RowComparisonResult[];
 }
 
 /**

@@ -1,42 +1,32 @@
-## Description
+## What does this change?
 
-<!-- Describe your changes in detail -->
+<!-- Describe what you changed in simple terms. The AI can help you write this! -->
 
-## Type of Change
 
-- [ ] Bug fix (non-breaking change fixing an issue)
-- [ ] New feature (non-breaking change adding functionality)
-- [ ] Breaking change (fix or feature causing existing functionality to change)
-- [ ] Documentation update
-- [ ] Code refactoring
-- [ ] Performance improvement
 
-## Related Issues
+## Why?
 
-<!-- Link any related issues: Fixes #123, Closes #456 -->
+<!-- Why was this change needed? What problem does it solve? -->
 
-## Testing
 
-- [ ] I have tested these changes locally
-- [ ] I have added/updated tests for my changes
-- [ ] All existing tests pass
 
-## ETL/Data Changes
+## How to test
 
-<!-- If this PR affects data processing, please check: -->
+<!-- How can someone verify this works? -->
 
-- [ ] Field mappings verified against source files
-- [ ] Output format matches CRA Wiz requirements
-- [ ] No regression in existing field transformations
+1. 
+2. 
+3. 
 
 ## Checklist
 
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code where necessary
-- [ ] I have updated documentation if needed
-- [ ] My changes generate no new warnings
+<!-- Just check the boxes that apply. Don't worry - the automated checks will catch most issues! -->
 
-## Screenshots (if applicable)
+- [ ] I tested this locally and it works
+- [ ] This doesn't break any existing features
+- [ ] I updated any relevant documentation (if needed)
 
-<!-- Add screenshots to show visual changes -->
+## Screenshots (if visual changes)
+
+<!-- Drag and drop screenshots here if you changed how something looks -->
+

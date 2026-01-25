@@ -10,6 +10,8 @@ export type {
   ColumnStats,
   RowComparison,
   ComparisonResult,
+  ColumnAccuracy,
+  RowComparisonResult,
   DeduplicationResult,
   FilterResult,
   SummaryStats,
@@ -45,11 +47,7 @@ export {
 } from './utils';
 
 // Parsers
-export {
-  parseEncompassFile,
-  parseLaserProFile,
-  detectFileType,
-} from './parsers';
+export { parseEncompassFile, parseLaserProFile, detectFileType } from './parsers';
 
 // Transform
 export {
@@ -61,7 +59,4 @@ export {
 } from './transform';
 
 // Merge
-export {
-  deduplicateData,
-  mergeSupplementalData,
-} from './merge';
+export { deduplicateData, mergeSupplementalData } from './merge';
