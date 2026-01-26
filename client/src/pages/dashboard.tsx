@@ -211,9 +211,6 @@ export default function Dashboard() {
         setDesiredOutputData(data as SbslRow[]);
         addLog(`Loaded DESIRED OUTPUT file: ${file.name} (${data.length} rows)`);
         toast({ title: "Desired Output Loaded", description: `${data.length} records ready for comparison` });
-      } else {
-        addLog(`Loaded ${type.toUpperCase()} file: ${file.name}`);
-        toast({ title: "File Loaded", description: `${file.name} ready for processing` });
       }
     } catch (e) {
       addLog(`Error parsing file ${file.name}: ${e}`);
@@ -478,8 +475,7 @@ export default function Dashboard() {
     }
 
     try {
-      const transformedData = transformToCRAWizFormat(processedData);
-      exportComparisonReport(transformedData, desiredOutputData, comparisonResult);
+      exportComparisonReport(comparisonResult);
       toast({
         title: "Report Downloaded",
         description: "Comparison report with all sheets exported"
