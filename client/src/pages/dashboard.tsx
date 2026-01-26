@@ -795,7 +795,7 @@ export default function Dashboard() {
                      <CardTitle className="text-base">Input B: Encompass HMDA Export</CardTitle>
                      <CardDescription className="text-xs">
                        Primary HMDA data with ULI, Address, Loan Amount
-                       <span className="block text-blue-600 mt-1">File: "October Encompass HMDA Export.xlsx"</span>
+                       <span className="block text-blue-600 mt-1">File: &quot;October Encompass HMDA Export.xlsx&quot;</span>
                      </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -812,7 +812,7 @@ export default function Dashboard() {
                      <CardTitle className="text-base">Input C: Additional Fields</CardTitle>
                      <CardDescription className="text-xs">
                        Names, Loan Officer, APR, Lock Date
-                       <span className="block text-blue-600 mt-1">File: "October HMDA Additional Fields.xlsx"</span>
+                       <span className="block text-blue-600 mt-1">File: &quot;October HMDA Additional Fields.xlsx&quot;</span>
                      </CardDescription>
                   </CardHeader>
                   <CardContent>
