@@ -226,189 +226,123 @@ export const mergeSupplementalData = (
         supp['LASTNAME'] || supp['LastName'] || supp['Last Name'] || supp['Borrower Last Name']
       );
       const coaFirstName = getTrimmed(
-        supp['CFIRSTNAME'] ||
-          supp['Coa_FirstName'] ||
-          supp['Co-Borrower First Name'] ||
-          supp['Co-Applicant First Name']
+        supp['CFIRSTNAME'] || supp['Coa_FirstName'] || supp['Co-Borrower First Name'] || supp['Co-Applicant First Name']
       );
       const coaLastName = getTrimmed(
-        supp['CLASTNAME'] ||
-          supp['Coa_LastName'] ||
-          supp['Co-Borrower Last Name'] ||
-          supp['Co-Applicant Last Name']
+        supp['CLASTNAME'] || supp['Coa_LastName'] || supp['Co-Borrower Last Name'] || supp['Co-Applicant Last Name']
       );
-      const lender = getTrimmed(
-        supp['LENDER'] || supp['Lender'] || supp['Loan Officer'] || supp['Originator']
-      );
+      const lender = getTrimmed(supp['LENDER'] || supp['Lender'] || supp['Loan Officer'] || supp['Originator']);
       const processor = getTrimmed(
-        supp['AA_LOANPROCESSOR'] ||
-          supp['AA_Processor'] ||
-          supp['Processor'] ||
-          supp['Loan Processor']
+        supp['AA_LOANPROCESSOR'] || supp['AA_Processor'] || supp['Processor'] || supp['Loan Processor']
       );
       const postCloser = getTrimmed(
-        supp['LDP_POSTCLOSER'] ||
-          supp['LDP_PostCloser'] ||
-          supp['Post Closer'] ||
-          supp['Loan Team Member Name - Post Closer']
+        supp['LDP_POSTCLOSER'] || supp['LDP_PostCloser'] || supp['Post Closer'] || supp['Loan Team Member Name - Post Closer']
       );
       const apr = getTrimmed(supp['APR'] || supp['Annual Percentage Rate']);
       const rateLockDate = getTrimmed(
-        supp['RATE_LOCK_DATE'] ||
-          supp['Rate_Lock_Date'] ||
-          supp['Rate Lock Date'] ||
-          supp['Lock Date']
+        supp['RATE_LOCK_DATE'] || supp['Rate_Lock_Date'] || supp['Rate Lock Date'] || supp['Lock Date']
       );
       // Branch information - comprehensive field lookups
       const branchNum = getTrimmed(
-        supp['Branch'] ||
-          supp['BranchNumber'] ||
-          supp['Branch Number'] ||
-          supp['Branch #'] ||
-          supp['BranchNum'] ||
-          supp['Branch Num'] ||
-          supp['Branch Code'] ||
-          supp['BRANCHNUMB'] ||
-          supp['Originating Branch Number'] ||
-          supp['OriginatingBranchNumber'] ||
-          supp['Branch ID'] ||
-          supp['BranchID'] ||
-          supp['Location Code'] ||
-          supp['LocationCode'] ||
-          supp['Office Number'] ||
-          supp['OfficeNumber'] ||
-          supp['Office #'] ||
-          supp['Loan Team Member Branch Number'] ||
-          supp['Loan Team Member Branch #'] ||
-          supp['FileStarterCostCenterID'] ||
-          supp['Cost Center ID'] ||
-          supp['CostCenterID'] ||
-          supp['Cost Center'] ||
-          supp['CostCenter']
+        supp['Branch'] || supp['BranchNumber'] || supp['Branch Number'] || supp['Branch #'] ||
+        supp['BranchNum'] || supp['Branch Num'] || supp['Branch Code'] || supp['BRANCHNUMB'] ||
+        supp['Originating Branch Number'] || supp['OriginatingBranchNumber'] ||
+        supp['Branch ID'] || supp['BranchID'] || supp['Location Code'] || supp['LocationCode'] ||
+        supp['Office Number'] || supp['OfficeNumber'] || supp['Office #'] ||
+        supp['Loan Team Member Branch Number'] || supp['Loan Team Member Branch #'] ||
+        supp['FileStarterCostCenterID'] || supp['Cost Center ID'] || supp['CostCenterID'] ||
+        supp['Cost Center'] || supp['CostCenter']
       );
       const branchName = getTrimmed(
-        supp['Branch_Name'] ||
-          supp['BranchName'] ||
-          supp['Branch Name'] ||
-          supp['BRANCHNAME'] ||
-          supp['Originating Branch'] ||
-          supp['OriginatingBranch'] ||
-          supp['Originating Branch Name'] ||
-          supp['Branch Description'] ||
-          supp['BranchDescription'] ||
-          supp['Location Name'] ||
-          supp['LocationName'] ||
-          supp['Office Name'] ||
-          supp['OfficeName'] ||
-          supp['Branch Office'] ||
-          supp['BranchOffice'] ||
-          supp['Loan Team Member Branch Name'] ||
-          supp['Loan Team Member Name - Branch']
+        supp['Branch_Name'] || supp['BranchName'] || supp['Branch Name'] || supp['BRANCHNAME'] ||
+        supp['Originating Branch'] || supp['OriginatingBranch'] || supp['Originating Branch Name'] ||
+        supp['Branch Description'] || supp['BranchDescription'] || supp['Location Name'] || supp['LocationName'] ||
+        supp['Office Name'] || supp['OfficeName'] || supp['Branch Office'] || supp['BranchOffice'] ||
+        supp['Loan Team Member Branch Name'] || supp['Loan Team Member Name - Branch']
       );
 
       // Co-applicant demographics
       const coaAge = getTrimmed(
-        supp['COA_AGE'] ||
-          supp['Coa_Age'] ||
+        supp['COA_AGE'] || supp['Coa_Age'] ||
           supp['Co-Applicant Age'] ||
           supp['Age of Co-Applicant or Co-Borrower'] ||
           supp['Co-Borrower Age']
       );
       const coaCreditScore = getTrimmed(
-        supp['COA_CREDITSCORE'] ||
-          supp['Coa_CreditScore'] ||
+        supp['COA_CREDITSCORE'] || supp['Coa_CreditScore'] ||
           supp['Co-Applicant Credit Score'] ||
           supp['Credit Score of Co-Applicant or Co-Borrower'] ||
           supp['Co-Borrower Credit Score']
       );
       const coaSex = getTrimmed(
-        supp['COASEX'] ||
-          supp['CoaSex'] ||
-          supp['Co-Applicant Sex'] ||
-          supp['Sex of Co-Applicant or Co-Borrower']
+        supp['COASEX'] || supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower']
       );
       const coaCreditModel = getTrimmed(
-        supp['COA_CREDITMODEL'] ||
-          supp['Coa_CreditModel'] ||
+        supp['COA_CREDITMODEL'] || supp['Coa_CreditModel'] ||
           supp['Co-Applicant Credit Scoring Model'] ||
           supp['Credit Score Type of Co-Applicant or Co-Borrower']
       );
 
       // Co-applicant ethnicity
       const coaEthnicity1 = getTrimmed(
-        supp['COA_ETHNICITY_1'] ||
-          supp['Coa_Ethnicity_1'] ||
+        supp['COA_ETHNICITY_1'] || supp['Coa_Ethnicity_1'] ||
           supp['Co-Applicant Ethnicity 1'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 1']
       );
       const coaEthnicity2 = getTrimmed(
-        supp['COA_ETHNICITY_2'] ||
-          supp['Coa_Ethnicity_2'] ||
+        supp['COA_ETHNICITY_2'] || supp['Coa_Ethnicity_2'] ||
           supp['Co-Applicant Ethnicity 2'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 2']
       );
       const coaEthnicity3 = getTrimmed(
-        supp['COA_ETHNICITY_3'] ||
-          supp['Coa_Ethnicity_3'] ||
+        supp['COA_ETHNICITY_3'] || supp['Coa_Ethnicity_3'] ||
           supp['Co-Applicant Ethnicity 3'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 3']
       );
       const coaEthnicity4 = getTrimmed(
-        supp['COA_ETHNICITY_4'] ||
-          supp['Coa_Ethnicity_4'] ||
+        supp['COA_ETHNICITY_4'] || supp['Coa_Ethnicity_4'] ||
           supp['Co-Applicant Ethnicity 4'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 4']
       );
       const coaEthnicity5 = getTrimmed(
-        supp['COA_ETHNICITY_5'] ||
-          supp['Coa_Ethnicity_5'] ||
+        supp['COA_ETHNICITY_5'] || supp['Coa_Ethnicity_5'] ||
           supp['Co-Applicant Ethnicity 5'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 5']
       );
 
       // Co-applicant race
       const coaRace1 = getTrimmed(
-        supp['COARACE_1'] ||
-          supp['CoaRace_1'] ||
+        supp['COARACE_1'] || supp['CoaRace_1'] ||
           supp['Co-Applicant Race 1'] ||
           supp['Race of Co-Applicant or Co-Borrower: 1']
       );
       const coaRace2 = getTrimmed(
-        supp['COARACE_2'] ||
-          supp['CoaRace_2'] ||
+        supp['COARACE_2'] || supp['CoaRace_2'] ||
           supp['Co-Applicant Race 2'] ||
           supp['Race of Co-Applicant or Co-Borrower: 2']
       );
       const coaRace3 = getTrimmed(
-        supp['COARACE_3'] ||
-          supp['CoaRace_3'] ||
+        supp['COARACE_3'] || supp['CoaRace_3'] ||
           supp['Co-Applicant Race 3'] ||
           supp['Race of Co-Applicant or Co-Borrower: 3']
       );
       const coaRace4 = getTrimmed(
-        supp['COARACE_4'] ||
-          supp['CoaRace_4'] ||
+        supp['COARACE_4'] || supp['CoaRace_4'] ||
           supp['Co-Applicant Race 4'] ||
           supp['Race of Co-Applicant or Co-Borrower: 4']
       );
       const coaRace5 = getTrimmed(
-        supp['COARACE_5'] ||
-          supp['CoaRace_5'] ||
+        supp['COARACE_5'] || supp['CoaRace_5'] ||
           supp['Co-Applicant Race 5'] ||
           supp['Race of Co-Applicant or Co-Borrower: 5']
       );
 
       // Address fields from supplemental
       const suppAddress = getTrimmed(
-        supp['ADDRESS'] ||
-          supp['Address'] ||
-          supp['Subject Property Address'] ||
-          supp['Street Address']
+        supp['ADDRESS'] || supp['Address'] || supp['Subject Property Address'] || supp['Street Address']
       );
       const suppCity = getTrimmed(supp['CITY'] || supp['City'] || supp['Subject Property City']);
-      const suppState = getTrimmed(
-        supp['STATE_ABRV'] || supp['State_abrv'] || supp['Subject Property State']
-      );
+      const suppState = getTrimmed(supp['STATE_ABRV'] || supp['State_abrv'] || supp['Subject Property State']);
 
       // Update only specific fields from supplemental data - don't spread original row
       // This prevents extra columns from being added
