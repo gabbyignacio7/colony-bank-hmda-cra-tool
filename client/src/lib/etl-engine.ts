@@ -82,10 +82,30 @@ import { logInfo, logWarning, logError, trackETLStep } from './error-tracker';
 
 /**
  * Export to CRA Wiz Excel format
+ * Exports EXACTLY 125 columns as specified in HMDA_COLUMN_ORDER
  */
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
-  // ISSUE 6 FIX: Enforce exactly 126 columns using HMDA_COLUMN_ORDER
-  const ws = utils.json_to_sheet(data, { header: HMDA_COLUMN_ORDER });
+  // CRITICAL: Filter data to include ONLY the 125 specified columns
+  // This prevents any extra columns from input files from being exported
+  const filteredData = data.map(row => {
+    const filteredRow: SbslRow = {};
+    HMDA_COLUMN_ORDER.forEach(col => {
+      // Get the value from the row, defaulting to empty string
+      filteredRow[col] = row[col] ?? '';
+    });
+    return filteredRow;
+  });
+
+  console.log('=== EXPORTING CRA WIZ FORMAT ===');
+  console.log('Input rows:', data.length);
+  console.log('Expected columns:', HMDA_COLUMN_ORDER.length);
+  if (filteredData.length > 0) {
+    console.log('Actual columns in output:', Object.keys(filteredData[0]).length);
+    console.log('Column names:', HMDA_COLUMN_ORDER.slice(0, 10).join(', '), '...');
+  }
+
+  // Create worksheet with ONLY the specified columns in exact order
+  const ws = utils.json_to_sheet(filteredData, { header: HMDA_COLUMN_ORDER });
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'CRA_Wiz_Data');
 
@@ -99,6 +119,8 @@ export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => 
     filename ||
     `CRA_Wiz_Upload_${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).replace(' ', '_')}.xlsx`;
   writeFile(wb, outputFilename);
+
+  console.log('Export complete:', outputFilename);
 };
 
 /**
