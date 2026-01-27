@@ -23,7 +23,7 @@ import { logInfo, logWarning, logDebug, trackETLStep } from '../error-tracker';
 /**
  * Transform data to CRA Wiz 126-column format
  * IMPORTANT: Output will contain EXACTLY 126 columns as specified in HMDA_COLUMN_ORDER
- * 
+ *
  * Input sources:
  * - Encompass Export: Main HMDA data (LEI, ULI, demographics, loan details)
  * - Additional Fields: Borrower names, Lender, Processor, PostCloser, Branch
@@ -75,11 +75,19 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     // Branch lookup - try multiple sources for branch number
     // Priority: 1) Direct field, 2) Various field variations, 3) Derive from Lender
     let branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
-    
+
     // Debug log for first row
     if (idx === 0) {
-      console.log('Branch lookup - direct:', output['Branch'], 'findFieldValue:', findFieldValue(row, 'Branch'));
-      console.log('Available row keys:', Object.keys(row).filter(k => k.toLowerCase().includes('branch')));
+      console.log(
+        'Branch lookup - direct:',
+        output['Branch'],
+        'findFieldValue:',
+        findFieldValue(row, 'Branch')
+      );
+      console.log(
+        'Available row keys:',
+        Object.keys(row).filter(k => k.toLowerCase().includes('branch'))
+      );
     }
 
     // If no branch number, try to derive from Lender/Loan Officer
@@ -101,8 +109,10 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
 
     // Set Branch_Name from branch number using VLOOKUP
-    let branchName = String(output['Branch_Name'] || findFieldValue(row, 'Branch_Name') || '').trim();
-    
+    let branchName = String(
+      output['Branch_Name'] || findFieldValue(row, 'Branch_Name') || ''
+    ).trim();
+
     // If we have a branch number but no name, look it up
     if (branchNum && !branchName) {
       branchName = getBranchName(branchNum, '');
@@ -136,7 +146,10 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['Coa_Ethnicity_1'] || String(output['Coa_Ethnicity_1']) === '') {
       output['Coa_Ethnicity_1'] = findFieldValue(row, 'Coa_Ethnicity_1') ?? '5';
     }
-    if (!output['Coa_Ethnicity_Determinant'] || String(output['Coa_Ethnicity_Determinant']) === '') {
+    if (
+      !output['Coa_Ethnicity_Determinant'] ||
+      String(output['Coa_Ethnicity_Determinant']) === ''
+    ) {
       output['Coa_Ethnicity_Determinant'] = findFieldValue(row, 'Coa_Ethnicity_Determinant') ?? '4';
     }
     if (!output['CoaRace_1'] || String(output['CoaRace_1']) === '') {
@@ -153,13 +166,22 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
 
     // DTIRatio: should be numeric value or "NA" (HMDA code for Exempt)
-    if (output['DTIRatio'] === '' || output['DTIRatio'] === null || output['DTIRatio'] === undefined) {
+    if (
+      output['DTIRatio'] === '' ||
+      output['DTIRatio'] === null ||
+      output['DTIRatio'] === undefined
+    ) {
       output['DTIRatio'] = 'NA';
     }
 
     // CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
     const rawCreditModel = output['CreditModel'] ?? findFieldValue(row, 'CreditModel');
-    if (rawCreditModel && rawCreditModel !== '' && rawCreditModel !== null && rawCreditModel !== undefined) {
+    if (
+      rawCreditModel &&
+      rawCreditModel !== '' &&
+      rawCreditModel !== null &&
+      rawCreditModel !== undefined
+    ) {
       output['CreditModel'] = String(rawCreditModel);
     } else {
       output['CreditModel'] = '9'; // 9 = Not applicable per HMDA spec
@@ -176,7 +198,12 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
 
     // Coa_CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
     const rawCoaCreditModel = output['Coa_CreditModel'] ?? findFieldValue(row, 'Coa_CreditModel');
-    if (rawCoaCreditModel && rawCoaCreditModel !== '' && rawCoaCreditModel !== null && rawCoaCreditModel !== undefined) {
+    if (
+      rawCoaCreditModel &&
+      rawCoaCreditModel !== '' &&
+      rawCoaCreditModel !== null &&
+      rawCoaCreditModel !== undefined
+    ) {
       output['Coa_CreditModel'] = String(rawCoaCreditModel);
     } else {
       output['Coa_CreditModel'] = '9'; // 9 = Not applicable per HMDA spec
@@ -193,12 +220,18 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (output['NMLSRID'] === '' || output['NMLSRID'] === null || output['NMLSRID'] === undefined) {
       const nmls = findFieldValue(row, 'NMLSRID');
       if (nmls) {
-        output['NMLSRID'] = String(nmls).replace(/^NMLS?#?\s*/i, '').trim();
+        output['NMLSRID'] = String(nmls)
+          .replace(/^NMLS?#?\s*/i, '')
+          .trim();
       }
     }
 
     // ConstructionMethod: HMDA values 1=Site-built, 2=Manufactured home
-    if (output['ConstructionMethod'] === '' || output['ConstructionMethod'] === null || output['ConstructionMethod'] === undefined) {
+    if (
+      output['ConstructionMethod'] === '' ||
+      output['ConstructionMethod'] === null ||
+      output['ConstructionMethod'] === undefined
+    ) {
       const constructMethod = findFieldValue(row, 'ConstructionMethod');
       output['ConstructionMethod'] = constructMethod ?? '1';
     }
@@ -259,7 +292,11 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['ULI'] && !output['LEI']) {
       warnings.push(`Row ${idx}: Missing ULI and LEI`);
     }
-    if (!output['LoanAmountInDollars'] || output['LoanAmountInDollars'] === '' || output['LoanAmountInDollars'] === 0) {
+    if (
+      !output['LoanAmountInDollars'] ||
+      output['LoanAmountInDollars'] === '' ||
+      output['LoanAmountInDollars'] === 0
+    ) {
       warnings.push(`Row ${idx}: Missing or zero LoanAmountInDollars`);
     }
 

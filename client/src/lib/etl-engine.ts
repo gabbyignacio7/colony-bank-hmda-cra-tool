@@ -119,7 +119,7 @@ export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => 
     filename ||
     `CRA_Wiz_Upload_${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).replace(' ', '_')}.xlsx`;
   writeFile(wb, outputFilename);
-  
+
   console.log('Export complete:', outputFilename);
 };
 
