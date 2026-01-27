@@ -326,7 +326,7 @@ export default function Dashboard() {
     // Step 1: Filter
     const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     addLog(`Phase 1: Filtering by current month (${currentMonth})...`);
-    let currentData = combinedData.length > 0 ? combinedData : MOCK_SBSL_DATA;
+    const currentData = combinedData.length > 0 ? combinedData : MOCK_SBSL_DATA;
     const { filtered, count } = filterByCurrentMonth(currentData);
     addLog(`Filtered: Kept ${count} records out of ${currentData.length} total.`);
 
