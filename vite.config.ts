@@ -12,11 +12,9 @@ const __dirname = path.dirname(__filename);
 const isReplit = process.env.REPL_ID !== undefined;
 
 // Base path configuration:
-// - For private GitHub Pages (random subdomain like xxx.pages.github.io): use "/"
-// - For public GitHub Pages (org.github.io/repo): use "/repo-name/"
+// - For GitHub Pages deployment: use GITHUB_PAGES_BASE env var (e.g., "/colony-bank-hmda-cra-tool/")
 // - For local development: use "/"
-// Currently using "/" since the repo has private GitHub Pages enabled
-const basePath = "/";
+const basePath = process.env.GITHUB_PAGES_BASE || "/";
 
 export default defineConfig({
   plugins: [
