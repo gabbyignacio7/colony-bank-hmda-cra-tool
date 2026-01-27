@@ -21,7 +21,13 @@ import { BRANCH_LIST, getBranchFromLoanOfficer, getBranchName } from '../cra-wiz
 import { logInfo, logWarning, logDebug, trackETLStep } from '../error-tracker';
 
 /**
- * Transform data to CRA Wiz 128-column format
+ * Transform data to CRA Wiz 126-column format
+ * IMPORTANT: Output will contain EXACTLY 126 columns as specified in HMDA_COLUMN_ORDER
+ * 
+ * Input sources:
+ * - Encompass Export: Main HMDA data (LEI, ULI, demographics, loan details)
+ * - Additional Fields: Borrower names, Lender, Processor, PostCloser, Branch
+ * - LaserPro Export: Alternative HMDA source
  */
 export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
   const startTime = Date.now();
@@ -35,10 +41,13 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
 
   console.log('=== TRANSFORMING TO CRA WIZ FORMAT ===');
   console.log('Input rows:', data.length);
+  console.log('Target columns:', CRA_WIZ_128_COLUMNS.length);
 
   const result = data.map((row, idx) => {
+    // Start with an empty output object - only add the 126 specified columns
     const output: SbslRow = {};
 
+    // Initialize all 126 columns with empty string or found value
     CRA_WIZ_128_COLUMNS.forEach(col => {
       const value = findFieldValue(row, col);
       // IMPORTANT: Explicitly preserve numeric zeros (0, 0.0, "0")
@@ -63,8 +72,15 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       if (!output['LastName']) output['LastName'] = lastName;
     }
 
-    // Branch lookup - derive from Lender/Loan Officer if no direct branch value
+    // Branch lookup - try multiple sources for branch number
+    // Priority: 1) Direct field, 2) Various field variations, 3) Derive from Lender
     let branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
+    
+    // Debug log for first row
+    if (idx === 0) {
+      console.log('Branch lookup - direct:', output['Branch'], 'findFieldValue:', findFieldValue(row, 'Branch'));
+      console.log('Available row keys:', Object.keys(row).filter(k => k.toLowerCase().includes('branch')));
+    }
 
     // If no branch number, try to derive from Lender/Loan Officer
     if (!branchNum) {
@@ -74,20 +90,30 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
         if (branchNum) {
           output['Branch'] = branchNum;
           logDebug('ETL:Transform', `Derived branch ${branchNum} from Lender: ${lender}`);
-        } else {
+        } else if (idx < 5) {
+          // Only log first few warnings
           warnings.push(`Row ${idx}: Could not determine branch for Lender "${lender}"`);
         }
       }
+    } else {
+      // Branch number was found directly - ensure it's set in output
+      output['Branch'] = branchNum;
     }
 
-    // Set Branch_Name from branch number
-    if (branchNum) {
-      const branchName = getBranchName(branchNum, output['Branch_Name']);
+    // Set Branch_Name from branch number using VLOOKUP
+    let branchName = String(output['Branch_Name'] || findFieldValue(row, 'Branch_Name') || '').trim();
+    
+    // If we have a branch number but no name, look it up
+    if (branchNum && !branchName) {
+      branchName = getBranchName(branchNum, '');
       if (branchName) {
         output['Branch_Name'] = branchName;
-      } else {
-        warnings.push(`Row ${idx}: Unknown branch number "${branchNum}"`);
+        logDebug('ETL:Transform', `Looked up branch name "${branchName}" for branch #${branchNum}`);
+      } else if (idx < 5) {
+        warnings.push(`Row ${idx}: Unknown branch number "${branchNum}" - not in BRANCH_LIST`);
       }
+    } else if (branchName) {
+      output['Branch_Name'] = branchName;
     }
 
     // Add required blank fields
@@ -110,10 +136,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['Coa_Ethnicity_1'] || String(output['Coa_Ethnicity_1']) === '') {
       output['Coa_Ethnicity_1'] = findFieldValue(row, 'Coa_Ethnicity_1') ?? '5';
     }
-    if (
-      !output['Coa_Ethnicity_Determinant'] ||
-      String(output['Coa_Ethnicity_Determinant']) === ''
-    ) {
+    if (!output['Coa_Ethnicity_Determinant'] || String(output['Coa_Ethnicity_Determinant']) === '') {
       output['Coa_Ethnicity_Determinant'] = findFieldValue(row, 'Coa_Ethnicity_Determinant') ?? '4';
     }
     if (!output['CoaRace_1'] || String(output['CoaRace_1']) === '') {
@@ -130,23 +153,13 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
 
     // DTIRatio: should be numeric value or "NA" (HMDA code for Exempt)
-    if (
-      output['DTIRatio'] === '' ||
-      output['DTIRatio'] === null ||
-      output['DTIRatio'] === undefined
-    ) {
+    if (output['DTIRatio'] === '' || output['DTIRatio'] === null || output['DTIRatio'] === undefined) {
       output['DTIRatio'] = 'NA';
     }
 
     // CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
-    // IMPORTANT: Per Jonathan's feedback - need to show actual values from source, not all '9'
     const rawCreditModel = output['CreditModel'] ?? findFieldValue(row, 'CreditModel');
-    if (
-      rawCreditModel &&
-      rawCreditModel !== '' &&
-      rawCreditModel !== null &&
-      rawCreditModel !== undefined
-    ) {
+    if (rawCreditModel && rawCreditModel !== '' && rawCreditModel !== null && rawCreditModel !== undefined) {
       output['CreditModel'] = String(rawCreditModel);
     } else {
       output['CreditModel'] = '9'; // 9 = Not applicable per HMDA spec
@@ -163,23 +176,10 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
 
     // Coa_CreditModel: Pull from source data first, default to '9' (Not applicable) only if truly missing
     const rawCoaCreditModel = output['Coa_CreditModel'] ?? findFieldValue(row, 'Coa_CreditModel');
-    if (
-      rawCoaCreditModel &&
-      rawCoaCreditModel !== '' &&
-      rawCoaCreditModel !== null &&
-      rawCoaCreditModel !== undefined
-    ) {
+    if (rawCoaCreditModel && rawCoaCreditModel !== '' && rawCoaCreditModel !== null && rawCoaCreditModel !== undefined) {
       output['Coa_CreditModel'] = String(rawCoaCreditModel);
     } else {
       output['Coa_CreditModel'] = '9'; // 9 = Not applicable per HMDA spec
-    }
-    // Debug log for Coa_CreditModel
-    if (idx === 0) {
-      console.info('Coa_CreditModel source values:', {
-        outputCoaCreditModel: output['Coa_CreditModel'],
-        rawCoaCreditModel,
-        'Co-Applicant Credit Scoring Model': row['Co-Applicant Credit Scoring Model'],
-      });
     }
 
     // NonAmortz - Map to valid HMDA codes
@@ -193,30 +193,12 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (output['NMLSRID'] === '' || output['NMLSRID'] === null || output['NMLSRID'] === undefined) {
       const nmls = findFieldValue(row, 'NMLSRID');
       if (nmls) {
-        output['NMLSRID'] = String(nmls)
-          .replace(/^NMLS?#?\s*/i, '')
-          .trim();
+        output['NMLSRID'] = String(nmls).replace(/^NMLS?#?\s*/i, '').trim();
       }
     }
 
-    // RateType and Var_Term derivation from IntroRatePeriod
-    const introRatePeriod =
-      findFieldValue(row, 'IntroRatePeriod') ||
-      row['Intro Rate Period'] ||
-      row['Introductory Rate Period'] ||
-      row['Initial Rate Period'] ||
-      row['ARM Initial Rate Period'] ||
-      output['IntroRatePeriod'];
-
-    output['RateType'] = deriveRateType(introRatePeriod);
-    output['Var_Term'] = deriveVarTerm(introRatePeriod);
-
     // ConstructionMethod: HMDA values 1=Site-built, 2=Manufactured home
-    if (
-      output['ConstructionMethod'] === '' ||
-      output['ConstructionMethod'] === null ||
-      output['ConstructionMethod'] === undefined
-    ) {
+    if (output['ConstructionMethod'] === '' || output['ConstructionMethod'] === null || output['ConstructionMethod'] === undefined) {
       const constructMethod = findFieldValue(row, 'ConstructionMethod');
       output['ConstructionMethod'] = constructMethod ?? '1';
     }
@@ -266,6 +248,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
 
     if (idx === 0) {
       console.log('First transformed row (first 10 keys):', Object.keys(output).slice(0, 10));
+      console.log('Total output columns:', Object.keys(output).length);
       logDebug('ETL:Transform', 'First row sample', {
         keys: Object.keys(output).slice(0, 15),
         values: Object.values(output).slice(0, 15),
@@ -276,11 +259,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     if (!output['ULI'] && !output['LEI']) {
       warnings.push(`Row ${idx}: Missing ULI and LEI`);
     }
-    if (
-      !output['LoanAmountInDollars'] ||
-      output['LoanAmountInDollars'] === '' ||
-      output['LoanAmountInDollars'] === 0
-    ) {
+    if (!output['LoanAmountInDollars'] || output['LoanAmountInDollars'] === '' || output['LoanAmountInDollars'] === 0) {
       warnings.push(`Row ${idx}: Missing or zero LoanAmountInDollars`);
     }
 
@@ -310,6 +289,10 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     });
   }
 
+  console.log('=== TRANSFORM COMPLETE ===');
+  console.log('Output rows:', result.length);
+  console.log('Output columns per row:', result.length > 0 ? Object.keys(result[0]).length : 0);
+
   return result;
 };
 
@@ -322,22 +305,24 @@ export const validateData = (data: SbslRow[]): ValidationResult[] => {
     const warnings: string[] = [];
     const autoCorrected: Record<string, { from: any; to: any }> = {};
 
-    // Required field validations
+    // Required field validations (check both old and new column names for compatibility)
     if (!row.ULI && !row.LEI) {
       errors.push('Missing both ULI and LEI');
     }
-    if (!row.LoanType) {
+    if (!row.LOANTYPE && !row.LoanType) {
       errors.push('Missing Loan Type');
     }
-    if (!row.Action) {
+    if (!row.ACTION && !row.Action) {
       errors.push('Missing Action Taken');
     }
 
     // Warning-level validations
-    if (!row.Address) {
+    if (!row.ADDRESS && !row.Address) {
       warnings.push('Missing Property Address');
     }
-    if (!row.Income && row.Action === '1') {
+    const action = row.ACTION || row.Action;
+    const income = row.INCOME || row.Income;
+    if (!income && action === '1') {
       warnings.push('Missing Income for originated loan');
     }
 
@@ -359,8 +344,9 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
   return data.map(row => {
     const corrected = { ...row };
 
-    // Standardize state abbreviations
-    if (corrected.State_abrv && corrected.State_abrv.length > 2) {
+    // Standardize state abbreviations (check both old and new column names)
+    const stateField = corrected.STATE_ABRV || corrected.State_abrv;
+    if (stateField && String(stateField).length > 2) {
       const stateMap: Record<string, string> = {
         georgia: 'GA',
         florida: 'FL',
@@ -369,17 +355,21 @@ export const autoCorrectData = (data: SbslRow[]): SbslRow[] => {
         'south carolina': 'SC',
         'north carolina': 'NC',
       };
-      const lower = corrected.State_abrv.toLowerCase();
+      const lower = String(stateField).toLowerCase();
       if (stateMap[lower]) {
+        corrected.STATE_ABRV = stateMap[lower];
         corrected.State_abrv = stateMap[lower];
       }
     }
 
-    // Clean up ZIP codes
-    if (corrected.Zip) {
-      corrected.Zip = String(corrected.Zip)
+    // Clean up ZIP codes (check both old and new column names)
+    const zipField = corrected.ZIP || corrected.Zip;
+    if (zipField) {
+      const cleanZip = String(zipField)
         .replace(/[^\d-]/g, '')
         .substring(0, 10);
+      corrected.ZIP = cleanZip;
+      corrected.Zip = cleanZip;
     }
 
     return corrected;

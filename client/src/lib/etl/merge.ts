@@ -218,149 +218,166 @@ export const mergeSupplementalData = (
       };
 
       // Get values from supplemental with all possible field name variations
+      // Using new column names (uppercase format)
       const firstName = getTrimmed(
-        supp['FirstName'] || supp['First Name'] || supp['Borrower First Name']
+        supp['FIRSTNAME'] || supp['FirstName'] || supp['First Name'] || supp['Borrower First Name']
       );
       const lastName = getTrimmed(
-        supp['LastName'] || supp['Last Name'] || supp['Borrower Last Name']
+        supp['LASTNAME'] || supp['LastName'] || supp['Last Name'] || supp['Borrower Last Name']
       );
       const coaFirstName = getTrimmed(
-        supp['Coa_FirstName'] || supp['Co-Borrower First Name'] || supp['Co-Applicant First Name']
+        supp['CFIRSTNAME'] || supp['Coa_FirstName'] || supp['Co-Borrower First Name'] || supp['Co-Applicant First Name']
       );
       const coaLastName = getTrimmed(
-        supp['Coa_LastName'] || supp['Co-Borrower Last Name'] || supp['Co-Applicant Last Name']
+        supp['CLASTNAME'] || supp['Coa_LastName'] || supp['Co-Borrower Last Name'] || supp['Co-Applicant Last Name']
       );
-      const lender = getTrimmed(supp['Lender'] || supp['Loan Officer'] || supp['Originator']);
+      const lender = getTrimmed(supp['LENDER'] || supp['Lender'] || supp['Loan Officer'] || supp['Originator']);
       const processor = getTrimmed(
-        supp['AA_Processor'] || supp['Processor'] || supp['Loan Processor']
+        supp['AA_LOANPROCESSOR'] || supp['AA_Processor'] || supp['Processor'] || supp['Loan Processor']
       );
       const postCloser = getTrimmed(
-        supp['LDP_PostCloser'] || supp['Post Closer'] || supp['Loan Team Member Name - Post Closer']
+        supp['LDP_POSTCLOSER'] || supp['LDP_PostCloser'] || supp['Post Closer'] || supp['Loan Team Member Name - Post Closer']
       );
       const apr = getTrimmed(supp['APR'] || supp['Annual Percentage Rate']);
       const rateLockDate = getTrimmed(
-        supp['Rate_Lock_Date'] || supp['Rate Lock Date'] || supp['Lock Date']
+        supp['RATE_LOCK_DATE'] || supp['Rate_Lock_Date'] || supp['Rate Lock Date'] || supp['Lock Date']
       );
-      const loanProgram = getTrimmed(supp['LoanProgram'] || supp['Loan Program']);
-      const rateType = getTrimmed(supp['RateType'] || supp['Rate Type']);
-      const branchName = getTrimmed(supp['BranchName'] || supp['Branch Name'] || supp['Branch']);
+      // Branch information - comprehensive field lookups
+      const branchNum = getTrimmed(
+        supp['Branch'] || supp['BranchNumber'] || supp['Branch Number'] || supp['Branch #'] ||
+        supp['BranchNum'] || supp['Branch Num'] || supp['Branch Code'] || supp['BRANCHNUMB'] ||
+        supp['Originating Branch Number'] || supp['OriginatingBranchNumber'] ||
+        supp['Branch ID'] || supp['BranchID'] || supp['Location Code'] || supp['LocationCode'] ||
+        supp['Office Number'] || supp['OfficeNumber'] || supp['Office #'] ||
+        supp['Loan Team Member Branch Number'] || supp['Loan Team Member Branch #'] ||
+        supp['FileStarterCostCenterID'] || supp['Cost Center ID'] || supp['CostCenterID'] ||
+        supp['Cost Center'] || supp['CostCenter']
+      );
+      const branchName = getTrimmed(
+        supp['Branch_Name'] || supp['BranchName'] || supp['Branch Name'] || supp['BRANCHNAME'] ||
+        supp['Originating Branch'] || supp['OriginatingBranch'] || supp['Originating Branch Name'] ||
+        supp['Branch Description'] || supp['BranchDescription'] || supp['Location Name'] || supp['LocationName'] ||
+        supp['Office Name'] || supp['OfficeName'] || supp['Branch Office'] || supp['BranchOffice'] ||
+        supp['Loan Team Member Branch Name'] || supp['Loan Team Member Name - Branch']
+      );
 
       // Co-applicant demographics
       const coaAge = getTrimmed(
-        supp['Coa_Age'] ||
+        supp['COA_AGE'] || supp['Coa_Age'] ||
           supp['Co-Applicant Age'] ||
           supp['Age of Co-Applicant or Co-Borrower'] ||
           supp['Co-Borrower Age']
       );
       const coaCreditScore = getTrimmed(
-        supp['Coa_CreditScore'] ||
+        supp['COA_CREDITSCORE'] || supp['Coa_CreditScore'] ||
           supp['Co-Applicant Credit Score'] ||
           supp['Credit Score of Co-Applicant or Co-Borrower'] ||
           supp['Co-Borrower Credit Score']
       );
       const coaSex = getTrimmed(
-        supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower']
+        supp['COASEX'] || supp['CoaSex'] || supp['Co-Applicant Sex'] || supp['Sex of Co-Applicant or Co-Borrower']
       );
       const coaCreditModel = getTrimmed(
-        supp['Coa_CreditModel'] ||
+        supp['COA_CREDITMODEL'] || supp['Coa_CreditModel'] ||
           supp['Co-Applicant Credit Scoring Model'] ||
           supp['Credit Score Type of Co-Applicant or Co-Borrower']
       );
 
       // Co-applicant ethnicity
       const coaEthnicity1 = getTrimmed(
-        supp['Coa_Ethnicity_1'] ||
+        supp['COA_ETHNICITY_1'] || supp['Coa_Ethnicity_1'] ||
           supp['Co-Applicant Ethnicity 1'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 1']
       );
       const coaEthnicity2 = getTrimmed(
-        supp['Coa_Ethnicity_2'] ||
+        supp['COA_ETHNICITY_2'] || supp['Coa_Ethnicity_2'] ||
           supp['Co-Applicant Ethnicity 2'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 2']
       );
       const coaEthnicity3 = getTrimmed(
-        supp['Coa_Ethnicity_3'] ||
+        supp['COA_ETHNICITY_3'] || supp['Coa_Ethnicity_3'] ||
           supp['Co-Applicant Ethnicity 3'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 3']
       );
       const coaEthnicity4 = getTrimmed(
-        supp['Coa_Ethnicity_4'] ||
+        supp['COA_ETHNICITY_4'] || supp['Coa_Ethnicity_4'] ||
           supp['Co-Applicant Ethnicity 4'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 4']
       );
       const coaEthnicity5 = getTrimmed(
-        supp['Coa_Ethnicity_5'] ||
+        supp['COA_ETHNICITY_5'] || supp['Coa_Ethnicity_5'] ||
           supp['Co-Applicant Ethnicity 5'] ||
           supp['Ethnicity of Co-Applicant or Co-Borrower: 5']
       );
 
       // Co-applicant race
       const coaRace1 = getTrimmed(
-        supp['CoaRace_1'] ||
+        supp['COARACE_1'] || supp['CoaRace_1'] ||
           supp['Co-Applicant Race 1'] ||
           supp['Race of Co-Applicant or Co-Borrower: 1']
       );
       const coaRace2 = getTrimmed(
-        supp['CoaRace_2'] ||
+        supp['COARACE_2'] || supp['CoaRace_2'] ||
           supp['Co-Applicant Race 2'] ||
           supp['Race of Co-Applicant or Co-Borrower: 2']
       );
       const coaRace3 = getTrimmed(
-        supp['CoaRace_3'] ||
+        supp['COARACE_3'] || supp['CoaRace_3'] ||
           supp['Co-Applicant Race 3'] ||
           supp['Race of Co-Applicant or Co-Borrower: 3']
       );
       const coaRace4 = getTrimmed(
-        supp['CoaRace_4'] ||
+        supp['COARACE_4'] || supp['CoaRace_4'] ||
           supp['Co-Applicant Race 4'] ||
           supp['Race of Co-Applicant or Co-Borrower: 4']
       );
       const coaRace5 = getTrimmed(
-        supp['CoaRace_5'] ||
+        supp['COARACE_5'] || supp['CoaRace_5'] ||
           supp['Co-Applicant Race 5'] ||
           supp['Race of Co-Applicant or Co-Borrower: 5']
       );
 
       // Address fields from supplemental
       const suppAddress = getTrimmed(
-        supp['Address'] || supp['Subject Property Address'] || supp['Street Address']
+        supp['ADDRESS'] || supp['Address'] || supp['Subject Property Address'] || supp['Street Address']
       );
-      const suppCity = getTrimmed(supp['City'] || supp['Subject Property City']);
-      const suppState = getTrimmed(supp['State_abrv'] || supp['Subject Property State']);
+      const suppCity = getTrimmed(supp['CITY'] || supp['City'] || supp['Subject Property City']);
+      const suppState = getTrimmed(supp['STATE_ABRV'] || supp['State_abrv'] || supp['Subject Property State']);
 
-      return {
-        ...row,
-        FirstName: firstName || row.FirstName,
-        LastName: lastName || row.LastName,
-        Coa_FirstName: coaFirstName || row.Coa_FirstName,
-        Coa_LastName: coaLastName || row.Coa_LastName,
-        Coa_Age: coaAge || row.Coa_Age,
-        Coa_CreditScore: coaCreditScore || row.Coa_CreditScore,
-        CoaSex: coaSex || row.CoaSex,
-        Coa_CreditModel: coaCreditModel || row.Coa_CreditModel,
-        Coa_Ethnicity_1: coaEthnicity1 || row.Coa_Ethnicity_1,
-        Coa_Ethnicity_2: coaEthnicity2 || row.Coa_Ethnicity_2,
-        Coa_Ethnicity_3: coaEthnicity3 || row.Coa_Ethnicity_3,
-        Coa_Ethnicity_4: coaEthnicity4 || row.Coa_Ethnicity_4,
-        Coa_Ethnicity_5: coaEthnicity5 || row.Coa_Ethnicity_5,
-        CoaRace_1: coaRace1 || row.CoaRace_1,
-        CoaRace_2: coaRace2 || row.CoaRace_2,
-        CoaRace_3: coaRace3 || row.CoaRace_3,
-        CoaRace_4: coaRace4 || row.CoaRace_4,
-        CoaRace_5: coaRace5 || row.CoaRace_5,
-        Lender: lender || row.Lender,
-        AA_Processor: processor || row.AA_Processor,
-        LDP_PostCloser: postCloser || row.LDP_PostCloser,
-        APR: apr || row.APR,
-        Rate_Lock_Date: rateLockDate || row.Rate_Lock_Date,
-        LoanProgram: loanProgram || row.LoanProgram,
-        RateType: rateType || row.RateType,
-        BranchName: branchName || row.BranchName,
-        Address: row.Address || suppAddress,
-        City: row.City || suppCity,
-        State_abrv: row.State_abrv || suppState,
-        _merged: true,
-      };
+      // Update only specific fields from supplemental data - don't spread original row
+      // This prevents extra columns from being added
+      // Use the correct output column names (mixed case format)
+      row['FirstName'] = firstName || row['FirstName'];
+      row['LastName'] = lastName || row['LastName'];
+      row['Coa_FirstName'] = coaFirstName || row['Coa_FirstName'];
+      row['Coa_LastName'] = coaLastName || row['Coa_LastName'];
+      row['Coa_Age'] = coaAge || row['Coa_Age'];
+      row['Coa_CreditScore'] = coaCreditScore || row['Coa_CreditScore'];
+      row['CoaSex'] = coaSex || row['CoaSex'];
+      row['Coa_CreditModel'] = coaCreditModel || row['Coa_CreditModel'];
+      row['Coa_Ethnicity_1'] = coaEthnicity1 || row['Coa_Ethnicity_1'];
+      row['Coa_Ethnicity_2'] = coaEthnicity2 || row['Coa_Ethnicity_2'];
+      row['Coa_Ethnicity_3'] = coaEthnicity3 || row['Coa_Ethnicity_3'];
+      row['Coa_Ethnicity_4'] = coaEthnicity4 || row['Coa_Ethnicity_4'];
+      row['Coa_Ethnicity_5'] = coaEthnicity5 || row['Coa_Ethnicity_5'];
+      row['CoaRace_1'] = coaRace1 || row['CoaRace_1'];
+      row['CoaRace_2'] = coaRace2 || row['CoaRace_2'];
+      row['CoaRace_3'] = coaRace3 || row['CoaRace_3'];
+      row['CoaRace_4'] = coaRace4 || row['CoaRace_4'];
+      row['CoaRace_5'] = coaRace5 || row['CoaRace_5'];
+      row['Lender'] = lender || row['Lender'];
+      row['AA_Processor'] = processor || row['AA_Processor'];
+      row['LDP_PostCloser'] = postCloser || row['LDP_PostCloser'];
+      row['APR'] = apr || row['APR'];
+      row['Rate_Lock_Date'] = rateLockDate || row['Rate_Lock_Date'];
+      row['Branch'] = branchNum || row['Branch'];
+      row['Branch_Name'] = branchName || row['Branch_Name'];
+      row['Address'] = row['Address'] || suppAddress;
+      row['City'] = row['City'] || suppCity;
+      row['State_abrv'] = row['State_abrv'] || suppState;
+      row['_merged'] = true;
+
+      return row;
     }
 
     return row;
