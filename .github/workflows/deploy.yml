@@ -58,6 +58,9 @@ jobs:
       - name: 📄 Setup 404 page for SPA
         run: cp dist/public/index.html dist/public/404.html
 
+      - name: 📄 Add .nojekyll for GitHub Pages
+        run: touch dist/public/.nojekyll
+
       - name: ⚙️ Configure GitHub Pages
         uses: actions/configure-pages@v5
 
