@@ -1,13 +1,13 @@
-# Colony Bank HMDA/CRA Tool
+# Colony Bank HMDA/CRA ETL Automation Tool
 
-[![CI](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/ci.yml)
-[![Deploy](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/deepseeai/colony-bank-hmda-tool/actions/workflows/deploy.yml)
+[![CI](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml)
+[![Deploy](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml)
 
-A professional ETL (Extract, Transform, Load) tool for processing HMDA (Home Mortgage Disclosure Act) data and generating CRA (Community Reinvestment Act) Wiz-compatible exports.
+A web-based ETL automation tool for HMDA (Home Mortgage Disclosure Act) and CRA (Community Reinvestment Act) compliance reporting. Transforms monthly loan data processing from a 100+ hour manual process to under 30 minutes with automated validation.
 
 ## 🔗 Live Demo
 
-**[https://deepseeai.github.io/colony-bank-hmda-tool/](https://deepseeai.github.io/colony-bank-hmda-tool/)**
+**[https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/](https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/)**
 
 ## Features
 
@@ -30,8 +30,8 @@ A professional ETL (Extract, Transform, Load) tool for processing HMDA (Home Mor
 
 ```bash
 # Clone the repository
-git clone https://github.com/deepseeai/colony-bank-hmda-tool.git
-cd colony-bank-hmda-tool
+git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
+cd colony-bank-hmda-cra-tool
 
 # Install dependencies
 npm install
@@ -146,4 +146,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Built with ❤️ by [DeepSee](https://deepsee.ai) for Colony Bank
+Built for Colony Bank HMDA/CRA Compliance
+
+**Password:** `ColonyBank2024!`
