@@ -45,15 +45,28 @@ jobs:
       - name: 🧪 Run tests (safety check)
         run: npm run test:ci
 
-      - name: 🔧 Get repository name
-        id: repo
-        run: echo "name=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_OUTPUT
+      - name: 🔧 Determine base path for GitHub Pages
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Check if repo is private - private repos use root path "/"
+          # Public repos use "/<repo-name>/" path
+          VISIBILITY=$(gh repo view ${{ github.repository }} --json visibility -q '.visibility')
+          if [ "$VISIBILITY" = "PRIVATE" ]; then
+            echo "path=/" >> $GITHUB_OUTPUT
+            echo "📦 Private repo detected - using root base path"
+          else
+            REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+            echo "path=/${REPO_NAME}/" >> $GITHUB_OUTPUT
+            echo "📦 Public repo detected - using /${REPO_NAME}/ base path"
+          fi
 
       - name: 🏗️ Build website
         run: npm run build:client
         env:
           GITHUB_PAGES: true
-          GITHUB_PAGES_BASE: /${{ steps.repo.outputs.name }}/
+          GITHUB_PAGES_BASE: ${{ steps.base.outputs.path }}
 
       - name: 📄 Setup 404 page for SPA
         run: cp dist/public/index.html dist/public/404.html
