@@ -1,23 +1,87 @@
 # Colony Bank HMDA/CRA ETL Automation Tool
 
-[![CI](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/ci.yml)
-[![Deploy](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml/badge.svg)](https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool/actions/workflows/deploy.yml)
+**Built by [DeepSee.ai](https://deepsee.ai)**
+
+**[Live Demo](https://deepseeai.github.io/colony-bank-hmda-tool/)**
 
 A web-based ETL automation tool for HMDA (Home Mortgage Disclosure Act) and CRA (Community Reinvestment Act) compliance reporting. Transforms monthly loan data processing from a 100+ hour manual process to under 30 minutes with automated validation.
 
-## 🔗 Live Demo
+## Overview
 
-**[https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/](https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/)**
+This tool automates the tedious manual workflow of preparing HMDA and CRA data for CRAWiz SaaS import. It eliminates the need for manual VLOOKUP formulas and column header conversions by automatically:
+
+- Parsing exports from **LaserPro/Compliance Reporter** and **Encompass**
+- Merging supplemental data (APR, Rate Lock Date, Lender, Processor, Post Closer, Borrower Names)
+- Transforming data to the **128-column CRAWiz-compatible format**
+- Detecting and handling duplicate records by ULI
+- Deriving **RateType** and **Var_Term** from IntroRatePeriod
+- Extracting **Branch Number** from Encompass ULI (first 3 digits after LEI)
 
 ## Features
 
-- **Multi-Source Data Processing**: Import data from Encompass, LaserPro/Compliance Reporter, and supplemental files
+### Data Sources Supported
+| Source | Format | Description |
+|--------|--------|-------------|
+| **Compliance Reporter** | Pipe-delimited TXT | HMDA LAR export via LaserPro |
+| **Encompass HMDA Export** | Excel (Post 2019) | Primary HMDA data from Encompass |
+| **Encompass Additional Fields** | Excel | Supplemental data (names, staff, branch) |
+
+### Automated VLOOKUP Replacement
+The tool automatically merges these fields from the Additional Fields file by matching on ULI/ApplNumb:
+
+| Field | Output Column |
+|-------|---------------|
+| APR | `APR` |
+| Rate Lock Date | `Rate_Lock_Date` |
+| Loan Officer | `Lender` |
+| Processor | `AA_Processor` |
+| Post Closer | `LDP_PostCloser` |
+| Borrower First Name | `FirstName` |
+| Borrower Last Name | `LastName` |
+| Co-Borrower Names | `Coa_FirstName`, `Coa_LastName` |
+| Branch Number | `Branch` |
+| Branch Name | `Branch_Name` |
+
+### Key Capabilities
 - **Auto-Detection**: Automatically detects file formats and delimiters (pipe, tilde, tab, semicolon)
-- **Smart Merging**: Merges data from multiple sources using ULI, Loan Number, or Address matching
-- **Duplicate Detection**: Identifies and handles duplicate records across sources
-- **CRA Wiz Export**: Generates properly formatted 128-column CRA Wiz compatible Excel files
-- **Field Mapping**: Comprehensive field mapping for HMDA LAR format compliance
-- **Validation**: Built-in data validation and auto-correction
+- **Smart Merging**: Merges data using ULI, Loan Number, or Address+City matching
+- **Duplicate Detection**: Identifies duplicate records across sources
+- **128-Column Output**: Generates CRAWiz-compatible format with exact column order
+- **Field Mapping**: 200+ field name variations mapped to standard output columns
+- **Validation**: Built-in HMDA code validation and auto-correction
+- **Branch VLOOKUP**: Automatic branch name lookup from branch number
+- **Loan Term Conversion**: Automatically converts months to years for Loan_Term
+- **Rate Type Derivation**: Derives RateType (Fixed/Variable) from IntroRatePeriod
+- **Geocoding Fields**: Leaves County_5 and Tract_11 blank for CRAWiz geocoding
+
+## Output Schema
+
+The tool generates a **128-column** output file matching the CRAWiz import format:
+
+```
+Branch_Name, Branch, LEI, ULI, LastName, FirstName, Coa_LastName, Coa_FirstName,
+Lender, AA_Processor, LDP_PostCloser, ErrorMadeBy, ApplDate, LoanType, Purpose,
+ConstructionMethod, OccupancyType, LoanAmountInDollars, Preapproval, Action,
+ActionDate, Address, City, State_abrv, Zip, County_5, Tract_11, Ethnicity_1-5,
+EthnicityOther, Coa_Ethnicity_1-5, Coa_EthnicityOther, Ethnicity_Determinant,
+Coa_Ethnicity_Determinant, Race_1-5, Race1_Other, Race27_Other, Race44_Other,
+CoaRace_1-5, CoaRace1_Other, CoaRace27_Other, CoaRace44_Other, Race_Determinant,
+CoaRace_Determinant, Sex, CoaSex, Sex_Determinant, CoaSex_Determinant, Age,
+Coa_Age, Income, Purchaser, Rate_Spread, HOEPA_Status, Lien_Status, CreditScore,
+Coa_CreditScore, CreditModel, CreditModelOther, Coa_CreditModel, Coa_CreditModelOther,
+Denial1-4, DenialOther, TotalLoanCosts, TotalPtsAndFees, OrigFees, DiscountPts,
+LenderCredts, InterestRate, APR, Rate_Lock_Date, PPPTerm, DTIRatio, DSC, CLTV,
+Loan_Term, Loan_Term_Months, IntroRatePeriod, BalloonPMT, IOPMT, NegAM, NonAmortz,
+PropertyValue, MHSecPropType, MHLandPropInt, TotalUnits, MFAHU, APPMethod,
+PayableInst, NMLSRID, AUSystem1-5, AUSystemOther, AUSResult1-5, AUSResultOther,
+REVMTG, OpenLOC, BUSCML, RateType, Var_Term, EditStatus, EditCkComments, Comments
+```
+
+### New Columns Added (v2.0)
+| Column | Position | Description |
+|--------|----------|-------------|
+| `RateType` | 124 | 1=Fixed, 2=Variable (derived from IntroRatePeriod) |
+| `Var_Term` | 125 | Variable rate term in years (blank for fixed rate) |
 
 ## Getting Started
 
@@ -30,8 +94,8 @@ A web-based ETL automation tool for HMDA (Home Mortgage Disclosure Act) and CRA 
 
 ```bash
 # Clone the repository
-git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
-cd colony-bank-hmda-cra-tool
+git clone https://github.com/deepseeai/colony-bank-hmda-tool.git
+cd colony-bank-hmda-tool
 
 # Install dependencies
 npm install
@@ -66,6 +130,59 @@ npm run build
 npm run build:client
 ```
 
+## ETL Pipeline
+
+The tool processes data through a modular ETL pipeline:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  LaserPro/      │     │   Encompass     │     │   Encompass     │
+│  Compliance     │     │   HMDA Export   │     │   Additional    │
+│  Reporter TXT   │     │   (Excel)       │     │   Fields        │
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         ▼                       ▼                       │
+    ┌────────────────────────────────────┐               │
+    │         1. PARSE                   │               │
+    │    Auto-detect format/delimiter    │               │
+    └────────────────┬───────────────────┘               │
+                     ▼                                   │
+    ┌────────────────────────────────────┐               │
+    │         2. NORMALIZE               │               │
+    │    Map 200+ field variations       │               │
+    └────────────────┬───────────────────┘               │
+                     ▼                                   ▼
+    ┌────────────────────────────────────────────────────────┐
+    │                    3. MERGE                            │
+    │    Join by ULI/ApplNumb (replaces manual VLOOKUP)     │
+    │    Add: APR, Lender, Processor, PostCloser, Names     │
+    └────────────────────────┬───────────────────────────────┘
+                             ▼
+    ┌────────────────────────────────────┐
+    │         4. DEDUPLICATE             │
+    │    Remove duplicate ULIs           │
+    └────────────────┬───────────────────┘
+                     ▼
+    ┌────────────────────────────────────┐
+    │         5. TRANSFORM               │
+    │    Convert to 128-column format    │
+    │    Branch VLOOKUP, date conversion │
+    │    Loan_Term (years), RateType     │
+    └────────────────┬───────────────────┘
+                     ▼
+    ┌────────────────────────────────────┐
+    │         6. VALIDATE                │
+    │    HMDA code validation            │
+    │    Auto-correct common issues      │
+    └────────────────┬───────────────────┘
+                     ▼
+    ┌────────────────────────────────────┐
+    │         7. EXPORT                  │
+    │    Generate Excel/CSV output       │
+    │    CRAWiz-compatible format        │
+    └────────────────────────────────────┘
+```
+
 ## Project Structure
 
 ```
@@ -83,26 +200,19 @@ colony-bank-hmda-tool/
 │   │   ├── hooks/        # Custom React hooks
 │   │   ├── lib/          # Core libraries
 │   │   │   └── etl/      # ETL processing modules
+│   │   │       ├── field-maps.ts   # 128-column schema & field mappings
+│   │   │       ├── parsers.ts      # File parsers
+│   │   │       ├── merge.ts        # Data merging (VLOOKUP replacement)
+│   │   │       ├── transform.ts    # Data transformation
+│   │   │       └── utils.ts        # Utility functions
 │   │   ├── pages/        # Page components
 │   │   └── __tests__/    # Unit tests
-│   └── public/           # Static assets
+│   └── public/           # Static assets & test data
 ├── server/               # Backend server (dev only)
 ├── shared/               # Shared types and schemas
 ├── docs/                 # Documentation
 └── package.json
 ```
-
-## ETL Pipeline
-
-The tool processes data through a modular ETL pipeline:
-
-1. **Parse** - Read and parse input files (Encompass XLSX, LaserPro TXT)
-2. **Normalize** - Map field names to standard HMDA format
-3. **Merge** - Combine data from multiple sources
-4. **Deduplicate** - Remove duplicate records
-5. **Transform** - Convert to CRA Wiz 128-column format
-6. **Validate** - Check data integrity and auto-correct issues
-7. **Export** - Generate formatted Excel output
 
 ## Scripts
 
@@ -120,6 +230,27 @@ The tool processes data through a modular ETL pipeline:
 | `npm run format:check` | Check code formatting |
 | `npm run typecheck` | TypeScript type checking |
 
+## HMDA Workflow Integration
+
+This tool integrates with the existing HMDA Scrub Procedures:
+
+### Before (Manual Process)
+1. Export from LaserPro → Compliance Reporter → Text file
+2. Export from Encompass → Excel file
+3. Manually convert column headers to CRAWiz format
+4. Create VLOOKUP formulas to add APR, Lender, Processor, etc.
+5. Copy/paste merged data
+6. Save as Tab Delimited
+
+### After (With This Tool)
+1. Upload LaserPro/Compliance Reporter export
+2. Upload Encompass HMDA export
+3. Upload Encompass Additional Fields
+4. Click "Process" → Automatically merged & formatted
+5. Download CRAWiz-ready file
+
+**Time Savings:** 30-60 minutes of manual work reduced to < 5 minutes
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
@@ -133,19 +264,18 @@ Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for details on our code of c
 
 ## Tech Stack
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **Frontend**: React 19, TypeScript, Tailwind CSS, shadcn/ui
 - **Build**: Vite
 - **Server**: Express.js
+- **Excel Processing**: SheetJS (xlsx)
 - **Testing**: Vitest, Testing Library
 - **Linting**: ESLint, Prettier
 - **CI/CD**: GitHub Actions
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is proprietary software built for Colony Bank by DeepSee.ai.
 
 ---
 
-Built for Colony Bank HMDA/CRA Compliance
-
-**Password:** `ColonyBank2024!`
+**Built by [DeepSee.ai](https://deepsee.ai)** | Colony Bank HMDA/CRA Compliance

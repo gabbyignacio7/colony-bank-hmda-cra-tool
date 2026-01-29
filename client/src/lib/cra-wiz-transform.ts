@@ -257,8 +257,11 @@ export const OUTPUT_COLUMNS: string[] = [
   'REVMTG',
   'OPENLOC',
   'BUSCML',
-  'RATETYPE',
-  'VAR_TERM',
+  'EditStatus', // Blank (manual entry)
+  'EditCkComments', // Blank (manual entry)
+  'Comments', // Blank (manual entry)
+  'RATETYPE', // Derived from IntroRatePeriod (1=Fixed, 2=Variable)
+  'VAR_TERM', // Derived from IntroRatePeriod (months to years with ceiling)
 ];
 
 export interface CRAWizRow {
@@ -335,7 +338,8 @@ export const parseCRAWizFile = async (file: File): Promise<CRAWizRow[]> => {
 };
 
 /**
- * Transform CRA Wiz 243-column export to Work Item 125-column format
+ * Transform CRA Wiz 243-column export to Work Item format
+ * Updated per Jonathan's feedback to include RateType and Var_Term columns
  */
 export const transformToWorkItemFormat = (data: any[]): any[] => {
   return data.map(row => {
@@ -347,8 +351,67 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
           row.BRANCHNUMB || row.Branch || row.BranchNumb || '',
           row.BRANCHNAME || row.BranchName || ''
         );
-      } else if (col === 'ErrorMadeBy' || col === 'DSC') {
+      } else if (
+        col === 'ErrorMadeBy' ||
+        col === 'DSC' ||
+        col === 'EditStatus' ||
+        col === 'EditCkComments' ||
+        col === 'Comments'
+      ) {
+        // Blank columns for manual entry
         output[col] = '';
+      } else if (col === 'COUNTY_5' || col === 'TRACT_11') {
+        // Per Jonathan's feedback: Leave blank, CRAWiz will geocode
+        output[col] = '';
+      } else if (col === 'RATETYPE') {
+        // Derive from INTRORATEPERIOD: N/A or blank = Fixed (1), number = Variable (2)
+        const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? '';
+        if (
+          introRate === '' ||
+          introRate === null ||
+          introRate === 'NA' ||
+          introRate === 'N/A' ||
+          introRate === 'Exempt' ||
+          introRate === '1111'
+        ) {
+          output[col] = '1'; // Fixed
+        } else {
+          const numVal = Number(introRate);
+          output[col] = !isNaN(numVal) && numVal > 0 ? '2' : '1'; // Variable if positive number
+        }
+      } else if (col === 'VAR_TERM') {
+        // Derive from INTRORATEPERIOD: convert months to years (ceiling), blank for fixed
+        const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? '';
+        if (
+          introRate === '' ||
+          introRate === null ||
+          introRate === 'NA' ||
+          introRate === 'N/A' ||
+          introRate === 'Exempt' ||
+          introRate === '1111'
+        ) {
+          output[col] = ''; // Fixed rate loans have no Var_Term
+        } else {
+          const numVal = Number(introRate);
+          output[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
+        }
+      } else if (col === 'LOAN_TERM') {
+        // Per Jonathan's feedback: Loan_Term = Loan_Term_Months / 12 (floor)
+        const months =
+          row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? row.Loan_Term ?? '';
+        const numMonths = Number(months);
+        output[col] = !isNaN(numMonths) && numMonths > 0 ? String(Math.floor(numMonths / 12)) : '';
+      } else if (col === 'LOAN_TERM_MONTHS') {
+        // Loan_Term_Months gets the raw months value
+        const months =
+          row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? row.Loan_Term ?? '';
+        const numMonths = Number(months);
+        // If value is small (likely years), convert to months
+        if (!isNaN(numMonths) && numMonths > 0) {
+          output[col] = numMonths <= 50 ? String(Math.round(numMonths * 12)) : String(numMonths);
+        } else {
+          output[col] = '';
+        }
       } else if (DATE_COLUMNS.includes(col)) {
         const rawValue = row[col] || row[col.toLowerCase()] || '';
         output[col] = excelDateToString(rawValue);
@@ -393,8 +456,65 @@ export const transformCRAWizExport = (
     OUTPUT_COLUMNS.forEach(col => {
       if (col === 'BRANCHNAME') {
         outputRow[col] = branchName;
-      } else if (col === 'ErrorMadeBy' || col === 'DSC') {
+      } else if (
+        col === 'ErrorMadeBy' ||
+        col === 'DSC' ||
+        col === 'EditStatus' ||
+        col === 'EditCkComments' ||
+        col === 'Comments'
+      ) {
+        // Blank columns for manual entry
         outputRow[col] = '';
+      } else if (col === 'COUNTY_5' || col === 'TRACT_11') {
+        // Per Jonathan's feedback: Leave blank, CRAWiz will geocode
+        outputRow[col] = '';
+      } else if (col === 'RATETYPE') {
+        // Derive from INTRORATEPERIOD: N/A or blank = Fixed (1), number = Variable (2)
+        const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? row.PPPTERM ?? '';
+        if (
+          introRate === '' ||
+          introRate === null ||
+          introRate === 'NA' ||
+          introRate === 'N/A' ||
+          introRate === 'Exempt' ||
+          introRate === '1111'
+        ) {
+          outputRow[col] = '1'; // Fixed
+        } else {
+          const numVal = Number(introRate);
+          outputRow[col] = !isNaN(numVal) && numVal > 0 ? '2' : '1';
+        }
+      } else if (col === 'VAR_TERM') {
+        // Derive from INTRORATEPERIOD: convert months to years (ceiling), blank for fixed
+        const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? '';
+        if (
+          introRate === '' ||
+          introRate === null ||
+          introRate === 'NA' ||
+          introRate === 'N/A' ||
+          introRate === 'Exempt' ||
+          introRate === '1111'
+        ) {
+          outputRow[col] = '';
+        } else {
+          const numVal = Number(introRate);
+          outputRow[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
+        }
+      } else if (col === 'LOAN_TERM') {
+        // Per Jonathan's feedback: Loan_Term = months / 12 (floor)
+        const months = row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? '';
+        const numMonths = Number(months);
+        outputRow[col] =
+          !isNaN(numMonths) && numMonths > 0 ? String(Math.floor(numMonths / 12)) : '';
+      } else if (col === 'LOAN_TERM_MONTHS') {
+        // Loan_Term_Months gets the raw months value
+        const months = row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? '';
+        const numMonths = Number(months);
+        if (!isNaN(numMonths) && numMonths > 0) {
+          outputRow[col] = numMonths <= 50 ? String(Math.round(numMonths * 12)) : String(numMonths);
+        } else {
+          outputRow[col] = '';
+        }
       } else if (DATE_COLUMNS.includes(col)) {
         outputRow[col] = excelDateToString(row[col]);
       } else if (col === 'COA_AGE' || col === 'COA_CREDITSCORE') {

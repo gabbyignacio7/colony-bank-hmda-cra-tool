@@ -8,8 +8,9 @@
  */
 
 /**
- * OUTPUT SCHEMA - Exactly 126 columns
+ * OUTPUT SCHEMA - Exactly 128 columns
  * This is the single source of truth for output column order and names
+ * Updated to include RateType (col 124) and Var_Term (col 125) per Jonathan's feedback
  */
 export const HMDA_COLUMN_ORDER: string[] = [
   'Branch_Name', // Col 1 - From Additional Fields or VLOOKUP
@@ -135,9 +136,11 @@ export const HMDA_COLUMN_ORDER: string[] = [
   'REVMTG', // Col 121 - From Encompass
   'OpenLOC', // Col 122 - From Encompass
   'BUSCML', // Col 123 - From Encompass
-  'EditStatus', // Col 124 - Blank (manual entry)
-  'EditCkComments', // Col 125 - Blank (manual entry)
-  'Comments', // Col 126 - Blank (manual entry)
+  'RateType', // Col 124 - Derived from IntroRatePeriod (1=Fixed, 2=Variable)
+  'Var_Term', // Col 125 - Derived from IntroRatePeriod (months to years with ceiling)
+  'EditStatus', // Col 126 - Blank (manual entry)
+  'EditCkComments', // Col 127 - Blank (manual entry)
+  'Comments', // Col 128 - Blank (manual entry)
 ];
 
 // Alias for backwards compatibility
@@ -673,6 +676,39 @@ export const COMPLIANCE_REPORTER_FIELD_MAP: Record<number, string> = {
   107: 'REVMTG',
   108: 'OpenLOC',
   109: 'BUSCML',
+
+  // ============ LASERPRO EXTENDED FIELDS (positions 147+) ============
+  // These fields are present in the LaserPro/Compliance Reporter export
+  // but are not part of the standard HMDA LAR format.
+  // Per Jonathan's feedback: These data points are embedded in the LaserPro export.
+  // CORRECTED POSITIONS based on actual file analysis (0-indexed):
+  147: '_LaserPro_Source', // Source identifier ("Laser Pro")
+  148: '_LaserPro_ID1', // Internal ID (e.g., "41292")
+  149: 'ApplNumb', // Loan/Application number (e.g., "21404695207")
+  150: '_LaserPro_AccountNum', // Partial account number
+  // 151-154: typically blank
+  155: '_LaserPro_Timestamp', // Processing timestamp (e.g., "12/5/2025 9:19:29 PM")
+  156: 'BorrowerFullName', // Full borrower name (e.g., "Kay Graham")
+  157: 'FirstName', // Borrower first name (e.g., "Kay")
+  158: 'LastName', // Borrower last name (e.g., "Graham")
+  159: '_LaserPro_ID2', // Internal ID (e.g., "1832")
+  160: 'Branch', // Branch number (e.g., "209")
+  161: 'Branch_Name', // Branch name (e.g., "Fitzgerald")
+  162: '_LaserPro_Code1', // Internal code (e.g., "140")
+  163: '_LaserPro_Code2', // Internal code (e.g., "40")
+  164: '_LaserPro_Description', // Loan description (e.g., "Georgia-Real Estate...")
+  165: 'Lender', // Loan officer/processor (e.g., "COLONY\KENDRA.TIMMS")
+  166: '_LaserPro_Code3', // Internal code
+  167: '_LaserPro_PaymentFreq', // Payment frequency (e.g., "Monthly")
+  168: '_LaserPro_Flag1', // Y/N flag
+  169: '_LaserPro_BillType', // Bill type description
+  // 170-171: typically blank
+  172: '_LaserPro_Code4', // Internal code (e.g., "98")
+  // 173: typically blank
+  174: '_LaserPro_Date', // Date field (e.g., "2025-10-03")
+  // 175: typically blank
+  175: 'APR', // Annual Percentage Rate (e.g., "10.299") - Per Jonathan: APR is in the export
+  176: '_LaserPro_RateType', // Rate type text ("Fixed" or "Variable") - used to derive RateType
 };
 
 /**
@@ -1295,6 +1331,20 @@ export const FIELD_VARIATIONS: Record<string, string[]> = {
   REVMTG: ['REVMTG', 'Reverse Mortgage'],
   OpenLOC: ['OpenLOC', 'Open-End Line of Credit', 'OPENLOC'],
   BUSCML: ['BUSCML', 'Business or Commercial Purpose'],
+
+  // Rate Type and Variable Term (derived from IntroRatePeriod)
+  RateType: [
+    'RateType',
+    'Rate Type',
+    'RATETYPE',
+    'Rate_Type',
+    '_LaserPro_RateType', // LaserPro extended field (text: Fixed/Variable)
+  ],
+  Var_Term: ['Var_Term', 'VarTerm', 'VAR_TERM', 'Variable Term', 'VariableTerm'],
+
+  // LaserPro extended fields (positions 110+)
+  _LaserPro_RateType: ['_LaserPro_RateType'],
+  BorrowerFullName: ['BorrowerFullName', 'Borrower Name', 'Borrower Full Name', 'FullName'],
 
   // Blank columns for manual entry
   ErrorMadeBy: ['ErrorMadeBy'],
