@@ -12,8 +12,10 @@ This tool automates the tedious manual workflow of preparing HMDA and CRA data f
 
 - Parsing exports from **LaserPro/Compliance Reporter** and **Encompass**
 - Merging supplemental data (APR, Rate Lock Date, Lender, Processor, Post Closer, Borrower Names)
-- Transforming data to the **126-column CRAWiz-compatible format**
+- Transforming data to the **128-column CRAWiz-compatible format**
 - Detecting and handling duplicate records by ULI
+- Deriving **RateType** and **Var_Term** from IntroRatePeriod
+- Extracting **Branch Number** from Encompass ULI (first 3 digits after LEI)
 
 ## Features
 
@@ -44,14 +46,17 @@ The tool automatically merges these fields from the Additional Fields file by ma
 - **Auto-Detection**: Automatically detects file formats and delimiters (pipe, tilde, tab, semicolon)
 - **Smart Merging**: Merges data using ULI, Loan Number, or Address+City matching
 - **Duplicate Detection**: Identifies duplicate records across sources
-- **126-Column Output**: Generates CRAWiz-compatible format with exact column order
+- **128-Column Output**: Generates CRAWiz-compatible format with exact column order
 - **Field Mapping**: 200+ field name variations mapped to standard output columns
 - **Validation**: Built-in HMDA code validation and auto-correction
 - **Branch VLOOKUP**: Automatic branch name lookup from branch number
+- **Loan Term Conversion**: Automatically converts months to years for Loan_Term
+- **Rate Type Derivation**: Derives RateType (Fixed/Variable) from IntroRatePeriod
+- **Geocoding Fields**: Leaves County_5 and Tract_11 blank for CRAWiz geocoding
 
 ## Output Schema
 
-The tool generates a **126-column** output file matching the CRAWiz import format:
+The tool generates a **128-column** output file matching the CRAWiz import format:
 
 ```
 Branch_Name, Branch, LEI, ULI, LastName, FirstName, Coa_LastName, Coa_FirstName,
@@ -69,8 +74,14 @@ LenderCredts, InterestRate, APR, Rate_Lock_Date, PPPTerm, DTIRatio, DSC, CLTV,
 Loan_Term, Loan_Term_Months, IntroRatePeriod, BalloonPMT, IOPMT, NegAM, NonAmortz,
 PropertyValue, MHSecPropType, MHLandPropInt, TotalUnits, MFAHU, APPMethod,
 PayableInst, NMLSRID, AUSystem1-5, AUSystemOther, AUSResult1-5, AUSResultOther,
-REVMTG, OpenLOC, BUSCML, EditStatus, EditCkComments, Comments
+REVMTG, OpenLOC, BUSCML, RateType, Var_Term, EditStatus, EditCkComments, Comments
 ```
+
+### New Columns Added (v2.0)
+| Column | Position | Description |
+|--------|----------|-------------|
+| `RateType` | 124 | 1=Fixed, 2=Variable (derived from IntroRatePeriod) |
+| `Var_Term` | 125 | Variable rate term in years (blank for fixed rate) |
 
 ## Getting Started
 
@@ -154,8 +165,9 @@ The tool processes data through a modular ETL pipeline:
                      ▼
     ┌────────────────────────────────────┐
     │         5. TRANSFORM               │
-    │    Convert to 126-column format    │
+    │    Convert to 128-column format    │
     │    Branch VLOOKUP, date conversion │
+    │    Loan_Term (years), RateType     │
     └────────────────┬───────────────────┘
                      ▼
     ┌────────────────────────────────────┐
@@ -188,7 +200,7 @@ colony-bank-hmda-tool/
 │   │   ├── hooks/        # Custom React hooks
 │   │   ├── lib/          # Core libraries
 │   │   │   └── etl/      # ETL processing modules
-│   │   │       ├── field-maps.ts   # 126-column schema & field mappings
+│   │   │       ├── field-maps.ts   # 128-column schema & field mappings
 │   │   │       ├── parsers.ts      # File parsers
 │   │   │       ├── merge.ts        # Data merging (VLOOKUP replacement)
 │   │   │       ├── transform.ts    # Data transformation
