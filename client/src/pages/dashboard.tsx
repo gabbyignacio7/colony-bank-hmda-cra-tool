@@ -272,9 +272,9 @@ export default function Dashboard() {
     // APPEND LaserPro records (commercial/ag loans) - these are SEPARATE loans
     if (laserProData.length > 0) {
       addLog(`📊 Appending ${laserProData.length} commercial/ag records from LaserPro...`);
-      // Mark each record with its source for tracking
+      // Mark each record with its source for tracking (preserve LaserPro casing for transform.ts)
       laserProData.forEach(row => {
-        combinedData.push({ ...row, _source: 'laserPro' });
+        combinedData.push({ ...row, _source: 'LaserPro' });
       });
     }
 

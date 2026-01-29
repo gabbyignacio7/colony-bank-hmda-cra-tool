@@ -12,7 +12,6 @@ import {
   mapNonAmortz,
   convertLoanTermToYears,
   getLoanTermMonths,
-  formatCensusTract,
   deriveRateType,
   deriveVarTerm,
   excelDateToString,
@@ -21,8 +20,9 @@ import { BRANCH_LIST, getBranchFromLoanOfficer, getBranchName } from '../cra-wiz
 import { logInfo, logWarning, logDebug, trackETLStep } from '../error-tracker';
 
 /**
- * Transform data to CRA Wiz 126-column format
- * IMPORTANT: Output will contain EXACTLY 126 columns as specified in HMDA_COLUMN_ORDER
+ * Transform data to CRA Wiz 128-column format
+ * IMPORTANT: Output will contain EXACTLY 128 columns as specified in HMDA_COLUMN_ORDER
+ * Updated per Jonathan's feedback to include RateType and Var_Term columns
  *
  * Input sources:
  * - Encompass Export: Main HMDA data (LEI, ULI, demographics, loan details)
@@ -73,8 +73,9 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     }
 
     // Branch lookup - try multiple sources for branch number
-    // Priority: 1) Direct field, 2) Various field variations, 3) Derive from Lender
+    // Priority: 1) Direct field, 2) Extract from ULI (Encompass), 3) Derive from Lender
     let branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
+    const source = row._source || 'Encompass';
 
     // Debug log for first row
     if (idx === 0) {
@@ -90,7 +91,32 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       );
     }
 
-    // If no branch number, try to derive from Lender/Loan Officer
+    // If no branch number and this is an Encompass record, extract from ULI
+    // Per Jonathan's feedback: First 3 digits of application number = branch number
+    // Application number immediately follows the 20-character LEI in the ULI
+    const isLaserPro = source.toLowerCase() === 'laserpro';
+    if (!branchNum && !isLaserPro) {
+      const uli = String(output['ULI'] || findFieldValue(row, 'ULI') || '').trim();
+      // Colony Bank LEI is 20 characters, so branch is chars 21-23 (0-indexed: 20-22)
+      if (uli.length > 23) {
+        const extractedBranch = uli.substring(20, 23);
+        // Verify it looks like a valid branch number (3 digits)
+        if (/^\d{3}$/.test(extractedBranch) && BRANCH_LIST[extractedBranch]) {
+          branchNum = extractedBranch;
+          output['Branch'] = branchNum;
+          logDebug(
+            'ETL:Transform',
+            `Extracted branch ${branchNum} from ULI for Encompass record`
+          );
+        } else if (idx === 0) {
+          console.log(
+            `Branch extraction from ULI: extracted "${extractedBranch}" but not in BRANCH_LIST`
+          );
+        }
+      }
+    }
+
+    // If still no branch number, try to derive from Lender/Loan Officer
     if (!branchNum) {
       const lender = output['Lender'] || findFieldValue(row, 'Lender') || '';
       if (lender) {
@@ -236,32 +262,49 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       output['ConstructionMethod'] = constructMethod ?? '1';
     }
 
-    // Loan Term handling
-    const rawLoanTerm =
-      findFieldValue(row, 'Loan_Term') ||
-      findFieldValue(row, 'Loan_Term_Months') ||
-      findFieldValue(row, 'LoanTerm') ||
-      findFieldValue(row, 'Term');
+    // Loan Term handling - FIXED per Jonathan's feedback:
+    // Source data contains months. Loan_Term_Months gets the raw months value.
+    // Loan_Term gets months / 12 (years with floor rounding).
     const rawLoanTermMonths =
       findFieldValue(row, 'Loan_Term_Months') ||
       findFieldValue(row, 'LoanTermMonths') ||
       findFieldValue(row, 'Term in Months') ||
-      rawLoanTerm;
-
-    if (rawLoanTerm) {
-      output['Loan_Term'] = convertLoanTermToYears(rawLoanTerm);
-    }
+      findFieldValue(row, 'Loan_Term') ||
+      findFieldValue(row, 'LoanTerm') ||
+      findFieldValue(row, 'Term');
 
     if (rawLoanTermMonths) {
-      output['Loan_Term_Months'] = getLoanTermMonths(rawLoanTermMonths);
-    } else if (rawLoanTerm) {
-      output['Loan_Term_Months'] = getLoanTermMonths(rawLoanTerm);
+      // First, get the months value (raw or converted if needed)
+      const monthsValue = getLoanTermMonths(rawLoanTermMonths);
+      output['Loan_Term_Months'] = monthsValue;
+
+      // Then calculate years = months / 12 (floor)
+      if (monthsValue) {
+        const yearsValue = convertLoanTermToYears(monthsValue);
+        output['Loan_Term'] = yearsValue;
+        
+        // Debug log for first row
+        if (idx === 0) {
+          console.log('=== LOAN TERM CONVERSION ===');
+          console.log('Raw input:', rawLoanTermMonths);
+          console.log('Months value:', monthsValue);
+          console.log('Years value:', yearsValue);
+        }
+      }
     }
 
-    // Census Tract - Format with leading zeros (11 digits)
-    const rawTract = output['Tract_11'] ?? findFieldValue(row, 'Tract_11');
-    if (rawTract) {
-      output['Tract_11'] = formatCensusTract(rawTract);
+    // County_5 and Tract_11 - Leave BLANK per Jonathan's feedback
+    // CRAWiz will perform a Geocode on all file locations and populate these fields
+    output['County_5'] = '';
+    output['Tract_11'] = '';
+    
+    // Debug log for first row
+    if (idx === 0) {
+      console.log('=== TRANSFORM OUTPUT (first row) ===');
+      console.log('County_5:', output['County_5']);
+      console.log('Tract_11:', output['Tract_11']);
+      console.log('Loan_Term:', output['Loan_Term']);
+      console.log('Loan_Term_Months:', output['Loan_Term_Months']);
     }
 
     // AUSystem1 - Map to valid HMDA codes (1-6)
@@ -271,6 +314,53 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     // AUSResult1 - Map to valid HMDA codes (1-17)
     const rawAUSResult1 = output['AUSResult1'] ?? findFieldValue(row, 'AUSResult1');
     output['AUSResult1'] = mapAUSResult(rawAUSResult1);
+
+    // RateType and Var_Term - Derived from IntroRatePeriod per Jonathan's feedback
+    // IntroRatePeriod = N/A or blank → Fixed (1), IntroRatePeriod = number → Variable (2)
+    const introRatePeriod =
+      output['IntroRatePeriod'] ?? findFieldValue(row, 'IntroRatePeriod');
+
+    // Check multiple sources for RateType:
+    // 1) Explicit RateType field
+    // 2) LaserPro _LaserPro_RateType field (contains "Fixed" or "Variable" text)
+    // 3) Derive from IntroRatePeriod
+    const sourceRateType =
+      findFieldValue(row, 'RateType') || findFieldValue(row, '_LaserPro_RateType');
+    if (sourceRateType) {
+      // Map text values to HMDA codes
+      const rateTypeStr = String(sourceRateType).toLowerCase().trim();
+      if (rateTypeStr === 'fixed' || rateTypeStr === '1') {
+        output['RateType'] = '1';
+      } else if (
+        rateTypeStr === 'variable' ||
+        rateTypeStr === '2' ||
+        rateTypeStr === 'arm' ||
+        rateTypeStr === 'adjustable'
+      ) {
+        output['RateType'] = '2';
+      } else {
+        output['RateType'] = deriveRateType(introRatePeriod);
+      }
+    } else {
+      output['RateType'] = deriveRateType(introRatePeriod);
+    }
+
+    // Var_Term: convert IntroRatePeriod months to years (ceiling), blank for fixed rate
+    // Only populate if RateType is Variable (2)
+    if (output['RateType'] === '2') {
+      output['Var_Term'] = deriveVarTerm(introRatePeriod);
+    } else {
+      output['Var_Term'] = '';
+    }
+
+    // Debug log for first row
+    if (idx === 0) {
+      console.log('=== RATE TYPE DERIVATION ===');
+      console.log('IntroRatePeriod:', introRatePeriod);
+      console.log('Source RateType:', sourceRateType);
+      console.log('Derived RateType:', output['RateType']);
+      console.log('Derived Var_Term:', output['Var_Term']);
+    }
 
     // Convert dates
     ['ApplDate', 'ActionDate', 'Rate_Lock_Date'].forEach(field => {

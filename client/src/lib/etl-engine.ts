@@ -82,12 +82,20 @@ import { logInfo, logWarning, logError, trackETLStep } from './error-tracker';
 
 /**
  * Export to CRA Wiz Excel format
- * Exports EXACTLY 125 columns as specified in HMDA_COLUMN_ORDER
+ * Exports EXACTLY 128 columns as specified in HMDA_COLUMN_ORDER
+ * IMPORTANT: Applies transformToCRAWizFormat to ensure proper field transformations
  */
 export const exportCRAWizFormat = (data: SbslRow[], filename?: string): void => {
-  // CRITICAL: Filter data to include ONLY the 125 specified columns
+  // CRITICAL: First apply the CRA Wiz transformation to handle:
+  // - Loan_Term (years) and Loan_Term_Months (months) conversion
+  // - RateType and Var_Term derivation
+  // - County_5 and Tract_11 blanking (CRAWiz will geocode)
+  // - Branch extraction from ULI for Encompass records
+  const transformedData = transformToCRAWizFormat(data);
+
+  // Then filter to include ONLY the 128 specified columns in exact order
   // This prevents any extra columns from input files from being exported
-  const filteredData = data.map(row => {
+  const filteredData = transformedData.map(row => {
     const filteredRow: SbslRow = {};
     HMDA_COLUMN_ORDER.forEach(col => {
       // Get the value from the row, defaulting to empty string

@@ -264,6 +264,14 @@ export const convertLoanTermToYears = (months: any): string => {
 
 /**
  * Get Loan Term in Months (preserve raw monthly value)
+ * Per Jonathan's feedback: HMDA source data contains months directly.
+ * Common loan terms: 60 (5yr), 84 (7yr), 120 (10yr), 180 (15yr), 240 (20yr), 360 (30yr)
+ * 
+ * Conversion heuristic:
+ * - Values > 40: definitely months, return as-is
+ * - Values 1-40: check if it's a common year term (multiply by 12) or months
+ *   - Common year values: 5, 7, 10, 15, 20, 25, 30 -> convert to months
+ *   - Other values in this range could be months (35, 36, etc.) -> return as-is
  */
 export const getLoanTermMonths = (value: any): string => {
   if (value === null || value === undefined || value === '') return '';
@@ -271,12 +279,19 @@ export const getLoanTermMonths = (value: any): string => {
   const numValue = Number(value);
   if (isNaN(numValue) || numValue <= 0) return '';
 
-  // If value is clearly in years (small number < 50), convert to months
-  if (numValue <= 50) {
+  // Values > 40 are definitely months
+  if (numValue > 40) {
+    return String(Math.round(numValue));
+  }
+
+  // Common year-based loan terms that should be converted to months
+  const commonYearTerms = [1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40];
+  if (commonYearTerms.includes(numValue)) {
     return String(Math.round(numValue * 12));
   }
 
-  // Otherwise return as-is (already in months)
+  // For other values in the 1-40 range, assume they're already months
+  // (e.g., 35 months, 36 months, 18 months)
   return String(Math.round(numValue));
 };
 
