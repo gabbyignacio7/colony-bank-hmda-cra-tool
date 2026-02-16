@@ -2,9 +2,8 @@ node_modules
 dist
 build
 coverage
+data
 *.min.js
 *.min.css
 package-lock.json
-.local
-attached_assets
 docs/CODE_DELIVERY.txt

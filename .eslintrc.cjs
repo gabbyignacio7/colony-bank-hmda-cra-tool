@@ -15,10 +15,10 @@ module.exports = {
   ignorePatterns: [
     'dist',
     'node_modules',
+    'data',
     '.eslintrc.cjs',
     'vite.config.ts',
     'vitest.config.ts',
-    'postcss.config.js',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -54,6 +54,6 @@ module.exports = {
     'no-debugger': 'warn',
     'prefer-const': 'warn',
     'no-var': 'error',
-    'eqeqeq': ['warn', 'always', { null: 'ignore' }],
+    eqeqeq: ['warn', 'always', { null: 'ignore' }],
   },
 };

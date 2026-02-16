@@ -4,42 +4,20 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Conditionally import Replit plugins only when running on Replit
-const isReplit = process.env.REPL_ID !== undefined;
-
-// Base path configuration:
-// - For GitHub Pages deployment: use GITHUB_PAGES_BASE env var (e.g., "/colony-bank-hmda-cra-tool/")
-// - For local development: use "/"
 const basePath = process.env.GITHUB_PAGES_BASE || '/';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    // Only add Replit plugins when running on Replit
-    ...(isReplit && process.env.NODE_ENV !== 'production'
-      ? [
-          // These are loaded dynamically to avoid errors when not on Replit
-        ]
-      : []),
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'client', 'src'),
       '@shared': path.resolve(__dirname, 'shared'),
     },
   },
-  css: {
-    postcss: {
-      plugins: [],
-    },
-  },
   root: path.resolve(__dirname, 'client'),
-  // GitHub Pages deployment - use repo name as base path
   base: basePath,
   build: {
     outDir: path.resolve(__dirname, 'dist/public'),
