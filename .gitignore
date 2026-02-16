@@ -55,6 +55,18 @@ vite.config.ts.*
 # Test data and assets (may contain PII)
 attached_assets/
 
+# Client data exports (contain PII)
+October Exports/
+Exports/
+Rules/
+
+# Large media assets (audio/video)
+client/public/assets/learning-center/Audio/
+client/public/assets/learning-center/Video_Clips/
+
+# Generated code delivery (regenerate with: node scripts/generate-code-delivery.js)
+docs/CODE_DELIVERY.txt
+
 # Misc
 *.pem
 .vercel

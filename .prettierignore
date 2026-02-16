@@ -7,3 +7,4 @@ coverage
 package-lock.json
 .local
 attached_assets
+docs/CODE_DELIVERY.txt

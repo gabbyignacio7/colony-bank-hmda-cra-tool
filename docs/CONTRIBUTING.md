@@ -113,8 +113,8 @@ We use simple commit messages. Here are some examples:
 
 ```bash
 # Clone the repository
-git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
-cd colony-bank-hmda-cra-tool
+git clone https://github.com/deepseeai/colony-bank-hmda-tool.git
+cd colony-bank-hmda-tool
 
 # Install dependencies
 npm install

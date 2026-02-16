@@ -14,10 +14,10 @@
 # =============================================================================
 
 # Default: Request review from the repo owner for all changes
-* @gabbyignacio7
+* @gabbyignacio7 @deepseeai
 
 # ETL/Data processing code - critical, always review
 /client/src/lib/etl/ @gabbyignacio7
 
 # GitHub Actions workflows - important for deployments
-/.github/workflows/ @gabbyignacio7
+/.github/workflows/ @gabbyignacio7 @deepseeai
