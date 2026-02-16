@@ -75,9 +75,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     // Fallback for LaserPro business loans: if LastName is still empty,
     // use BorrowerFullName (business name) as LastName
     if (!output['LastName']) {
-      const businessName = String(
-        row['BorrowerFullName'] || row['Borrower Name'] || ''
-      ).trim();
+      const businessName = String(row['BorrowerFullName'] || row['Borrower Name'] || '').trim();
       if (businessName) {
         output['LastName'] = businessName;
       }
