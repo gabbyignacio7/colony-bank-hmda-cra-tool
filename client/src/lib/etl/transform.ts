@@ -72,6 +72,17 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       if (!output['LastName']) output['LastName'] = lastName;
     }
 
+    // Fallback for LaserPro business loans: if LastName is still empty,
+    // use BorrowerFullName (business name) as LastName
+    if (!output['LastName']) {
+      const businessName = String(
+        row['BorrowerFullName'] || row['Borrower Name'] || ''
+      ).trim();
+      if (businessName) {
+        output['LastName'] = businessName;
+      }
+    }
+
     // Branch lookup - try multiple sources for branch number
     // Priority: 1) Direct field, 2) Extract from ULI (Encompass), 3) Derive from Lender
     let branchNum = String(output['Branch'] || findFieldValue(row, 'Branch') || '').trim();
@@ -95,6 +106,15 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
     // Per Jonathan's feedback: First 3 digits of application number = branch number
     // Application number immediately follows the 20-character LEI in the ULI
     const isLaserPro = source.toLowerCase() === 'laserpro';
+
+    // LaserPro lender fields are not in a usable format - leave blank
+    // Jonathan will populate via manual VLOOKUP from Encino reports
+    if (isLaserPro) {
+      output['Lender'] = '';
+      output['AA_Processor'] = '';
+      output['LDP_PostCloser'] = '';
+    }
+
     if (!branchNum && !isLaserPro) {
       const uli = String(output['ULI'] || findFieldValue(row, 'ULI') || '').trim();
       // Colony Bank LEI is 20 characters, so branch is chars 21-23 (0-indexed: 20-22)
@@ -275,7 +295,7 @@ export const transformToCRAWizFormat = (data: SbslRow[]): SbslRow[] => {
       const monthsValue = getLoanTermMonths(rawLoanTermMonths);
       output['Loan_Term_Months'] = monthsValue;
 
-      // Then calculate years = months / 12 (floor)
+      // Then calculate years with half-year rounding (>6 mo rounds up, <=6 rounds down)
       if (monthsValue) {
         const yearsValue = convertLoanTermToYears(monthsValue);
         output['Loan_Term'] = yearsValue;

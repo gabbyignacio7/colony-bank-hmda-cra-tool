@@ -6,7 +6,7 @@ import type { SbslRow } from './types';
 import { FIELD_VARIATIONS } from './field-maps';
 
 /**
- * Convert Excel serial date to M/D/YY format
+ * Convert Excel serial date to MM/DD/YYYY format
  */
 export const excelDateToString = (value: any): string => {
   if (!value) return '';
@@ -20,9 +20,9 @@ export const excelDateToString = (value: any): string => {
   const strValue = String(value);
   if (/^\d{8}$/.test(strValue)) {
     const year = strValue.substring(0, 4);
-    const month = parseInt(strValue.substring(4, 6));
-    const day = parseInt(strValue.substring(6, 8));
-    return `${month}/${day}/${year.slice(-2)}`;
+    const month = String(parseInt(strValue.substring(4, 6))).padStart(2, '0');
+    const day = String(parseInt(strValue.substring(6, 8))).padStart(2, '0');
+    return `${month}/${day}/${year}`;
   }
 
   // Excel serial number
@@ -32,9 +32,9 @@ export const excelDateToString = (value: any): string => {
   }
 
   const date = new Date((serial - 25569) * 86400 * 1000);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = String(date.getFullYear());
 
   return `${month}/${day}/${year}`;
 };
@@ -247,10 +247,12 @@ export const mapNonAmortz = (
 };
 
 /**
- * Convert Loan Term to years with floor rounding
- * HMDA Spec: Loan Term in whole years, use floor for partial years
- * Input: months (e.g., 360, 180, 18)
- * Output: years as string (e.g., '30', '15', '1')
+ * Convert Loan Term to years with half-year rounding
+ * Per Colony Bank review (2026-02-11):
+ *   - remainder > 6 months → round UP   (35 mo → 3 yr, 59 mo → 5 yr)
+ *   - remainder <= 6 months → round DOWN (30 mo → 2 yr, 18 mo → 1 yr)
+ * Input: months (e.g., 360, 180, 35)
+ * Output: years as string (e.g., '30', '15', '3')
  */
 export const convertLoanTermToYears = (months: any): string => {
   if (months === null || months === undefined || months === '') return '';
@@ -258,8 +260,9 @@ export const convertLoanTermToYears = (months: any): string => {
   const numMonths = Number(months);
   if (isNaN(numMonths) || numMonths <= 0) return '';
 
-  // Always convert months to years with floor (18 months = 1 year, not 1.5 or 2)
-  return String(Math.floor(numMonths / 12));
+  const years = Math.floor(numMonths / 12);
+  const remainder = numMonths % 12;
+  return String(remainder > 6 ? years + 1 : years);
 };
 
 /**

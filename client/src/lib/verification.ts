@@ -151,7 +151,7 @@ export const verifyPhase1Output = (data: any[][]): VerificationResult => {
     name: 'Dates in proper format',
     passed: !serialDateFound,
     actual: serialDateFound ? 'Excel serial numbers found' : 'Proper format',
-    expected: 'M/D/YY format',
+    expected: 'MM/DD/YYYY format',
   });
 
   const passed = checks.every(c => c.passed);
@@ -243,10 +243,10 @@ export const verifyPhase3Output = (data: any[][]): VerificationResult => {
     if (serialDateFound) break;
   }
   checks.push({
-    name: 'Date columns in M/D/YY format',
+    name: 'Date columns in MM/DD/YYYY format',
     passed: !serialDateFound,
     actual: serialDateFound ? 'Excel serial numbers found' : 'Proper format',
-    expected: 'M/D/YY format',
+    expected: 'MM/DD/YYYY format',
   });
 
   // Check 7: BRANCHNAME populated

@@ -272,7 +272,7 @@ export interface CRAWizRow {
 const DATE_COLUMNS = ['APPLDATE', 'ACTIONDATE', 'RATE_LOCK_DATE'];
 
 /**
- * Convert Excel serial date to M/D/YY format
+ * Convert Excel serial date to MM/DD/YYYY format
  */
 export const excelDateToString = (value: any): string => {
   if (typeof value === 'string' && value.includes('/')) {
@@ -285,9 +285,9 @@ export const excelDateToString = (value: any): string => {
   }
 
   const date = new Date((serial - 25569) * 86400 * 1000);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = String(date.getFullYear());
 
   return `${month}/${day}/${year}`;
 };
@@ -396,11 +396,17 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
           output[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
         }
       } else if (col === 'LOAN_TERM') {
-        // Per Jonathan's feedback: Loan_Term = Loan_Term_Months / 12 (floor)
+        // Loan_Term = months to years with half-year rounding (>6 mo rounds up, <=6 rounds down)
         const months =
           row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? row.Loan_Term ?? '';
         const numMonths = Number(months);
-        output[col] = !isNaN(numMonths) && numMonths > 0 ? String(Math.floor(numMonths / 12)) : '';
+        if (!isNaN(numMonths) && numMonths > 0) {
+          const years = Math.floor(numMonths / 12);
+          const remainder = numMonths % 12;
+          output[col] = String(remainder > 6 ? years + 1 : years);
+        } else {
+          output[col] = '';
+        }
       } else if (col === 'LOAN_TERM_MONTHS') {
         // Loan_Term_Months gets the raw months value
         const months =
@@ -501,11 +507,16 @@ export const transformCRAWizExport = (
           outputRow[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
         }
       } else if (col === 'LOAN_TERM') {
-        // Per Jonathan's feedback: Loan_Term = months / 12 (floor)
+        // Loan_Term = months to years with half-year rounding (>6 mo rounds up, <=6 rounds down)
         const months = row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? '';
         const numMonths = Number(months);
-        outputRow[col] =
-          !isNaN(numMonths) && numMonths > 0 ? String(Math.floor(numMonths / 12)) : '';
+        if (!isNaN(numMonths) && numMonths > 0) {
+          const years = Math.floor(numMonths / 12);
+          const remainder = numMonths % 12;
+          outputRow[col] = String(remainder > 6 ? years + 1 : years);
+        } else {
+          outputRow[col] = '';
+        }
       } else if (col === 'LOAN_TERM_MONTHS') {
         // Loan_Term_Months gets the raw months value
         const months = row.LOAN_TERM_MONTHS ?? row.Loan_Term_Months ?? row.LOAN_TERM ?? '';

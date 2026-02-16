@@ -25,15 +25,15 @@ describe('ETL Utilities', () => {
       expect(excelDateToString('2024-01-15')).toBe('2024-01-15');
     });
 
-    it('converts YYYYMMDD format', () => {
-      expect(excelDateToString('20241015')).toBe('10/15/24');
-      expect(excelDateToString('20250101')).toBe('1/1/25');
+    it('converts YYYYMMDD format to MM/DD/YYYY', () => {
+      expect(excelDateToString('20241015')).toBe('10/15/2024');
+      expect(excelDateToString('20250101')).toBe('01/01/2025');
     });
 
-    it('converts Excel serial numbers', () => {
+    it('converts Excel serial numbers to MM/DD/YYYY', () => {
       // Excel serial 45000 is around 2023
       const result = excelDateToString(45000);
-      expect(result).toMatch(/\d{1,2}\/\d{1,2}\/\d{2}/);
+      expect(result).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     });
   });
 
@@ -154,10 +154,14 @@ describe('ETL Utilities', () => {
       expect(convertLoanTermToYears(null)).toBe('');
     });
 
-    it('converts months to years with floor', () => {
-      expect(convertLoanTermToYears(360)).toBe('30');
-      expect(convertLoanTermToYears(180)).toBe('15');
-      expect(convertLoanTermToYears(18)).toBe('1'); // floor, not round
+    it('converts months to years with half-year rounding', () => {
+      expect(convertLoanTermToYears(360)).toBe('30'); // exact
+      expect(convertLoanTermToYears(180)).toBe('15'); // exact
+      expect(convertLoanTermToYears(35)).toBe('3'); // 2y 11m -> round up
+      expect(convertLoanTermToYears(59)).toBe('5'); // 4y 11m -> round up
+      expect(convertLoanTermToYears(30)).toBe('2'); // 2y 6m -> round down (exactly half)
+      expect(convertLoanTermToYears(18)).toBe('1'); // 1y 6m -> round down (exactly half)
+      expect(convertLoanTermToYears(19)).toBe('2'); // 1y 7m -> round up
     });
   });
 
