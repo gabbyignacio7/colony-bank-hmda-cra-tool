@@ -1,14 +1,14 @@
 {
-  "name": "colony-bank-hmda-tool",
+  "name": "colony-bank-hmda-cra-tool",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
   "description": "HMDA/CRA ETL tool for Colony Bank - processes Encompass and LaserPro exports for CRA Wiz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/deepseeai/colony-bank-hmda-tool.git"
+    "url": "https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git"
   },
-  "homepage": "https://deepseeai.github.io/colony-bank-hmda-tool/",
+  "homepage": "https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/",
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "dev:client": "vite dev --port 5000",

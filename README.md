@@ -94,8 +94,8 @@ REVMTG, OpenLOC, BUSCML, RateType, Var_Term, EditStatus, EditCkComments, Comment
 
 ```bash
 # Clone the repository
-git clone https://github.com/deepseeai/colony-bank-hmda-tool.git
-cd colony-bank-hmda-tool
+git clone https://github.com/gabbyignacio7/colony-bank-hmda-cra-tool.git
+cd colony-bank-hmda-cra-tool
 
 # Install dependencies
 npm install
