@@ -2,7 +2,7 @@
 
 **Built by [DeepSee.ai](https://deepsee.ai)**
 
-**[Live Demo](https://deepseeai.github.io/colony-bank-hmda-tool/)**
+**[Live Demo](https://gabbyignacio7.github.io/colony-bank-hmda-cra-tool/)**
 
 A web-based ETL automation tool for HMDA (Home Mortgage Disclosure Act) and CRA (Community Reinvestment Act) compliance reporting. Transforms monthly loan data processing from a 100+ hour manual process to under 30 minutes with automated validation.
 
