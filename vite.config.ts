@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import path from "path";
-import { fileURLToPath } from "url";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -14,14 +14,14 @@ const isReplit = process.env.REPL_ID !== undefined;
 // Base path configuration:
 // - For GitHub Pages deployment: use GITHUB_PAGES_BASE env var (e.g., "/colony-bank-hmda-cra-tool/")
 // - For local development: use "/"
-const basePath = process.env.GITHUB_PAGES_BASE || "/";
+const basePath = process.env.GITHUB_PAGES_BASE || '/';
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     // Only add Replit plugins when running on Replit
-    ...(isReplit && process.env.NODE_ENV !== "production"
+    ...(isReplit && process.env.NODE_ENV !== 'production'
       ? [
           // These are loaded dynamically to avoid errors when not on Replit
         ]
@@ -29,9 +29,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
+      '@': path.resolve(__dirname, 'client', 'src'),
+      '@shared': path.resolve(__dirname, 'shared'),
     },
   },
   css: {
@@ -39,19 +38,19 @@ export default defineConfig({
       plugins: [],
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: path.resolve(__dirname, 'client'),
   // GitHub Pages deployment - use repo name as base path
   base: basePath,
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: path.resolve(__dirname, 'dist/public'),
     emptyOutDir: true,
   },
   server: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     allowedHosts: true,
     fs: {
       strict: true,
-      deny: ["**/.*"],
+      deny: ['**/.*'],
     },
   },
 });

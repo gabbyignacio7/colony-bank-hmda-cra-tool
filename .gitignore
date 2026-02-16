@@ -52,15 +52,11 @@ vite.config.ts.*
 # Databricks (legacy)
 .databricks
 
-# Test data and assets (may contain PII)
-attached_assets/
+# Data directory (client exports, templates, media, test fixtures, reference)
+# Contains PII and large binary files — never commit
+data/
 
-# Client data exports (contain PII)
-October Exports/
-Exports/
-Rules/
-
-# Large media assets (audio/video)
+# Large media assets served at runtime (not bundled)
 client/public/assets/learning-center/Audio/
 client/public/assets/learning-center/Video_Clips/
 

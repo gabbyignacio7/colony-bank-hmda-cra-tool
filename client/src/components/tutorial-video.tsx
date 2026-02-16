@@ -18,8 +18,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import videoUrl from '@assets/Compliance Automation Revolution_1763740890639.mp4';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Tutorial video served from public/assets/ at runtime (not bundled at build time)
+const videoUrl = '/assets/learning-center/Video_Clips/Compliance_Automation_Revolution.mp4';
 
 export function TutorialVideo() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
