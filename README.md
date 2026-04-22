@@ -50,8 +50,8 @@ The tool automatically merges these fields from the Additional Fields file by ma
 - **Field Mapping**: 200+ field name variations mapped to standard output columns
 - **Validation**: Built-in HMDA code validation and auto-correction
 - **Branch VLOOKUP**: Automatic branch name lookup from branch number
-- **Loan Term Conversion**: Automatically converts months to years for Loan_Term
-- **Rate Type Derivation**: Derives RateType (Fixed/Variable) from IntroRatePeriod
+- **Loan Term Conversion**: Automatically converts months to years for Loan_Term (half-year rounding: remainder > 6 mo rounds up, ≤ 6 mo rounds down)
+- **Rate Type Derivation**: Derives RateType (Fixed/Variable) and Var_Term (years, same half-year rounding; ≤ 6 mo rounds up to 1) from IntroRatePeriod
 - **Geocoding Fields**: Leaves County_5 and Tract_11 blank for CRAWiz geocoding
 
 ## Output Schema
@@ -81,7 +81,7 @@ REVMTG, OpenLOC, BUSCML, RateType, Var_Term, EditStatus, EditCkComments, Comment
 | Column | Position | Description |
 |--------|----------|-------------|
 | `RateType` | 124 | 1=Fixed, 2=Variable (derived from IntroRatePeriod) |
-| `Var_Term` | 125 | Variable rate term in years (blank for fixed rate) |
+| `Var_Term` | 125 | Variable rate term in years, derived from IntroRatePeriod with half-year rounding (blank for fixed rate). Remainder > 6 months rounds up, ≤ 6 months rounds down (e.g., 30 mo → 2, 42 mo → 3, 43 mo → 4). Terms of 6 months or less round up to 1 year. |
 
 ## Getting Started
 
