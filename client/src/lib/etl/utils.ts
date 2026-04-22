@@ -355,8 +355,12 @@ export const deriveRateType = (introRatePeriod: string | number | null | undefin
 };
 
 /**
- * Derive Var_Term from IntroRatePeriod - convert to years with CEILING (round UP)
- * 1 month → 1 year, 13 months → 2 years, N/A → blank
+ * Derive Var_Term from IntroRatePeriod - convert months to years with half-year rounding.
+ * Per Colony Bank feedback (2026-04):
+ *   - Terms <= 6 months round UP to 1 year (minimum reportable term)
+ *   - Otherwise: remainder > 6 months rounds UP, remainder <= 6 months rounds DOWN
+ *     (e.g., 30 mo / 2.5 yr → 2, 42 mo / 3.5 yr → 3, 43 mo / ~3.6 yr → 4)
+ * Matches the Loan_Term rounding rule used elsewhere (see convertLoanTermToYears).
  */
 export const deriveVarTerm = (introRatePeriod: string | number | null | undefined): string => {
   if (
@@ -377,9 +381,13 @@ export const deriveVarTerm = (introRatePeriod: string | number | null | undefine
 
   const numValue = Number(introRatePeriod);
 
-  // If it's a valid positive number, convert months to years with CEILING
   if (!isNaN(numValue) && numValue > 0) {
-    return String(Math.ceil(numValue / 12));
+    // Special case: terms of 6 months or less round UP to 1 year
+    if (numValue <= 6) return '1';
+
+    const years = Math.floor(numValue / 12);
+    const remainder = numValue % 12;
+    return String(remainder > 6 ? years + 1 : years);
   }
 
   return '';

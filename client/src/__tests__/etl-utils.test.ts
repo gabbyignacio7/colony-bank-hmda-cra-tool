@@ -140,11 +140,27 @@ describe('ETL Utilities', () => {
       expect(deriveVarTerm('N/A')).toBe('');
     });
 
-    it('converts months to years with ceiling', () => {
+    it('converts months to years with half-year rounding', () => {
+      // Exact year multiples
       expect(deriveVarTerm('12')).toBe('1');
-      expect(deriveVarTerm('13')).toBe('2');
       expect(deriveVarTerm('60')).toBe('5');
       expect(deriveVarTerm('84')).toBe('7');
+
+      // Half-year boundary rounds DOWN (remainder exactly 6)
+      expect(deriveVarTerm('30')).toBe('2'); // 2.5 yr -> 2
+      expect(deriveVarTerm('42')).toBe('3'); // 3.5 yr -> 3
+
+      // Past the half way point rounds UP (remainder > 6)
+      expect(deriveVarTerm('43')).toBe('4'); // ~3.58 yr -> 4
+      expect(deriveVarTerm('13')).toBe('1'); // 1y 1m -> 1
+      expect(deriveVarTerm('19')).toBe('2'); // 1y 7m -> 2
+    });
+
+    it('rounds UP to 1 year when term is 6 months or less', () => {
+      expect(deriveVarTerm('1')).toBe('1');
+      expect(deriveVarTerm('3')).toBe('1');
+      expect(deriveVarTerm('6')).toBe('1');
+      expect(deriveVarTerm(5)).toBe('1');
     });
   });
 

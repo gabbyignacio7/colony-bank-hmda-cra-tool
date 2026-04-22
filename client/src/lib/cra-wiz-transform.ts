@@ -261,7 +261,7 @@ export const OUTPUT_COLUMNS: string[] = [
   'EditCkComments', // Blank (manual entry)
   'Comments', // Blank (manual entry)
   'RATETYPE', // Derived from IntroRatePeriod (1=Fixed, 2=Variable)
-  'VAR_TERM', // Derived from IntroRatePeriod (months to years with ceiling)
+  'VAR_TERM', // Derived from IntroRatePeriod (months to years with half-year rounding; <=6 mo -> 1)
 ];
 
 export interface CRAWizRow {
@@ -380,7 +380,8 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
           output[col] = !isNaN(numVal) && numVal > 0 ? '2' : '1'; // Variable if positive number
         }
       } else if (col === 'VAR_TERM') {
-        // Derive from INTRORATEPERIOD: convert months to years (ceiling), blank for fixed
+        // Derive from INTRORATEPERIOD: months -> years with half-year rounding.
+        // <=6 mo rounds UP to 1; otherwise remainder >6 rounds up, <=6 rounds down.
         const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? '';
         if (
           introRate === '' ||
@@ -393,7 +394,17 @@ export const transformToWorkItemFormat = (data: any[]): any[] => {
           output[col] = ''; // Fixed rate loans have no Var_Term
         } else {
           const numVal = Number(introRate);
-          output[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
+          if (!isNaN(numVal) && numVal > 0) {
+            if (numVal <= 6) {
+              output[col] = '1';
+            } else {
+              const years = Math.floor(numVal / 12);
+              const remainder = numVal % 12;
+              output[col] = String(remainder > 6 ? years + 1 : years);
+            }
+          } else {
+            output[col] = '';
+          }
         }
       } else if (col === 'LOAN_TERM') {
         // Loan_Term = months to years with half-year rounding (>6 mo rounds up, <=6 rounds down)
@@ -491,7 +502,8 @@ export const transformCRAWizExport = (
           outputRow[col] = !isNaN(numVal) && numVal > 0 ? '2' : '1';
         }
       } else if (col === 'VAR_TERM') {
-        // Derive from INTRORATEPERIOD: convert months to years (ceiling), blank for fixed
+        // Derive from INTRORATEPERIOD: months -> years with half-year rounding.
+        // <=6 mo rounds UP to 1; otherwise remainder >6 rounds up, <=6 rounds down.
         const introRate = row.INTRORATEPERIOD ?? row.IntroRatePeriod ?? '';
         if (
           introRate === '' ||
@@ -504,7 +516,17 @@ export const transformCRAWizExport = (
           outputRow[col] = '';
         } else {
           const numVal = Number(introRate);
-          outputRow[col] = !isNaN(numVal) && numVal > 0 ? String(Math.ceil(numVal / 12)) : '';
+          if (!isNaN(numVal) && numVal > 0) {
+            if (numVal <= 6) {
+              outputRow[col] = '1';
+            } else {
+              const years = Math.floor(numVal / 12);
+              const remainder = numVal % 12;
+              outputRow[col] = String(remainder > 6 ? years + 1 : years);
+            }
+          } else {
+            outputRow[col] = '';
+          }
         }
       } else if (col === 'LOAN_TERM') {
         // Loan_Term = months to years with half-year rounding (>6 mo rounds up, <=6 rounds down)

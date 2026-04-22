@@ -137,7 +137,7 @@ export const HMDA_COLUMN_ORDER: string[] = [
   'OpenLOC', // Col 122 - From Encompass
   'BUSCML', // Col 123 - From Encompass
   'RateType', // Col 124 - Derived from IntroRatePeriod (1=Fixed, 2=Variable)
-  'Var_Term', // Col 125 - Derived from IntroRatePeriod (months to years with ceiling)
+  'Var_Term', // Col 125 - Derived from IntroRatePeriod (months to years with half-year rounding; <=6 mo -> 1)
   'EditStatus', // Col 126 - Blank (manual entry)
   'EditCkComments', // Col 127 - Blank (manual entry)
   'Comments', // Col 128 - Blank (manual entry)
